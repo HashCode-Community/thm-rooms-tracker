@@ -18,7 +18,9 @@
     "format": "biome format --write .",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
-    "db:logs": "docker compose logs -f postgres"
+    "db:logs": "docker compose logs -f postgres",
+    "data:audit": "node --import tsx apps/api/src/scripts/audit-dataset.ts",
+    "data:csv": "node --import tsx apps/api/src/scripts/export-csv.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.12",

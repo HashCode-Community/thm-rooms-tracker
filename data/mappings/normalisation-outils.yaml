@@ -1,0 +1,141 @@
+# =============================================================================
+# NORMALISATION DES NOMS D'OUTILS
+# =============================================================================
+#
+# ETAT : PROPOSITION. RIEN N'EST APPLIQUE.
+#
+# Les sections `merge` et `rename` ci-dessous sont volontairement VIDES.
+# Les propositions sont en commentaires, pretes a etre decommentees UNE FOIS
+# VALIDEES PAR NEL. Tant qu'une ligne est commentee, l'importer l'ignore.
+#
+# Ce fichier est la seule voie autorisee pour corriger un nom d'outil.
+# Aucune correction en dur dans le code : la donnee source doit rester intacte
+# et la transformation rejouable.
+#
+# -----------------------------------------------------------------------------
+# LA REGLE QUI DECIDE merge OU rename
+# -----------------------------------------------------------------------------
+#
+# Appliquee dans cet ordre exact, sans exception :
+#
+#   1. retrait du suffixe d'affichage :  /\s*-?\s*NEW$/i
+#   2. trim()
+#   3. comparaison casefold()  (trim + minuscules) pour chercher un jumeau
+#
+#   -> un jumeau existe      => `merge`   (deux valeurs convergent vers une seule)
+#   -> aucun jumeau          => `rename`  (orphelin : on retire juste le badge)
+#
+# Le tiret optionnel de l'etape 1 est indispensable. Sans lui, "Empire - NEW"
+# donne "Empire -", et son jumeau "Empire" (2 occurrences) n'est jamais trouve.
+#
+# La casefold de l'etape 3 est tout aussi indispensable : "Enum4Linux NEW"
+# donne "Enum4Linux", dont le jumeau reel s'ecrit "Enum4linux", avec un L
+# minuscule. Une comparaison sensible a la casse le classerait a tort en
+# `rename`.
+#
+# Implementation de reference : apps/api/src/scripts/dataset-analysis.ts,
+# fonction `analyseToolNames`. Chiffres a jour dans le dernier rapport
+# data/reports/audit-*.md.
+#
+# -----------------------------------------------------------------------------
+# CHIFFRES OBSERVES (dataset 1.0.0, sha256 15b1dd50...)
+# -----------------------------------------------------------------------------
+#
+#   186 outils distincts au total
+#    12 valeurs distinctes portant " NEW", 17 occurrences, sur 14 rooms
+#     5 d'entre elles ont un jumeau  -> merge
+#     7 sont orphelines              -> rename
+#     2 fautes de frappe averees     -> merge
+#     = 7 merges et 7 renames proposes ci-dessous
+#
+# =============================================================================
+
+version: 1
+
+# -----------------------------------------------------------------------------
+# merge : plusieurs ecritures d'un MEME outil convergent vers une forme canonique.
+# Le comptage des facettes additionne les occurrences des variantes.
+# -----------------------------------------------------------------------------
+merge: {}
+
+# PROPOSITIONS (decommenter apres validation) :
+#
+# merge:
+#   # --- issus du suffixe " NEW" (la forme nue existe deja) ---
+#   "Empire":
+#     # "Empire - NEW" porte en plus un tiret parasite. 2 + 1 = 3 occurrences.
+#     - "Empire - NEW"
+#   "MITRE ATT&CK Framework":
+#     # 2 + 2 = 4 occurrences.
+#     - "MITRE ATT&CK Framework NEW"
+#   "Enum4Linux":
+#     # ATTENTION : la forme nue du dataset s'ecrit "Enum4linux" (l minuscule),
+#     # la forme canonique retenue est "Enum4Linux" (casse reelle de l'outil).
+#     # Les DEUX variantes sont donc a fusionner. 2 + 1 = 3 occurrences.
+#     - "Enum4linux"
+#     - "Enum4Linux NEW"
+#   "Hydra":
+#     # 27 + 1 = 28 occurrences. A ne pas confondre avec Ghidra, outil distinct.
+#     - "Hydra NEW"
+#   "Responder":
+#     # 3 + 1 = 4 occurrences.
+#     - "Responder NEW"
+#
+#   # --- fautes de frappe averees ---
+#   "Burp Suite":
+#     # 47 + 1 = 48 occurrences.
+#     - "Burpe Suite"
+#   "Autopsy":
+#     # 3 + 1 = 4 occurrences.
+#     - "Autospy"
+
+# -----------------------------------------------------------------------------
+# rename : l'outil n'a qu'une ecriture, on retire seulement le badge d'affichage.
+# Aucune fusion, aucun comptage n'est modifie : seul le libelle change.
+#
+# NOTE : c'est bien une modification de la donnee affichee. Elle est ici parce
+# que Nel l'a explicitement validee (reponse Q3) : " NEW" est un badge du site
+# TryHackMe, pas un element du nom de l'outil.
+# -----------------------------------------------------------------------------
+rename: {}
+
+# PROPOSITIONS (decommenter apres validation) :
+#
+# rename:
+#   "ATT&CK Navigator NEW": "ATT&CK Navigator"   # 2 occurrences
+#   "Audit Policy NEW": "Audit Policy"           # 1 occurrence
+#   "Event Viewer NEW": "Event Viewer"           # 3 occurrences
+#   "Log Viewer NEW": "Log Viewer"               # 1 occurrence
+#   "Microsoft Outlook NEW": "Microsoft Outlook" # 1 occurrence
+#   "Netcat NEW": "Netcat"                       # 2 occurrences
+#   "Pwntools NEW": "Pwntools"                   # 1 occurrence
+
+# -----------------------------------------------------------------------------
+# trim : espaces parasites. Traite systematiquement a l'import sur TOUS les
+# champs texte (decision Q5), donc rien a declarer ici. Liste pour memoire :
+#
+#   " Microsoft Sentinel"  -> "Microsoft Sentinel"   (1 outil)
+#   14 titres de rooms
+#   37 descriptions de rooms
+# -----------------------------------------------------------------------------
+
+# =============================================================================
+# NE PAS FUSIONNER — liste de garde
+# =============================================================================
+#
+# Ces paires se ressemblent (distance d'edition 1 ou 2) mais designent des
+# outils REELLEMENT DISTINCTS. Toute detection automatique par similarite les
+# fusionnerait a tort. C'est la raison pour laquelle aucune fusion automatique
+# n'est implementee : la liste `merge` ci-dessus est close et saisie a la main.
+#
+#   LinPeas       / WinPeas        Linux vs Windows. Enumeration par plateforme.
+#   LECmd.exe     / PECmd.exe      Parseurs forensiques : LNK vs Prefetch.
+#   Netcat        / Ncat           Ncat est la reimplementation du projet Nmap.
+#                                  ("Netcat" nu = 0 occurrence, "Ncat" = 6)
+#   DnSpy         / ILSpy          Deux decompilateurs .NET differents.
+#                                  (DnSpy = 2 occurrences, ILSpy = 1)
+#   ProcDOT       / Procmon        Visualisation vs capture d'evenements.
+#   Ghidra        / Hydra          Retro-ingenierie vs cassage de mots de passe.
+#   Empire        / Impacket       Rien a voir, cites pour eviter tout raccourci.
+#
+# =============================================================================

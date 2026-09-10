@@ -10,7 +10,9 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@thm/shared": "workspace:*",
     "fastify": "^5.12.3",
-    "postgres": "^3.4.9"
+    "postgres": "^3.4.9",
+    "zod": "^4.6.1"
   }
 }
