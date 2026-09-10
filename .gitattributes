@@ -1,19 +1,28 @@
-# Fins de ligne : LF dans le depot ET dans la copie de travail, quelle que soit
-# la plateforme. Sans cette regle, core.autocrlf=true (defaut Windows) reecrit
-# les fichiers a la volee et les diffs deviennent illisibles entre postes.
+# ---------------------------------------------------------------------------
+# Normalisation des fins de ligne.
+#
+# Par defaut : LF dans l'index ET dans la copie de travail, quelle que soit la
+# plateforme. Sans cette regle, `core.autocrlf` peut differer d'un poste a
+# l'autre et chaque fichier source devient un diff fantome complet.
+# ---------------------------------------------------------------------------
 * text=auto eol=lf
 
 # ---------------------------------------------------------------------------
-# ZONE INTOUCHABLE : source de verite du catalogue.
+# ZONE INTOUCHABLE : source de verite du catalogue et son sidecar d'integrite.
 #
-# Le dataset est verifie par SHA-256 sur ses OCTETS BRUTS via le fichier
-# voisin `rooms.v1.json.sha256`. Toute normalisation de fin de ligne par git
-# modifierait ces octets et ferait echouer la verification d'integrite au
-# prochain clone. `-text` desactive toute conversion, dans les deux sens.
+# `rooms.v1.json` est verifie par SHA-256 sur ses OCTETS BRUTS via le fichier
+# voisin `rooms.v1.json.sha256`. Toute conversion de fin de ligne par git
+# modifierait ces octets et ferait echouer la verification AU CHECKOUT, pas au
+# commit : le mode de defaillance est invisible sur le poste qui a produit le
+# fichier et n'apparait que sur un clone neuf.
 #
 # NE PAS MODIFIER SANS ACCORD MALICK + NEL.
 # ---------------------------------------------------------------------------
 data/datasets/** -text
+
+# Scripts Windows : cmd.exe ne tolere pas les fins de ligne LF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
 
 # Lockfile : genere, replie dans les diffs de PR.
 pnpm-lock.yaml linguist-generated=true
