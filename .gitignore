@@ -1,0 +1,25 @@
+# Dependances
+node_modules/
+
+# Build
+dist/
+build/
+*.tsbuildinfo
+
+# Environnement (jamais commite : voir .env.example)
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Outils
+.DS_Store
+Thumbs.db
+.vite/
+coverage/
+
+# Captures d ecran de verification manuelle.

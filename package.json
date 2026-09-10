@@ -1,0 +1,28 @@
+{
+  "name": "thm-roadmap",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Plateforme d'apprentissage cybersecurite basee sur les rooms gratuites TryHackMe",
+  "packageManager": "pnpm@12.3.4",
+  "engines": {
+    "node": ">=24.0.0 <25"
+  },
+  "scripts": {
+    "dev": "pnpm -r --parallel run dev",
+    "build": "pnpm -r run build",
+    "typecheck": "pnpm -r run typecheck",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:logs": "docker compose logs -f postgres"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.12",
+    "@types/node": "^24.13.4",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2"
+  }
+}
