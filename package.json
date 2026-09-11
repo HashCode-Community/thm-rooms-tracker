@@ -20,7 +20,10 @@
     "db:down": "docker compose down",
     "db:logs": "docker compose logs -f postgres",
     "data:audit": "node --import tsx apps/api/src/scripts/audit-dataset.ts",
-    "data:csv": "node --import tsx apps/api/src/scripts/export-csv.ts"
+    "data:csv": "node --import tsx apps/api/src/scripts/export-csv.ts",
+    "db:generate": "pnpm --filter @thm/api run db:generate",
+    "db:migrate": "pnpm --filter @thm/api run db:migrate",
+    "db:seed": "pnpm --filter @thm/api run db:seed"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.12",

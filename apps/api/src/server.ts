@@ -1,5 +1,13 @@
+import fastifySwagger from "@fastify/swagger";
+import fastifySwaggerUi from "@fastify/swagger-ui";
 import Fastify from "fastify";
-import { closeDatabase, pingDatabase } from "./db/client.js";
+import {
+  jsonSchemaTransform,
+  serializerCompiler,
+  validatorCompiler,
+} from "fastify-type-provider-zod";
+import { closeDatabase } from "./db/client.js";
+import { healthRoutes } from "./routes/health.js";
 
 const HOST = process.env.API_HOST ?? "127.0.0.1";
 const PORT = Number.parseInt(process.env.API_PORT ?? "3000", 10);
@@ -10,23 +18,26 @@ const app = Fastify({
   },
 });
 
-/**
- * Sonde de vie. `db` n'est "ok" qu'apres un SELECT 1 reellement execute :
- * un health check qui ne touche pas la base ne prouve rien.
- */
-app.get("/health", async (_request, reply) => {
-  try {
-    const reachable = await pingDatabase();
-    if (!reachable) {
-      return reply.code(503).send({ status: "error", db: "error" });
-    }
-    return { status: "ok", db: "ok" };
-  } catch (error) {
-    // Le detail reste dans les logs serveur, jamais dans la reponse client.
-    app.log.error({ err: error }, "health: le SELECT 1 a echoue");
-    return reply.code(503).send({ status: "error", db: "error" });
-  }
+// Zod valide les entrees ET genere l'OpenAPI a partir des memes schemas :
+// une seule definition, pas de doc a maintenir en parallele du code.
+app.setValidatorCompiler(validatorCompiler);
+app.setSerializerCompiler(serializerCompiler);
+
+await app.register(fastifySwagger, {
+  openapi: {
+    info: {
+      title: "THM Roadmap API",
+      description:
+        "Catalogue et parcours d'apprentissage construits sur les rooms gratuites TryHackMe. " +
+        "Projet non affilie a TryHackMe : seules des metadonnees publiques sont exposees.",
+      version: "0.1.0",
+    },
+  },
+  transform: jsonSchemaTransform,
 });
+await app.register(fastifySwaggerUi, { routePrefix: "/docs" });
+
+await app.register(healthRoutes);
 
 async function shutdown(signal: string): Promise<void> {
   app.log.info({ signal }, "arret demande, fermeture propre");

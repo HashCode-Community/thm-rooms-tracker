@@ -1,12 +1,12 @@
 {
+  "//": "Config de TYPECHECK : couvre src ET tests. Le build utilise tsconfig.build.json, qui impose un rootDir a src.",
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "types": ["node"],
-    "outDir": "dist",
-    "rootDir": "src"
+    "noEmit": true
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "tests/**/*.ts", "drizzle.config.ts"],
   "exclude": ["dist", "node_modules"]
 }
