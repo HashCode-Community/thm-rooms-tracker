@@ -2,11 +2,10 @@
 # NORMALISATION DES NOMS D'OUTILS
 # =============================================================================
 #
-# ETAT : PROPOSITION. RIEN N'EST APPLIQUE.
+# ETAT : VALIDE PAR NEL (reponse Q9, phase 2) ET APPLIQUE.
 #
-# Les sections `merge` et `rename` ci-dessous sont volontairement VIDES.
-# Les propositions sont en commentaires, pretes a etre decommentees UNE FOIS
-# VALIDEES PAR NEL. Tant qu'une ligne est commentee, l'importer l'ignore.
+# `merge` et `rename` sont actifs. `canonical` reste vide, et c'est normal :
+# voir la note au-dessus de cette section.
 #
 # Ce fichier est la seule voie autorisee pour corriger un nom d'outil.
 # Aucune correction en dur dans le code : la donnee source doit rester intacte
@@ -79,41 +78,35 @@ version: 1
 # merge : plusieurs ecritures d'un MEME outil convergent vers une forme canonique.
 # Le comptage des facettes additionne les occurrences des variantes.
 # -----------------------------------------------------------------------------
-merge: {}
+merge:
+  # --- issus du suffixe " NEW" (la forme nue existe deja) ---
+  "Empire":
+    # "Empire - NEW" porte en plus un tiret parasite. 2 + 1 = 3 occurrences.
+    - "Empire - NEW"
+  "MITRE ATT&CK Framework":
+    # 2 + 2 = 4 occurrences.
+    - "MITRE ATT&CK Framework NEW"
+  "enum4linux":
+    # Forme canonique TOUT EN MINUSCULES : c'est un script Perl, le binaire
+    # s'appelle `enum4linux`, comme `enum4linux-ng`. "Enum4Linux" aurait ete une
+    # TROISIEME variante inventee, pas la casse reelle.
+    # Les DEUX variantes source sont listees. 2 + 1 = 3 occurrences.
+    - "Enum4linux"
+    - "Enum4Linux NEW"
+  "Hydra":
+    # 27 + 1 = 28 occurrences. A ne pas confondre avec Ghidra, outil distinct.
+    - "Hydra NEW"
+  "Responder":
+    # 3 + 1 = 4 occurrences.
+    - "Responder NEW"
 
-# PROPOSITIONS (decommenter apres validation) :
-#
-# merge:
-#   # --- issus du suffixe " NEW" (la forme nue existe deja) ---
-#   "Empire":
-#     # "Empire - NEW" porte en plus un tiret parasite. 2 + 1 = 3 occurrences.
-#     - "Empire - NEW"
-#   "MITRE ATT&CK Framework":
-#     # 2 + 2 = 4 occurrences.
-#     - "MITRE ATT&CK Framework NEW"
-#   "enum4linux":
-#     # Forme canonique : TOUT EN MINUSCULES. C'est un script Perl, le binaire
-#     # s'appelle `enum4linux`, comme `enum4linux-ng`. "Enum4Linux" aurait ete
-#     # une TROISIEME variante inventee, pas la casse reelle.
-#     # Avec la separation slug/name, seule la ligne " NEW" est indispensable :
-#     # "Enum4linux" et "enum4linux" produisent deja le meme slug. Elle est
-#     # conservee pour fixer le `name` affiche. 2 + 1 = 3 occurrences.
-#     - "Enum4linux"
-#     - "Enum4Linux NEW"
-#   "Hydra":
-#     # 27 + 1 = 28 occurrences. A ne pas confondre avec Ghidra, outil distinct.
-#     - "Hydra NEW"
-#   "Responder":
-#     # 3 + 1 = 4 occurrences.
-#     - "Responder NEW"
-#
-#   # --- fautes de frappe averees ---
-#   "Burp Suite":
-#     # 47 + 1 = 48 occurrences.
-#     - "Burpe Suite"
-#   "Autopsy":
-#     # 3 + 1 = 4 occurrences.
-#     - "Autospy"
+  # --- fautes de frappe averees ---
+  "Burp Suite":
+    # 47 + 1 = 48 occurrences.
+    - "Burpe Suite"
+  "Autopsy":
+    # 3 + 1 = 4 occurrences.
+    - "Autospy"
 
 # -----------------------------------------------------------------------------
 # rename : l'outil n'a qu'une ecriture, on retire seulement le badge d'affichage.
@@ -123,18 +116,14 @@ merge: {}
 # que Nel l'a explicitement validee (reponse Q3) : " NEW" est un badge du site
 # TryHackMe, pas un element du nom de l'outil.
 # -----------------------------------------------------------------------------
-rename: {}
-
-# PROPOSITIONS (decommenter apres validation) :
-#
-# rename:
-#   "ATT&CK Navigator NEW": "ATT&CK Navigator"   # 2 occurrences
-#   "Audit Policy NEW": "Audit Policy"           # 1 occurrence
-#   "Event Viewer NEW": "Event Viewer"           # 3 occurrences
-#   "Log Viewer NEW": "Log Viewer"               # 1 occurrence
-#   "Microsoft Outlook NEW": "Microsoft Outlook" # 1 occurrence
-#   "Netcat NEW": "Netcat"                       # 2 occurrences
-#   "Pwntools NEW": "Pwntools"                   # 1 occurrence
+rename:
+  "ATT&CK Navigator NEW": "ATT&CK Navigator"   # 2 occurrences
+  "Audit Policy NEW": "Audit Policy"           # 1 occurrence
+  "Event Viewer NEW": "Event Viewer"           # 3 occurrences
+  "Log Viewer NEW": "Log Viewer"               # 1 occurrence
+  "Microsoft Outlook NEW": "Microsoft Outlook" # 1 occurrence
+  "Netcat NEW": "Netcat"                       # 2 occurrences
+  "Pwntools NEW": "Pwntools"                   # 1 occurrence
 
 # =============================================================================
 # canonical : forme d'affichage imposee en cas de COLLISION DE SLUG
@@ -158,16 +147,22 @@ rename: {}
 # Cle = le slug en collision. Valeur = le `name` a afficher.
 # -----------------------------------------------------------------------------
 
-canonical: {}
-
-# PROPOSITIONS (decommenter apres validation) :
+# VIDE, ET C'EST NORMAL — le garde est dormant, pas inutile.
 #
-# canonical:
-#   # Collision creee par le mapping lui-meme : "Enum4Linux NEW" depouille de son
-#   # suffixe devient "Enum4Linux", forme ABSENTE de la source, qui ne rejoint
-#   # "Enum4linux" que par la casefold du slug.
-#   # Forme retenue : tout en minuscules, c'est le nom du script Perl.
-#   enum4linux: "enum4linux"
+# Avec le mapping ci-dessus, AUCUNE collision de slug ne se produit : le `merge`
+# de "enum4linux" liste explicitement les deux variantes source, donc elles
+# convergent des le niveau du NOM, avant la slugification. Il n'y a rien a
+# arbitrer.
+#
+# La collision n'apparaitrait qu'avec un mapping ecrit autrement — par exemple un
+# `rename` de "Enum4Linux NEW" vers "Enum4Linux" laissant "Enum4linux" intact :
+# les deux formes ne se rejoindraient alors que par la casefold du slug.
+# Verifie : dans ce cas l'importer refuse de tourner et indique la ligne a
+# ajouter ici.
+#
+# Le garde existe donc pour le jour ou TryHackMe introduira une variante de
+# casse, ou pour une reecriture de ce fichier. Il ne sert a rien aujourd'hui.
+canonical: {}
 
 # -----------------------------------------------------------------------------
 # trim : espaces parasites. Traite systematiquement a l'import sur TOUS les
