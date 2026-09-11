@@ -136,6 +136,39 @@ rename: {}
 #   "Netcat NEW": "Netcat"                       # 2 occurrences
 #   "Pwntools NEW": "Pwntools"                   # 1 occurrence
 
+# =============================================================================
+# canonical : forme d'affichage imposee en cas de COLLISION DE SLUG
+# =============================================================================
+#
+# Quand deux valeurs distinctes produisent le meme `tags.slug`, elles ne font
+# qu'une seule ligne en base. Il faut alors decider laquelle atterrit dans
+# `tags.name`.
+#
+# SANS cette section, la reponse serait « la premiere rencontree », donc l'ORDRE
+# DE PARCOURS des rooms. Le dataset est trie par `code`, donc c'est stable
+# aujourd'hui. Mais au prochain scrape, si l'ordre change ou si une room
+# disparait, le nom affiche peut basculer d'une variante a l'autre. Le rapport
+# d'import signalerait une modification que personne ne saurait expliquer, et on
+# chercherait un bug qui n'existe pas.
+#
+# REGLE : l'importer REFUSE DE TOURNER s'il rencontre une collision de slug sans
+# forme canonique declaree ici. Meme philosophie que le garde des 5 % : quand
+# deux donnees se contredisent, on s'arrete, on ne devine pas.
+#
+# Cle = le slug en collision. Valeur = le `name` a afficher.
+# -----------------------------------------------------------------------------
+
+canonical: {}
+
+# PROPOSITIONS (decommenter apres validation) :
+#
+# canonical:
+#   # Collision creee par le mapping lui-meme : "Enum4Linux NEW" depouille de son
+#   # suffixe devient "Enum4Linux", forme ABSENTE de la source, qui ne rejoint
+#   # "Enum4linux" que par la casefold du slug.
+#   # Forme retenue : tout en minuscules, c'est le nom du script Perl.
+#   enum4linux: "enum4linux"
+
 # -----------------------------------------------------------------------------
 # trim : espaces parasites. Traite systematiquement a l'import sur TOUS les
 # champs texte (decision Q5), donc rien a declarer ici. Liste pour memoire :

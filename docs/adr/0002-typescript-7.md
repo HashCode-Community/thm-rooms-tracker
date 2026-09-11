@@ -107,8 +107,23 @@ la prudence sans objet identifiable.
 - `typescript` est épinglé à `7.0.2` dans les `devDependencies` de la racine.
 - `apps/api/tests/type-inference.probe.ts` fait partie du `typecheck` et donc de la CI. **Ne pas le
   supprimer** : c'est lui qui rend la dégradation d'inférence visible.
-- Deux `tsconfig` dans `apps/api` : `tsconfig.json` typecheck (src + tests), `tsconfig.build.json`
-  build (src seul, avec `rootDir`). La sonde ne doit pas finir dans le bundle de production.
+- **Trois `tsconfig` dans `apps/api`**, conséquence directe de l'adoption de la sonde :
+
+  | Fichier | Périmètre | Attendu |
+  |---|---|---|
+  | `tsconfig.json` | `src` + `tests` (hors fixtures) | exit 0 — c'est `pnpm typecheck` |
+  | `tsconfig.build.json` | `src` seul, avec `rootDir` | exit 0 — la sonde ne doit pas finir dans le bundle |
+  | `tsconfig.guard.json` | la fixture empoisonnée seule | **exit 1** — c'est ce qui prouve que la sonde mord |
+
+  Séparer le périmètre du typecheck de celui du build est nécessaire : un `rootDir` sur `src`
+  interdit de typechecker `tests/`, et inclure `tests/` dans le build embarquerait la sonde en
+  production.
+
+- **`pnpm typecheck:guard` compile la fixture figée et exige `EXIT=1`.** Un garde peut cesser de
+  garder, lui aussi en silence : il suffit que quelqu'un vide les assertions de la sonde et tout
+  reste vert. Le garde a été vérifié en affaiblissant volontairement `assertNotAny` et
+  `assertExact` — il a bien détecté sa propre neutralisation et refusé de passer. Il doit être une
+  étape de la CI en phase 10.
 
 ## À réévaluer
 

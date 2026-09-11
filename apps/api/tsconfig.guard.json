@@ -1,0 +1,11 @@
+{
+  "//": "Compile UNIQUEMENT la fixture empoisonnee. `pnpm typecheck:guard` exige que tsc ECHOUE ici : c'est ce qui prouve que la sonde d'inference est encore capable de mordre.",
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": ["node"],
+    "noEmit": true
+  },
+  "include": ["tests/fixtures/type-inference.poisoned.ts"]
+}

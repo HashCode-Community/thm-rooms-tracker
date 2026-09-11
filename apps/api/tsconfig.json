@@ -4,9 +4,19 @@
   "compilerOptions": {
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "types": ["node"],
+    "types": [
+      "node"
+    ],
     "noEmit": true
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts", "drizzle.config.ts"],
-  "exclude": ["dist", "node_modules"]
+  "include": [
+    "src/**/*.ts",
+    "tests/**/*.ts",
+    "drizzle.config.ts"
+  ],
+  "exclude": [
+    "dist",
+    "node_modules",
+    "tests/fixtures"
+  ]
 }

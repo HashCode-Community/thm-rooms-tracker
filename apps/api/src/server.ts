@@ -23,19 +23,28 @@ const app = Fastify({
 app.setValidatorCompiler(validatorCompiler);
 app.setSerializerCompiler(serializerCompiler);
 
-await app.register(fastifySwagger, {
-  openapi: {
-    info: {
-      title: "THM Roadmap API",
-      description:
-        "Catalogue et parcours d'apprentissage construits sur les rooms gratuites TryHackMe. " +
-        "Projet non affilie a TryHackMe : seules des metadonnees publiques sont exposees.",
-      version: "0.1.0",
+// Swagger UI n'est PAS expose en production. Une plateforme de cybersecurite qui
+// publie sa surface d'API complete en clair est exactement l'ironie qu'on nous
+// ressortirait. Point de la checklist phase 9, traite des maintenant parce que la
+// mise en ligne precede la phase 9 dans l'ordonnancement du brief.
+const isProduction = process.env.NODE_ENV === "production";
+
+if (!isProduction) {
+  await app.register(fastifySwagger, {
+    openapi: {
+      info: {
+        title: "THM Roadmap API",
+        description:
+          "Catalogue et parcours d'apprentissage construits sur les rooms gratuites TryHackMe. " +
+          "Projet non affilie a TryHackMe : seules des metadonnees publiques sont exposees.",
+        version: "0.1.0",
+      },
     },
-  },
-  transform: jsonSchemaTransform,
-});
-await app.register(fastifySwaggerUi, { routePrefix: "/docs" });
+    transform: jsonSchemaTransform,
+  });
+  await app.register(fastifySwaggerUi, { routePrefix: "/docs" });
+  app.log.info("/docs actif (NODE_ENV != production)");
+}
 
 await app.register(healthRoutes);
 

@@ -1,24 +1,29 @@
-import { count, eq } from "drizzle-orm";
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 import { z } from "zod";
-import { db, pingDatabase } from "../db/client.js";
-import { rooms } from "../db/schema.js";
+import { pingDatabase } from "../db/client.js";
 
 /**
  * Sonde de vie.
  *
- * Sert aussi de porte de validation TypeScript 7 (ADR-0002) : cette route
- * confronte dans un meme fichier les deux bibliotheques les plus lourdes en
- * programmation au niveau types de la stack, `fastify-type-provider-zod` et
- * Drizzle. C'est la ou un compilateur majeur tout neuf casse, pas sur deux
- * applications vides.
+ * Typee par Zod : les memes schemas valident la reponse et generent l'OpenAPI.
+ *
+ * La confrontation TypeScript 7 / Drizzle / fastify-type-provider-zod qui a servi
+ * a franchir la porte C2 (ADR-0002) vit desormais dans
+ * tests/type-inference.probe.ts, ou elle a sa place : verifier l'inference n'est
+ * pas le travail d'un endpoint de production.
  */
 
+/**
+ * Repond a « suis-je vivant », PAS a « que contient ma base ».
+ *
+ * Aucun compteur metier ici, volontairement : un /health qui execute une requete
+ * metier finit par echouer parce que cette requete est lente, et un load
+ * balancer retire alors un serveur parfaitement sain. Le nombre de rooms
+ * appartient a /api/stats (phase 5).
+ */
 const HealthResponseSchema = z.object({
   status: z.literal("ok"),
   db: z.literal("ok"),
-  /** Nombre de rooms actives. 0 tant que l'import de la phase 4 n'a pas tourne. */
-  activeRooms: z.number().int().nonnegative(),
 });
 
 const HealthErrorSchema = z.object({
@@ -49,14 +54,7 @@ export const healthRoutes: FastifyPluginAsyncZod = async (app) => {
           return reply.code(503).send({ status: "error", db: "error" } as const);
         }
 
-        // Requete Drizzle typee : l'inference doit remonter jusqu'ici sans se
-        // degrader en `any`. C'est precisement ce que la porte C2 verifie.
-        const [row] = await db
-          .select({ total: count() })
-          .from(rooms)
-          .where(eq(rooms.isActive, true));
-
-        return { status: "ok", db: "ok", activeRooms: row?.total ?? 0 } as const;
+        return { status: "ok", db: "ok" } as const;
       } catch (error) {
         // Le detail reste dans les logs serveur, jamais dans la reponse client.
         app.log.error({ err: error }, "health: le SELECT 1 a echoue");

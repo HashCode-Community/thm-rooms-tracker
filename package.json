@@ -23,7 +23,8 @@
     "data:csv": "node --import tsx apps/api/src/scripts/export-csv.ts",
     "db:generate": "pnpm --filter @thm/api run db:generate",
     "db:migrate": "pnpm --filter @thm/api run db:migrate",
-    "db:seed": "pnpm --filter @thm/api run db:seed"
+    "db:seed": "pnpm --filter @thm/api run db:seed",
+    "typecheck:guard": "pnpm --filter @thm/api run typecheck:guard"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.12",

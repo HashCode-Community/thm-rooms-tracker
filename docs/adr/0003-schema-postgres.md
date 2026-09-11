@@ -44,19 +44,44 @@ parce que l'importer est la seule voie d'écriture sur ces tables.
 casse ou la ponctuation produisent le même `slug`, donc le même tag, sans que le mapping ait à les
 lister. Le `name` se change ensuite sans migration.
 
-**Vérifié avant d'adopter**, sur le dataset réel après application du mapping :
+**Vérifié avant d'adopter**, sur le dataset réel, aux deux étapes — les deux décomptes sont exacts
+et mesurent deux choses différentes :
 
 ```
-outils        180 valeurs -> 179 slugs   1 collision : "enum4linux" <- [Enum4linux, Enum4Linux]
-competences   103 valeurs -> 103 slugs   0 collision
-technologies   15 valeurs ->  15 slugs   0 collision
+BRUT (aucun mapping)
+  outils        186 valeurs -> 186 slugs   0 collision
+  competences   103 valeurs -> 103 slugs   0 collision
+  technologies   15 valeurs ->  15 slugs   0 collision
+
+APRES MAPPING
+  outils        180 valeurs -> 179 slugs   1 collision : "enum4linux" <- [Enum4linux, Enum4Linux]
+  competences   103 valeurs -> 103 slugs   0 collision
+  technologies   15 valeurs ->  15 slugs   0 collision
 ```
 
-L'unique collision est exactement la paire qu'on veut fusionner. **Zéro faux positif** : la
-déduplication structurelle est sûre sur ces données.
+### Le mapping est le mécanisme, le slug est le filet
 
-Conséquence : `data/mappings/normalisation-outils.yaml` ne sert plus qu'aux cas que la normalisation
-ne peut pas attraper — les suffixes d'affichage `" NEW"` et les fautes de frappe.
+Il serait faux de dire que « deux variantes produisent le même slug, donc le même tag, sans que le
+mapping ait à les lister ». **Sur les données brutes, la couche slug ne déduplique strictement
+rien** : zéro collision sur les trois facettes. C'est le mapping qui fait tout le travail.
+
+L'arithmétique le montre : 186 − 6 fusions directes = 180, puis le slug en absorbe une septième
+= 179. Le seul cas que le filet attrape est un cas que le mapping **crée** lui-même :
+`Enum4Linux NEW` dépouillé de son suffixe devient `Enum4Linux`, une forme **absente de la source**,
+qui ne rejoint `Enum4linux` que par la casefold du slug.
+
+Les deux couches sont nécessaires et **ne se remplacent pas** :
+
+| Couche | Rôle | Utilité aujourd'hui |
+|---|---|---|
+| mapping | le mécanisme : suffixes, fautes de frappe | 6 fusions sur 7 |
+| slug | le filet : variantes de casse et de ponctuation | 1 fusion, celle que le mapping crée |
+
+Le filet ne sert quasiment à rien aujourd'hui. Il servira le jour où TryHackMe introduira une
+variante de casse — et ce jour-là, personne ne le verra venir. C'est précisément la raison de le
+poser maintenant.
+
+**Zéro faux positif** sur les deux mesures : aucun outil distinct n'est fusionné par erreur.
 
 ## 3. Deux conventions de casse opposées, volontairement
 
