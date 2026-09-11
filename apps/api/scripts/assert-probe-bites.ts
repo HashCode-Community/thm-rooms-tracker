@@ -26,10 +26,7 @@ const EXPECTED_ERRORS = [
 
 // Le binaire tsc est resolu directement, sans passer par un shell : `shell: true`
 // concatene les arguments sans les echapper (DEP0190) et n'apporte rien ici.
-const tscEntry = resolve(
-  API_DIR,
-  "../../node_modules/typescript/lib/_tsc.js",
-);
+const tscEntry = resolve(API_DIR, "../../node_modules/typescript/lib/_tsc.js");
 const tscFallback = resolve(API_DIR, "../../node_modules/typescript/lib/tsc.js");
 const entry = existsSync(tscEntry) ? tscEntry : tscFallback;
 

@@ -19,13 +19,14 @@ type IsAny<T> = 0 extends 1 & T ? true : false;
 type NotAny<T> = IsAny<T> extends true ? never : T;
 const assertNotAny = <T>(_value: NotAny<T>): void => {};
 
-type Exact<A, B> = (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
-  ? true
-  : false;
+type Exact<A, B> =
+  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
 const assertExact = <_A, _B>(_proof: Exact<_A, _B>): void => {};
 
 // POISON 1 : `any` doit etre rejete par assertNotAny.
 // Erreur attendue : TS2345, 'any' is not assignable to parameter of type 'never'.
+// Le `any` EST le poison : c'est exactement ce que ce fichier doit contenir.
+// biome-ignore lint/suspicious/noExplicitAny: poison volontaire, ne pas corriger
 const poison: any = JSON.parse("{}");
 assertNotAny<typeof poison>(poison);
 
