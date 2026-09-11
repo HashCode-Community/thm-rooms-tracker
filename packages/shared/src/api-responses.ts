@@ -178,3 +178,19 @@ export const StatsResponseSchema = z.object({
     skill: z.number().int(),
   }),
 });
+
+// --- Types inferes, pour le front comme pour l'API --------------------------
+//
+// Une seule definition du contrat, des deux cotes du reseau. Le jour ou une
+// reponse change de forme, le front cesse de compiler : c'est le but.
+
+export type RoomSummary = z.infer<typeof RoomSummarySchema>;
+export type RoomDetail = z.infer<typeof RoomDetailSchema>;
+export type RoomListResponse = z.infer<typeof RoomListResponseSchema>;
+export type FacetsResponse = z.infer<typeof FacetsResponseSchema>;
+export type TagListResponse = z.infer<typeof TagListResponseSchema>;
+export type CategoryListResponse = z.infer<typeof CategoryListResponseSchema>;
+export type StatsResponse = z.infer<typeof StatsResponseSchema>;
+export type Pagination = z.infer<typeof PaginationSchema>;
+export type TagRef = z.infer<typeof TagRefSchema>;
+export type TeamRef = z.infer<typeof TeamRefSchema>;

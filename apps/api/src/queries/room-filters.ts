@@ -1,3 +1,4 @@
+import type { FacetKey, RoomFilters, SortKey } from "@thm/shared";
 import { and, eq, exists, gte, inArray, lte, type SQL, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import {
@@ -11,7 +12,6 @@ import {
   tags,
   teams,
 } from "../db/schema.js";
-import type { FacetKey, RoomFilters, SortKey } from "../schemas/catalog.js";
 
 /**
  * Construction des conditions du catalogue.

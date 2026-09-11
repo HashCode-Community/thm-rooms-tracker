@@ -1,3 +1,15 @@
+import {
+  CategoryListResponseSchema,
+  FacetQuerySchema,
+  FacetsResponseSchema,
+  RoomCodeParamsSchema,
+  RoomDetailSchema,
+  RoomListQuerySchema,
+  RoomListResponseSchema,
+  StatsResponseSchema,
+  TagListResponseSchema,
+  TagQuerySchema,
+} from "@thm/shared";
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 import { notFoundProblem, ProblemSchema, sendProblem } from "../http/problem.js";
 import { computeFacets } from "../queries/facets.js";
@@ -9,20 +21,6 @@ import {
   listRooms,
   listTags,
 } from "../queries/rooms.js";
-import {
-  FacetQuerySchema,
-  RoomCodeParamsSchema,
-  RoomListQuerySchema,
-  TagQuerySchema,
-} from "../schemas/catalog.js";
-import {
-  CategoryListResponseSchema,
-  FacetsResponseSchema,
-  RoomDetailSchema,
-  RoomListResponseSchema,
-  StatsResponseSchema,
-  TagListResponseSchema,
-} from "../schemas/responses.js";
 
 /**
  * Endpoints du catalogue.

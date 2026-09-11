@@ -204,6 +204,41 @@ La documentation interactive est sur `/docs` — **en developpement uniquement**
 
 ---
 
+## Front
+
+`http://localhost:5173`, proxifie vers l'API sur le meme origine (aucun CORS en
+developpement, et c'est la cible de production decidee en D3).
+
+**L'etat des filtres vit dans l'URL, et nulle part ailleurs.** Une vue filtree est
+partageable telle quelle, et le bouton retour fonctionne sans code dedie. TanStack
+Router serialiserait les tableaux en JSON encode ; on lui substitue la convention du
+projet (`packages/shared/src/querystring.ts`), si bien que la barre d'adresse et la
+requete HTTP ont la meme syntaxe :
+
+```
+/rooms?difficulty=easy&tech=linux
+```
+
+Les valeurs par defaut (`sort=popular`, `page=1`, `limit=24`) sont IMPLICITES : elles
+n'apparaissent jamais dans l'URL. Le contrat de filtre est valide par le meme schema
+Zod des deux cotes du reseau — `RoomSearchSchema` cote client, `RoomListQuerySchema`
+cote serveur, memes definitions de champ, memes bornes.
+
+Trois points a ne pas casser :
+
+1. **Aucun `.toLowerCase()` sur un `rooms.code`**, ni dans les liens internes, ni dans
+   le lien sortant. 14 des 714 codes portent des majuscules. Cas temoin :
+   [`/rooms/AIforcyber-aoc2025-y9wWQ1zRgB`](http://localhost:5173/rooms/AIforcyber-aoc2025-y9wWQ1zRgB).
+2. **Les trois etats sont explicites** — chargement, vide, erreur — sur chaque
+   ressource. Jamais d'ecran blanc. Pendant un rechargement, la liste precedente reste
+   affichee, grisee.
+3. **La couleur n'est jamais le seul porteur d'information.** Chaque badge de
+   difficulte, de type et d'equipe affiche son libelle. Contrastes mesures : 6,54 a
+   7,38 pour le blanc sur les couleurs d'equipe, 14,8 a 16,2 pour les fonds de
+   difficulte.
+
+---
+
 ## Repartition
 
 - **Malick** : `scraper/`, `data/datasets/`. Scraping, nettoyage, production du dataset.

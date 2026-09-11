@@ -1,5 +1,5 @@
-import { DIFFICULTIES, ROOM_TYPES, TEAMS } from "@thm/shared";
 import { z } from "zod";
+import { DIFFICULTIES, ROOM_TYPES, TEAMS } from "./dataset.js";
 
 /**
  * Schemas d'entree du catalogue.
@@ -105,10 +105,42 @@ function checkDurationOrder(value: {
   return value.durationMin <= value.durationMax;
 }
 
+/**
+ * Les trois parametres de presentation, definis UNE fois. Deux assemblages les
+ * utilisent, avec des valeurs par defaut a des endroits differents.
+ */
+export const SortSchema = z.enum(SORT_KEYS);
+export const PageSchema = z.coerce.number().int().min(1).max(MAX_PAGE);
+export const LimitSchema = z.coerce.number().int().min(1).max(MAX_LIMIT);
+
+export const DEFAULT_SORT: SortKey = "popular";
+
+/**
+ * Cote SERVEUR : les valeurs par defaut sont appliquees, un gestionnaire recoit
+ * toujours `sort`, `page` et `limit` renseignes.
+ */
 export const RoomListQuerySchema = RoomFiltersSchema.extend({
-  sort: z.enum(SORT_KEYS).default("popular"),
-  page: z.coerce.number().int().min(1).max(MAX_PAGE).default(1),
-  limit: z.coerce.number().int().min(1).max(MAX_LIMIT).default(DEFAULT_LIMIT),
+  sort: SortSchema.default(DEFAULT_SORT),
+  page: PageSchema.default(1),
+  limit: LimitSchema.default(DEFAULT_LIMIT),
+}).refine(checkDurationOrder, { message: DURATION_ORDER_MESSAGE, path: ["durationMin"] });
+
+/**
+ * Cote CLIENT : les memes bornes, mais les trois parametres restent OPTIONNELS.
+ *
+ * Ce n'est pas un detail cosmetique. Si le front validait avec le schema serveur,
+ * `sort`, `page` et `limit` seraient toujours definis, donc toujours serialises,
+ * et chaque lien du site porterait `?sort=popular&page=1&limit=24`. Une URL
+ * partagee doit contenir ce que l'utilisateur a choisi, rien d'autre.
+ *
+ * L'absence est sans consequence : le serveur applique exactement les memes
+ * valeurs par defaut, avec exactement les memes bornes — elles sont ci-dessus,
+ * ecrites une seule fois.
+ */
+export const RoomSearchSchema = RoomFiltersSchema.extend({
+  sort: SortSchema.optional(),
+  page: PageSchema.optional(),
+  limit: LimitSchema.optional(),
 }).refine(checkDurationOrder, { message: DURATION_ORDER_MESSAGE, path: ["durationMin"] });
 
 export const FacetQuerySchema = RoomFiltersSchema.refine(checkDurationOrder, {

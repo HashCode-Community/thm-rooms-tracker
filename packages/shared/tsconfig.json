@@ -1,6 +1,8 @@
 {
+  "//": "`DOM` est ici pour UNE raison : `URLSearchParams`, que ce package utilise dans querystring.ts. Ce package est ISOMORPHE — il tourne dans Node (API, scripts) et dans le navigateur (front). Ne rien y importer qui n'existe pas des deux cotes : ni `fs`, ni `document`, ni `window`.",
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "lib": ["ES2023", "DOM"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "noEmit": true

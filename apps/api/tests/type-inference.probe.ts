@@ -8,12 +8,11 @@
  * prouve rien tout seul ; celui-ci si.
  */
 
-import type { RoomSource } from "@thm/shared";
+import type { RoomListQuerySchema, RoomSource, SortKey } from "@thm/shared";
 import { count, eq } from "drizzle-orm";
 import type { z } from "zod";
 import { db } from "../src/db/client.js";
 import { rooms, tags } from "../src/db/schema.js";
-import type { RoomListQuerySchema, SortKey } from "../src/schemas/catalog.js";
 
 /** Vaut `true` uniquement si T est exactement `any`. */
 type IsAny<T> = 0 extends 1 & T ? true : false;

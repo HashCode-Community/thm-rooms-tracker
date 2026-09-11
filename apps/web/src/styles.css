@@ -1,0 +1,765 @@
+/*
+ * Feuille de style unique.
+ *
+ * Parti pris : outil de travail, pas page de vente. Densite d'information,
+ * hierarchie par la taille et le poids du texte, bordures plutot qu'ombres.
+ * Pas de degrade, pas de grande banniere, pas d'ombre portee sur chaque carte.
+ *
+ * Contrastes verifies au ratio WCAG (texte principal 16:1, texte secondaire
+ * 7,2:1, badges d'equipe 6,5:1 minimum en blanc sur fond colore). La couleur
+ * n'est JAMAIS le seul porteur d'information : chaque badge porte son libelle.
+ */
+
+:root {
+  --fond: #ffffff;
+  --fond-doux: #f8fafc;
+  --fond-appuye: #f1f5f9;
+  --bord: #d8dee6;
+  --bord-fort: #94a3b8;
+  --texte: #111827;
+  /* Gris NEUTRE et non ardoise : #4b5563 tire sur le bleu et se confond
+     visuellement avec un lien. Contraste 7,73 sur blanc. */
+  --texte-doux: #52525b;
+  --lien: #1d4ed8;
+  --lien-visite: #6b21a8;
+  --focus: #1d4ed8;
+  --alerte: #9f1239;
+  --alerte-fond: #fff1f2;
+
+  --diff-info: #e0f2fe;
+  --diff-easy: #dcfce7;
+  --diff-medium: #fef3c7;
+  --diff-hard: #ffe4e6;
+  --diff-insane: #ede9fe;
+
+  --rayon: 4px;
+  --pas: 8px;
+
+  color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--fond);
+  color: var(--texte);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.25;
+  margin: 0;
+  font-weight: 650;
+}
+
+h1 {
+  font-size: 1.5rem;
+}
+h2 {
+  font-size: 1.125rem;
+}
+h3 {
+  font-size: 1rem;
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: var(--lien);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+a:visited {
+  color: var(--lien-visite);
+}
+
+/* Focus visible partout, sans exception : c'est la seule facon de naviguer au
+   clavier. Jamais `outline: none` sans remplacement. */
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+code,
+kbd {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+}
+
+/* --- Ossature ---------------------------------------------------------- */
+
+/* Lien d'evitement : cache jusqu'a ce qu'il recoive le focus, ou il APPARAIT.
+   Reserve au premier lien de la page, jamais utilise comme classe « cachee »
+   generique : un element qui se met a exister au focus est un comportement, pas
+   une mise en forme. */
+.lien-evitement {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  background: var(--texte);
+  color: #fff;
+  padding: var(--pas) calc(var(--pas) * 2);
+  z-index: 10;
+}
+
+.lien-evitement:focus {
+  left: var(--pas);
+  top: var(--pas);
+}
+
+/* Texte destine aux seuls lecteurs d'ecran, qui reste cache MEME au focus.
+   `clip-path` plutot que `display: none`, qui le retirerait aussi de l'arbre
+   d'accessibilite et le rendrait donc inutile. */
+.visuellement-cache {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.entete {
+  border-bottom: 1px solid var(--bord);
+  background: var(--fond);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.entete__interieur,
+.page,
+.pied__interieur {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 calc(var(--pas) * 2);
+}
+
+.entete__interieur {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--pas) * 2);
+  flex-wrap: wrap;
+  padding-top: calc(var(--pas) * 1.5);
+  padding-bottom: calc(var(--pas) * 1.5);
+}
+
+.marque {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--texte);
+  text-decoration: none;
+}
+
+.marque:visited {
+  color: var(--texte);
+}
+
+.nav {
+  display: flex;
+  gap: var(--pas);
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
+.nav a {
+  color: var(--texte-doux);
+  text-decoration: none;
+  padding: 4px var(--pas);
+  border-radius: var(--rayon);
+}
+
+.nav a:visited {
+  color: var(--texte-doux);
+}
+
+.nav a:hover {
+  background: var(--fond-appuye);
+}
+
+.nav a[aria-current="page"] {
+  color: var(--texte);
+  font-weight: 600;
+  box-shadow: inset 0 -2px 0 var(--focus);
+}
+
+.page {
+  padding-top: calc(var(--pas) * 3);
+  padding-bottom: calc(var(--pas) * 6);
+}
+
+.pied {
+  border-top: 1px solid var(--bord);
+  color: var(--texte-doux);
+  font-size: 0.8125rem;
+}
+
+.pied__interieur {
+  padding-top: calc(var(--pas) * 2);
+  padding-bottom: calc(var(--pas) * 3);
+}
+
+/* --- Elements communs -------------------------------------------------- */
+
+.doux {
+  color: var(--texte-doux);
+}
+
+.petit {
+  font-size: 0.8125rem;
+}
+
+.pile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pas);
+}
+
+.rang {
+  display: flex;
+  align-items: center;
+  gap: var(--pas);
+  flex-wrap: wrap;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--bord);
+  border-radius: var(--rayon);
+  padding: 1px 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge--equipe {
+  color: #fff;
+  border-color: transparent;
+}
+
+.badge--neutre {
+  background: var(--fond-appuye);
+  color: var(--texte-doux);
+  font-weight: 500;
+}
+
+.badge--info {
+  background: var(--diff-info);
+}
+.badge--easy {
+  background: var(--diff-easy);
+}
+.badge--medium {
+  background: var(--diff-medium);
+}
+.badge--hard {
+  background: var(--diff-hard);
+}
+.badge--insane {
+  background: var(--diff-insane);
+}
+
+.bouton {
+  font: inherit;
+  border: 1px solid var(--bord-fort);
+  background: var(--fond);
+  color: var(--texte);
+  border-radius: var(--rayon);
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.bouton:hover:not(:disabled) {
+  background: var(--fond-appuye);
+}
+
+.bouton:disabled {
+  color: var(--texte-doux);
+  border-color: var(--bord);
+  cursor: not-allowed;
+}
+
+.bouton--lien {
+  border: 0;
+  background: none;
+  color: var(--lien);
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.champ {
+  font: inherit;
+  border: 1px solid var(--bord-fort);
+  border-radius: var(--rayon);
+  padding: 6px 8px;
+  background: var(--fond);
+  color: var(--texte);
+  width: 100%;
+}
+
+label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+/* --- Etats ------------------------------------------------------------- */
+
+.etat {
+  border: 1px solid var(--bord);
+  border-radius: var(--rayon);
+  padding: calc(var(--pas) * 3);
+  background: var(--fond-doux);
+}
+
+.etat--erreur {
+  border-color: var(--alerte);
+  background: var(--alerte-fond);
+  color: var(--alerte);
+}
+
+.etat__titre {
+  font-weight: 650;
+  margin-bottom: 4px;
+}
+
+.squelette {
+  background: var(--fond-appuye);
+  border-radius: var(--rayon);
+  height: 1em;
+  animation: pulsation 1.4s ease-in-out infinite;
+}
+
+@keyframes pulsation {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .squelette {
+    animation: none;
+  }
+}
+
+/* Rechargement en cours : on grise la liste precedente plutot que de la vider. */
+.perime {
+  opacity: 0.55;
+  transition: opacity 120ms linear;
+}
+
+/* --- Accueil ----------------------------------------------------------- */
+
+.intro {
+  max-width: 62ch;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pas);
+}
+
+.chiffres {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--pas);
+  margin: calc(var(--pas) * 3) 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chiffre {
+  border: 1px solid var(--bord);
+  border-radius: var(--rayon);
+  padding: calc(var(--pas) * 1.5);
+}
+
+.chiffre__valeur {
+  font-size: 1.5rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.chiffre__libelle {
+  color: var(--texte-doux);
+  font-size: 0.8125rem;
+}
+
+.portes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: var(--pas);
+  padding: 0;
+  list-style: none;
+}
+
+.porte {
+  display: block;
+  border: 1px solid var(--bord);
+  border-radius: var(--rayon);
+  padding: calc(var(--pas) * 2);
+  text-decoration: none;
+  color: var(--texte);
+  height: 100%;
+}
+
+.porte:visited {
+  color: var(--texte);
+}
+
+.porte:hover {
+  border-color: var(--bord-fort);
+  background: var(--fond-doux);
+}
+
+/* `display: block` : sans lui, un `<span>` reste en ligne, la marge basse ne
+   s'applique pas et le titre se colle a sa description. Vu dans le navigateur. */
+.porte__titre {
+  display: block;
+  font-weight: 650;
+  color: var(--lien);
+  margin-bottom: 2px;
+}
+
+/* Une porte annoncee mais pas encore ouverte : elle doit se distinguer d'un lien
+   au premier regard, pas seulement a la lecture. */
+.porte[aria-disabled="true"] {
+  border-style: dashed;
+  background: var(--fond-doux);
+}
+
+.porte[aria-disabled="true"]:hover {
+  border-color: var(--bord);
+  background: var(--fond-doux);
+}
+
+.porte[aria-disabled="true"] .porte__titre {
+  color: var(--texte-doux);
+}
+
+/* --- Catalogue --------------------------------------------------------- */
+
+.catalogue {
+  display: grid;
+  grid-template-columns: 264px minmax(0, 1fr);
+  gap: calc(var(--pas) * 3);
+  align-items: start;
+}
+
+@media (max-width: 860px) {
+  .catalogue {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.filtres {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--pas) * 2);
+  border: 1px solid var(--bord);
+  border-radius: var(--rayon);
+  padding: calc(var(--pas) * 2);
+}
+
+/* En mobile, le panneau de filtres est REPLIE par defaut.
+   Deploye, il mesure plus d'un ecran et demi : il faudrait le faire defiler en
+   entier avant d'apercevoir le premier resultat. Un `<details>` natif suffit —
+   accessible au clavier, annonce par les lecteurs d'ecran, zero JavaScript. */
+.repli-filtres {
+  border: 1px solid var(--bord);
+  border-radius: var(--rayon);
+}
+
+.repli-filtres > summary {
+  cursor: pointer;
+  padding: calc(var(--pas) * 1.5);
+  font-weight: 650;
+  list-style-position: inside;
+}
+
+.repli-filtres[open] > summary {
+  border-bottom: 1px solid var(--bord);
+}
+
+.repli-filtres .filtres {
+  border: 0;
+  border-radius: 0;
+}
+
+@media (min-width: 861px) {
+  .filtres {
+    position: sticky;
+    top: 68px;
+    max-height: calc(100vh - 84px);
+    overflow-y: auto;
+  }
+}
+
+.facette {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.facette__titre {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--texte-doux);
+  padding: 0;
+  margin-bottom: 6px;
+}
+
+.facette__liste {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 230px;
+  overflow-y: auto;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.875rem;
+  font-weight: 400;
+  padding: 2px 4px;
+  border-radius: var(--rayon);
+  cursor: pointer;
+}
+
+.option:hover {
+  background: var(--fond-appuye);
+}
+
+.option input {
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.option__nom {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.option__compte {
+  margin-left: auto;
+  color: var(--texte-doux);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  padding-left: 6px;
+}
+
+.option--vide .option__nom {
+  color: var(--texte-doux);
+}
+
+.barre-resultats {
+  display: flex;
+  align-items: baseline;
+  gap: var(--pas);
+  flex-wrap: wrap;
+  margin-bottom: calc(var(--pas) * 2);
+}
+
+.barre-resultats__compte {
+  font-weight: 650;
+}
+
+.grille-rooms {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--pas);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.carte {
+  border: 1px solid var(--bord);
+  border-radius: var(--rayon);
+  padding: calc(var(--pas) * 1.5);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: 100%;
+}
+
+.carte:hover {
+  border-color: var(--bord-fort);
+}
+
+.carte__titre {
+  font-size: 0.9375rem;
+  font-weight: 650;
+}
+
+.carte__titre a {
+  text-decoration: none;
+}
+
+.carte__titre a:hover {
+  text-decoration: underline;
+}
+
+.carte__resume {
+  color: var(--texte-doux);
+  font-size: 0.8125rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.carte__pied {
+  margin-top: auto;
+  padding-top: 4px;
+  display: flex;
+  gap: var(--pas);
+  flex-wrap: wrap;
+  color: var(--texte-doux);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: var(--pas);
+  margin-top: calc(var(--pas) * 3);
+  flex-wrap: wrap;
+}
+
+.pagination__position {
+  font-variant-numeric: tabular-nums;
+  color: var(--texte-doux);
+  font-size: 0.875rem;
+}
+
+/* --- Detail ------------------------------------------------------------ */
+
+.detail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: calc(var(--pas) * 4);
+  align-items: start;
+}
+
+@media (max-width: 860px) {
+  .detail {
+    grid-template-columns: minmax(0, 1fr);
+    gap: calc(var(--pas) * 3);
+  }
+}
+
+.detail__corps {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--pas) * 2);
+  max-width: 70ch;
+}
+
+.fiche {
+  border: 1px solid var(--bord);
+  border-radius: var(--rayon);
+  padding: calc(var(--pas) * 2);
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--pas) * 1.5);
+}
+
+.fiche dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px var(--pas);
+  font-size: 0.875rem;
+}
+
+.fiche dt {
+  color: var(--texte-doux);
+}
+
+.fiche dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.lien-sortant {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--lien);
+  color: var(--lien);
+  background: var(--fond);
+  border-radius: var(--rayon);
+  padding: 8px 14px;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.lien-sortant:hover {
+  background: var(--lien);
+  color: #fff;
+}
+
+.lien-sortant:visited {
+  color: var(--lien);
+}
+
+.lien-sortant:visited:hover {
+  color: #fff;
+}
+
+.groupe-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.groupe-tags a {
+  text-decoration: none;
+}
+
+.groupe-tags a:hover .badge {
+  border-color: var(--bord-fort);
+  background: var(--fond-appuye);
+}
+
+.fil {
+  font-size: 0.8125rem;
+  color: var(--texte-doux);
+  margin-bottom: var(--pas);
+}

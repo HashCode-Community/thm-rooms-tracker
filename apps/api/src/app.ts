@@ -1,6 +1,7 @@
 import fastifyCompress from "@fastify/compress";
 import fastifySwagger from "@fastify/swagger";
 import fastifySwaggerUi from "@fastify/swagger-ui";
+import { parseQueryString } from "@thm/shared";
 import Fastify, { type FastifyInstance } from "fastify";
 import {
   jsonSchemaTransform,
@@ -9,7 +10,6 @@ import {
 } from "fastify-type-provider-zod";
 import type { AppConfig } from "./config.js";
 import { registerProblemHandlers } from "./http/problem.js";
-import { parseQueryString } from "./http/querystring.js";
 import { catalogRoutes } from "./routes/catalog.js";
 import { healthRoutes } from "./routes/health.js";
 
@@ -32,7 +32,8 @@ export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
   const app = Fastify({
     logger: { level: config.logLevel },
     routerOptions: {
-      // Rend `?tech[]=a` et `?tech=a` equivalents. Cf. src/http/querystring.ts.
+      // Rend `?tech[]=a` et `?tech=a` equivalents.
+      // Convention partagee avec le front : packages/shared/src/querystring.ts.
       // Sous `routerOptions` et non a la racine : Fastify 5 emet FSTDEP022 pour
       // la forme racine, qui disparait en Fastify 6.
       querystringParser: parseQueryString,

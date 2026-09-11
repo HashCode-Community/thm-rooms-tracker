@@ -1,3 +1,4 @@
+import type { RoomFilters, SortKey } from "@thm/shared";
 import { and, asc, countDistinct, eq, inArray, type SQL, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import {
@@ -16,7 +17,6 @@ import {
   trackSteps,
   tracks,
 } from "../db/schema.js";
-import type { RoomFilters, SortKey } from "../schemas/catalog.js";
 import { buildOrderBy, buildRoomConditions, resolveSearchStrategy } from "./room-filters.js";
 
 /**

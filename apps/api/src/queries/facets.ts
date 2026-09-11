@@ -1,7 +1,7 @@
+import type { FacetKey, RoomFilters } from "@thm/shared";
 import { and, asc, count, desc, eq, type SQL } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { difficulties, rooms, roomTags, roomTeams, roomTypes, tags, teams } from "../db/schema.js";
-import type { FacetKey, RoomFilters } from "../schemas/catalog.js";
 import { buildRoomConditions, type SearchStrategy } from "./room-filters.js";
 
 /**

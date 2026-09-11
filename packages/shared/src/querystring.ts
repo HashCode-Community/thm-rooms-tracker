@@ -1,4 +1,11 @@
 /**
+ * LA CONVENTION D'URL DU PROJET, definie une seule fois pour les deux cotes.
+ *
+ * Ce module vit dans `packages/shared` et non dans l'API parce que le front
+ * l'utilise aussi : l'URL affichee dans la barre d'adresse et l'URL envoyee a
+ * l'API ont exactement la meme syntaxe. Une vue filtree est donc partageable
+ * telle quelle, et il n'y a aucune traduction a maintenir entre les deux.
+ *
  * Analyseur de chaine de requete.
  *
  * Le brief ecrit les filtres multi-valeurs `?difficulty[]=easy&difficulty[]=medium`.
@@ -48,4 +55,43 @@ export function parseQueryString(raw: string): Record<string, unknown> {
   }
 
   return Object.fromEntries(out);
+}
+
+/** Valeurs acceptees dans une chaine de requete. */
+export type QueryValue = string | number | boolean | null | undefined | readonly string[];
+
+/**
+ * Reciproque de `parseQueryString`.
+ *
+ * Une valeur multiple produit une cle REPETEE (`?tech=a&tech=b`), jamais un
+ * tableau encode en JSON : c'est ce que l'API attend et ce qu'un humain peut
+ * lire dans sa barre d'adresse.
+ *
+ * `omitWhenDefault` retire les valeurs qui ne changent rien. Sans lui, chaque
+ * lien porterait `?sort=popular&page=1&limit=24` alors que ces trois valeurs
+ * sont deja celles par defaut. Le tour est stable : ce qui est retire est par
+ * definition ce que l'analyse redonnera.
+ */
+export function stringifyQueryString(
+  search: Record<string, QueryValue>,
+  omitWhenDefault: Readonly<Record<string, unknown>> = {},
+): string {
+  const params = new URLSearchParams();
+
+  for (const key of Object.keys(search).sort()) {
+    const value = search[key];
+    if (value === undefined || value === null || value === "") continue;
+    if (Object.hasOwn(omitWhenDefault, key) && omitWhenDefault[key] === value) continue;
+
+    if (Array.isArray(value)) {
+      for (const entry of value) {
+        if (entry !== "") params.append(key, entry);
+      }
+      continue;
+    }
+    params.append(key, String(value));
+  }
+
+  const serialized = params.toString();
+  return serialized === "" ? "" : `?${serialized}`;
 }

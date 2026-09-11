@@ -1,6 +1,6 @@
+import { SORT_KEYS } from "@thm/shared";
 import type { FastifyInstance } from "fastify";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { SORT_KEYS } from "../../src/schemas/catalog.js";
 import { assertDatabaseReady, buildTestApp, closeDatabase, EXPECTED_ROOMS } from "./harness.js";
 
 let app: FastifyInstance;

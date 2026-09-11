@@ -23,6 +23,7 @@ Thumbs.db
 coverage/
 
 # Captures d ecran de verification manuelle.
+/*.png
 
 # Derives regenerables (pnpm data:csv). Les rapports .md de data/reports/,
 # eux, sont versionnes : ce sont des preuves datees dont l historique fait foi.
