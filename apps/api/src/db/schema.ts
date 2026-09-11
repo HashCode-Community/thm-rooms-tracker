@@ -202,8 +202,9 @@ export const roomPublicColumns = {
  *
  * `slug` est la forme CASEFOLD, sans espaces : c'est la cle de deduplication et
  * la valeur du parametre de filtre dans l'URL. `name` est cosmetique et se
- * change sans migration. Verifie : 180 outils produisent 179 slugs, l'unique
- * collision etant la paire qu'on veut fusionner.
+ * change sans migration. Verifie sur le dataset : 186 noms d'outils bruts moins
+ * les 7 fusions du mapping = 179 noms, qui produisent 179 slugs distincts. La
+ * couche slug n'absorbe AUCUNE collision aujourd'hui (ADR-0003).
  */
 export const tags = pgTable(
   "tags",

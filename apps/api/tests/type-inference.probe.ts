@@ -10,8 +10,10 @@
 
 import type { RoomSource } from "@thm/shared";
 import { count, eq } from "drizzle-orm";
+import type { z } from "zod";
 import { db } from "../src/db/client.js";
 import { rooms, tags } from "../src/db/schema.js";
+import type { RoomListQuerySchema, SortKey } from "../src/schemas/catalog.js";
 
 /** Vaut `true` uniquement si T est exactement `any`. */
 type IsAny<T> = 0 extends 1 & T ? true : false;
@@ -57,6 +59,35 @@ assertNotAny<RoomSource>({} as RoomSource);
 assertExact<RoomSource["code"], string>(true);
 assertExact<RoomSource["difficulty"], "info" | "easy" | "medium" | "hard" | "insane">(true);
 assertExact<RoomSource["type"], "walkthrough" | "challenge">(true);
+
+// --- Zod : inference des filtres du catalogue ------------------------------
+//
+// Ajoute en phase 5 apres une degradation REELLE : une premiere ecriture de
+// `multiValue` passait par `.pipe(z.array(item))`, et l'inference retombait a
+// `difficulty?: any`. Le typecheck restait vert, les filtres auraient accepte
+// n'importe quoi, et rien ne l'aurait signale. C'est precisement le mode de
+// defaillance que cette sonde existe pour rendre visible.
+
+type CatalogQuery = z.infer<typeof RoomListQuerySchema>;
+
+assertNotAny<CatalogQuery["difficulty"]>({} as CatalogQuery["difficulty"]);
+assertNotAny<CatalogQuery["team"]>({} as CatalogQuery["team"]);
+assertNotAny<CatalogQuery["tech"]>({} as CatalogQuery["tech"]);
+
+// Les unions litterales doivent survivre a `multiValue`, sinon la validation
+// n'est plus qu'un `string[]`.
+assertExact<
+  CatalogQuery["difficulty"],
+  Array<"info" | "easy" | "medium" | "hard" | "insane"> | undefined
+>(true);
+assertExact<CatalogQuery["team"], Array<"Red" | "Blue" | "Purple"> | undefined>(true);
+assertExact<CatalogQuery["tech"], string[] | undefined>(true);
+
+// `sort`, `page` et `limit` ont une valeur par defaut : jamais `undefined` en
+// sortie de validation, sinon les gestionnaires devraient les redefaultiser.
+assertExact<CatalogQuery["sort"], SortKey>(true);
+assertExact<CatalogQuery["page"], number>(true);
+assertExact<CatalogQuery["limit"], number>(true);
 
 // --- Preuve que la sonde mord vraiment -------------------------------------
 // Decommenter pour verifier que ce fichier echoue quand il doit :

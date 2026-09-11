@@ -1,0 +1,73 @@
+import fastifySwagger from "@fastify/swagger";
+import fastifySwaggerUi from "@fastify/swagger-ui";
+import Fastify, { type FastifyInstance } from "fastify";
+import {
+  jsonSchemaTransform,
+  serializerCompiler,
+  validatorCompiler,
+} from "fastify-type-provider-zod";
+import type { AppConfig } from "./config.js";
+import { registerProblemHandlers } from "./http/problem.js";
+import { parseQueryString } from "./http/querystring.js";
+import { catalogRoutes } from "./routes/catalog.js";
+import { healthRoutes } from "./routes/health.js";
+
+/**
+ * Fabrique de l'application.
+ *
+ * `config` est un PARAMETRE, jamais une lecture de `process.env` a la portee
+ * module. Deux consequences, dans cet ordre d'importance :
+ *
+ *   1. les gardes conditionnelles sont reellement testables. Une garde
+ *      `if (process.env.NODE_ENV !== "production")` evaluee a l'import est figee
+ *      par le cache de modules : un test qui pose la variable puis importe
+ *      l'application passerait a vide, vert et sans rien prouver ;
+ *   2. la configuration devient injectable pour tout le reste.
+ *
+ * `buildApp` ne fait qu'assembler. Elle n'ecoute pas : c'est `server.ts` qui
+ * decide d'ouvrir un port.
+ */
+export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
+  const app = Fastify({
+    logger: { level: config.logLevel },
+    routerOptions: {
+      // Rend `?tech[]=a` et `?tech=a` equivalents. Cf. src/http/querystring.ts.
+      // Sous `routerOptions` et non a la racine : Fastify 5 emet FSTDEP022 pour
+      // la forme racine, qui disparait en Fastify 6.
+      querystringParser: parseQueryString,
+    },
+  });
+
+  // Zod valide les entrees ET genere l'OpenAPI a partir des memes schemas :
+  // une seule definition, pas de documentation a maintenir en parallele du code.
+  app.setValidatorCompiler(validatorCompiler);
+  app.setSerializerCompiler(serializerCompiler);
+
+  registerProblemHandlers(app, config.exposeErrorDetail);
+
+  // Swagger UI n'est PAS expose en production. Une plateforme de cybersecurite qui
+  // publie sa surface d'API complete en clair est exactement l'ironie qu'on nous
+  // ressortirait. Point de la checklist phase 9, traite ici parce que la mise en
+  // ligne precede la phase 9 dans l'ordre reel des choses.
+  if (config.exposeDocs) {
+    await app.register(fastifySwagger, {
+      openapi: {
+        info: {
+          title: "THM Roadmap API",
+          description:
+            "Catalogue et parcours d'apprentissage construits sur les rooms gratuites " +
+            "TryHackMe. Projet non affilie a TryHackMe : seules des metadonnees " +
+            "publiques sont exposees.",
+          version: "0.1.0",
+        },
+      },
+      transform: jsonSchemaTransform,
+    });
+    await app.register(fastifySwaggerUi, { routePrefix: "/docs" });
+  }
+
+  await app.register(healthRoutes);
+  await app.register(catalogRoutes);
+
+  return app;
+}

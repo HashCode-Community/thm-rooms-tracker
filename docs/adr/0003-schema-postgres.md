@@ -53,11 +53,13 @@ BRUT (aucun mapping)
   competences   103 valeurs -> 103 slugs   0 collision
   technologies   15 valeurs ->  15 slugs   0 collision
 
-APRES MAPPING
-  outils        180 valeurs -> 179 slugs   1 collision : "enum4linux" <- [Enum4linux, Enum4Linux]
+APRES MAPPING (celui qui est dans le depot)
+  outils        179 valeurs -> 179 slugs   0 collision
   competences   103 valeurs -> 103 slugs   0 collision
   technologies   15 valeurs ->  15 slugs   0 collision
 ```
+
+`15` technologies au niveau du slug, `14` au niveau du tag : `N/A` est une absence, jamais un tag.
 
 ### Le mapping est le mécanisme, le slug est le filet
 
@@ -65,17 +67,25 @@ Il serait faux de dire que « deux variantes produisent le même slug, donc le m
 mapping ait à les lister ». **Sur les données brutes, la couche slug ne déduplique strictement
 rien** : zéro collision sur les trois facettes. C'est le mapping qui fait tout le travail.
 
-L'arithmétique le montre : 186 − 6 fusions directes = 180, puis le slug en absorbe une septième
-= 179. Le seul cas que le filet attrape est un cas que le mapping **crée** lui-même :
-`Enum4Linux NEW` dépouillé de son suffixe devient `Enum4Linux`, une forme **absente de la source**,
-qui ne rejoint `Enum4linux` que par la casefold du slug.
+L'arithmétique : **186 − 7 fusions = 179**, et le slug n'en absorbe aucune. Chacune des sept entrées
+`merge` réduit le compte d'exactement 1, y compris `enum4linux`, dont les **deux** variantes source
+(`Enum4linux` et `Enum4Linux NEW`) sont listées explicitement — elles convergent donc dès le niveau
+du **nom**, avant toute slugification.
 
-Les deux couches sont nécessaires et **ne se remplacent pas** :
+> **Correction, 2026-09-11.** Une version antérieure de cet ADR écrivait « 186 − 6 fusions = 180,
+> puis le slug en absorbe une septième = 179 ». C'était l'arithmétique d'un mapping **différent**,
+> dans lequel `Enum4Linux NEW` était un `rename` vers `Enum4Linux` et où la collision de slug faisait
+> le travail restant. Le mapping réellement validé en Q9 et écrit dans
+> `data/mappings/normalisation-outils.yaml` liste les deux variantes sous `merge`. Le résultat final
+> est le même — 179 — mais le chemin n'est pas celui-là, et le total intermédiaire de 180 n'existe
+> pas. Mesuré : 179 noms, 179 slugs, 0 collision.
+
+Les deux couches restent nécessaires et **ne se remplacent pas** :
 
 | Couche | Rôle | Utilité aujourd'hui |
 |---|---|---|
-| mapping | le mécanisme : suffixes, fautes de frappe | 6 fusions sur 7 |
-| slug | le filet : variantes de casse et de ponctuation | 1 fusion, celle que le mapping crée |
+| mapping | le mécanisme : suffixes, fautes de frappe | **7 fusions sur 7** |
+| slug | le filet : variantes de casse et de ponctuation | **0** — dormant, pas inutile |
 
 Le filet ne sert quasiment à rien aujourd'hui. Il servira le jour où TryHackMe introduira une
 variante de casse — et ce jour-là, personne ne le verra venir. C'est précisément la raison de le

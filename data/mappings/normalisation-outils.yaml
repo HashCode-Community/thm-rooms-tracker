@@ -47,10 +47,17 @@
 # ne different que par la casse ou la ponctuation produisent le meme slug, donc
 # le meme tag, sans que ce fichier ait a les lister.
 #
-# Verifie sur le dataset : apres application du mapping, 180 outils produisent
-# 179 slugs distincts, 103 competences en produisent 103, 15 technologies en
-# produisent 15. L'UNIQUE collision est "enum4linux" <- [Enum4linux, Enum4Linux],
-# c'est-a-dire exactement la paire qu'on veut fusionner. Zero faux positif.
+# ATTENTION : sur CE mapping-ci, la deduplication structurelle n'a rien a faire.
+# Verifie sur le dataset apres application du mapping : 179 outils produisent 179
+# slugs, 103 competences en produisent 103, 15 technologies en produisent 15.
+# ZERO collision de slug. Les 7 fusions sont toutes faites au niveau du NOM, par
+# les entrees `merge` ci-dessous — y compris "enum4linux", dont les DEUX variantes
+# source sont listees explicitement.
+#
+# Correction 2026-09-11 : une version anterieure de ce commentaire annoncait
+# « 180 outils produisent 179 slugs, l'unique collision etant enum4linux ».
+# C'etait l'arithmetique d'un mapping different (un `rename` vers "Enum4Linux"
+# laissant "Enum4linux" intact). Cf. ADR-0003.
 #
 # Ce fichier ne sert donc plus qu'aux cas que la normalisation ne peut PAS
 # attraper : les suffixes d'affichage et les fautes de frappe.
@@ -178,8 +185,8 @@ canonical: {}
 # =============================================================================
 #
 # DECISION (ADR-0001 Q9) : aucune detection automatique de similarite ne sera
-# implementee. Elle produirait 6 faux positifs connus et verifies presents dans
-# le dataset, listes ci-dessous. Les fusions sont explicites et validees a la
+# implementee. Elle produirait 7 faux positifs connus et verifies presents dans
+# le dataset, soit 12 valeurs distinctes, listes ci-dessous. Les fusions sont explicites et validees a la
 # main. La liste `merge` ci-dessus est CLOSE.
 #
 # Ce n'est pas une absence de fonctionnalite : c'est un choix, et le voici ecrit
@@ -187,12 +194,43 @@ canonical: {}
 #
 #   LinPeas       / WinPeas        Linux vs Windows. Enumeration par plateforme.
 #   LECmd.exe     / PECmd.exe      Parseurs forensiques : LNK vs Prefetch.
+#     + MFTCmd.exe                 Troisieme valeur de la meme famille dans le
+#                                  dataset, parseur de $MFT. 1 occurrence.
+#                                  Ajoute sur signalement de Nel, phase 5.
+#                                  -> A NE PAS FUSIONNER avec LECmd/PECmd, qui
+#                                     sont bien des outils differents.
+#                                  -> MAIS voir la question ouverte ci-dessous.
 #   Netcat        / Ncat           Ncat est la reimplementation du projet Nmap.
 #                                  ("Netcat" nu = 0 occurrence, "Ncat" = 6)
 #   DnSpy         / ILSpy          Deux decompilateurs .NET differents.
 #                                  (DnSpy = 2 occurrences, ILSpy = 1)
+#                                  La casse reelle est "DnSpy", avec un D
+#                                  MAJUSCULE. Chercher "dnSpy" ne rend rien :
+#                                  ce n'est pas une absence, c'est une erreur
+#                                  de requete. Verifie deux fois.
 #   ProcDOT       / Procmon        Visualisation vs capture d'evenements.
 #   Ghidra        / Hydra          Retro-ingenierie vs cassage de mots de passe.
 #   Empire        / Impacket       Rien a voir, cites pour eviter tout raccourci.
+#
+# =============================================================================
+# QUESTION OUVERTE — "MFTCmd.exe" est probablement mal orthographie
+# =============================================================================
+#
+# L'outil d'Eric Zimmerman s'appelle MFTECmd, avec un E : le depot officiel est
+# github.com/EricZimmerman/MFTECmd (« MFT Explorer Command line », par symetrie
+# avec LECmd = LNK Explorer et PECmd = Prefetch Explorer). Verifie le 2026-09-11.
+#
+# Dans le dataset :   "MFTCmd.exe"  = 1 occurrence
+#                     "MFTECmd.exe" = 0 occurrence
+#
+# Il n'y a donc AUCUN jumeau a fusionner : ce serait un `rename` de correction
+# orthographique, pas un `merge`. Contrairement a "Burpe Suite" et "Autospy", dont
+# la forme correcte existait deja dans les donnees et rendait la fusion evidente,
+# celle-ci corrigerait une valeur vers une forme ABSENTE de la source.
+#
+# NON APPLIQUE. C'est une modification de donnee affichee sur la seule base d'une
+# connaissance externe : elle releve d'un arbitrage de Nel, pas d'une initiative.
+# Pour l'appliquer, ajouter sous `rename:` :
+#     "MFTCmd.exe": "MFTECmd.exe"
 #
 # =============================================================================

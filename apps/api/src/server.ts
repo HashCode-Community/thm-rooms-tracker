@@ -1,52 +1,21 @@
-import fastifySwagger from "@fastify/swagger";
-import fastifySwaggerUi from "@fastify/swagger-ui";
-import Fastify from "fastify";
-import {
-  jsonSchemaTransform,
-  serializerCompiler,
-  validatorCompiler,
-} from "fastify-type-provider-zod";
+import { buildApp } from "./app.js";
+import { loadConfig } from "./config.js";
 import { closeDatabase } from "./db/client.js";
-import { healthRoutes } from "./routes/health.js";
 
-const HOST = process.env.API_HOST ?? "127.0.0.1";
-const PORT = Number.parseInt(process.env.API_PORT ?? "3000", 10);
+/**
+ * Point d'entree du processus.
+ *
+ * C'est le SEUL endroit qui lit l'environnement et qui ouvre un port. `buildApp`
+ * ne fait qu'assembler une application a partir d'une configuration deja resolue,
+ * ce qui la rend utilisable telle quelle depuis les tests.
+ */
 
-const app = Fastify({
-  logger: {
-    level: process.env.LOG_LEVEL ?? "info",
-  },
-});
+const config = loadConfig();
+const app = await buildApp(config);
 
-// Zod valide les entrees ET genere l'OpenAPI a partir des memes schemas :
-// une seule definition, pas de doc a maintenir en parallele du code.
-app.setValidatorCompiler(validatorCompiler);
-app.setSerializerCompiler(serializerCompiler);
-
-// Swagger UI n'est PAS expose en production. Une plateforme de cybersecurite qui
-// publie sa surface d'API complete en clair est exactement l'ironie qu'on nous
-// ressortirait. Point de la checklist phase 9, traite des maintenant parce que la
-// mise en ligne precede la phase 9 dans l'ordonnancement du brief.
-const isProduction = process.env.NODE_ENV === "production";
-
-if (!isProduction) {
-  await app.register(fastifySwagger, {
-    openapi: {
-      info: {
-        title: "THM Roadmap API",
-        description:
-          "Catalogue et parcours d'apprentissage construits sur les rooms gratuites TryHackMe. " +
-          "Projet non affilie a TryHackMe : seules des metadonnees publiques sont exposees.",
-        version: "0.1.0",
-      },
-    },
-    transform: jsonSchemaTransform,
-  });
-  await app.register(fastifySwaggerUi, { routePrefix: "/docs" });
+if (config.exposeDocs) {
   app.log.info("/docs actif (NODE_ENV != production)");
 }
-
-await app.register(healthRoutes);
 
 async function shutdown(signal: string): Promise<void> {
   app.log.info({ signal }, "arret demande, fermeture propre");
@@ -67,7 +36,7 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
 }
 
 try {
-  await app.listen({ host: HOST, port: PORT });
+  await app.listen({ host: config.host, port: config.port });
 } catch (error) {
   app.log.error({ err: error }, "impossible de demarrer le serveur");
   process.exit(1);

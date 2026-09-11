@@ -142,6 +142,49 @@ Python. Le seul point de contact est `data/datasets/rooms.v1.json` et son schema
 | `pnpm lint` | Biome (lint + format) |
 | `pnpm db:up` / `db:down` / `db:logs` | Postgres 16 local |
 
+### Tests
+
+| Commande | Perimetre | Base de donnees |
+|---|---|---|
+| `pnpm --filter @thm/api test:unit` | dataset, contrat, normalisation | **non** |
+| `pnpm --filter @thm/api test:api` | endpoints via `fastify.inject()` | **oui, peuplee** |
+| `pnpm --filter @thm/api test` | les deux | oui |
+| `pnpm --filter @thm/api typecheck:guard` | verifie que la sonde d'inference mord encore | non |
+
+Les tests d'API **ne se sautent pas** quand la base manque : ils echouent, avec la
+commande a taper. Un test qui se desactive tout seul est un test qui ment.
+
+```bash
+pnpm db:up
+pnpm --filter @thm/api db:migrate
+pnpm --filter @thm/api db:seed
+pnpm data:import --apply --apply-mappings
+```
+
+---
+
+## API : semantique des filtres
+
+Une seule regle, valable sur `/api/rooms` et `/api/facets` :
+
+- **OU** a l'interieur d'une meme facette : `?tech=linux&tech=windows` = Linux **ou** Windows
+- **ET** entre facettes : `?tech=linux&tool=nmap` = Linux **et** Nmap
+
+`?tech[]=a&tech[]=b` et `?tech=a&tech=b` sont equivalents. Un parametre vide est
+traite comme absent.
+
+Deux comportements a connaitre, parce qu'ils ne se devinent pas :
+
+1. **Tout `ORDER BY` se termine par `code ASC`.** 710 des 714 rooms sont ex aequo sur
+   la duree ; sans ce departage, la pagination par offset rend des doublons. Mesure :
+   sept pages de 50 triees par duree donnent 350 lignes pour **276 codes distincts**
+   sans departage, 350 pour 350 avec.
+2. **Le compteur d'une facette ignore son propre filtre.** Sinon, cocher « Linux »
+   ferait tomber toutes les autres technologies a zero et l'interface se
+   verrouillerait sur un seul choix.
+
+La documentation interactive est sur `/docs` — **en developpement uniquement**.
+
 ---
 
 ## Repartition

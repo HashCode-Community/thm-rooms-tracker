@@ -13,7 +13,9 @@
     "db:seed": "node --env-file=../../.env --import tsx src/db/seed-reference.ts",
     "typecheck:guard": "node --import tsx scripts/assert-probe-bites.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:unit": "vitest run tests/dataset-stats.test.ts",
+    "test:api": "vitest run tests/api"
   },
   "dependencies": {
     "@fastify/swagger": "^9.8.1",
