@@ -19,3 +19,5 @@ export {
   TEAMS,
   TeamSchema,
 } from "./dataset.js";
+export type { VersionVerdict } from "./version.js";
+export { checkDatasetVersion, SUPPORTED_DATASET_RANGE } from "./version.js";

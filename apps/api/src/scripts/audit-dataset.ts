@@ -1,6 +1,11 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { basename, resolve } from "node:path";
-import { CONTRACT_NOTES, DatasetSchema } from "@thm/shared";
+import {
+  CONTRACT_NOTES,
+  checkDatasetVersion,
+  DatasetSchema,
+  SUPPORTED_DATASET_RANGE,
+} from "@thm/shared";
 import {
   type Anomaly,
   type Check,
@@ -185,8 +190,23 @@ function main(): number {
     problems.push(`Integrite : sidecar introuvable (${basename(sidecarPath)}). Import a refuser.`);
   }
 
-  // --- 2. Contrat Zod (BLOQUANT) -------------------------------------------
-  const parsed = DatasetSchema.safeParse(JSON.parse(bytes.toString("utf8")));
+  const raw: unknown = JSON.parse(bytes.toString("utf8"));
+
+  // --- 2. Version du dataset (BLOQUANT, AVANT Zod) -------------------------
+  // Deliberement en amont de la validation : si le scraper a ajoute un champ,
+  // l'incompatibilite de version doit l'emporter sur le symptome, qui serait un
+  // `unrecognized key` illisible pour qui n'a pas le contexte.
+  const declaredVersion =
+    raw !== null && typeof raw === "object" && "meta" in raw
+      ? ((raw as { meta?: { datasetVersion?: unknown } }).meta?.datasetVersion ?? null)
+      : null;
+  const version = checkDatasetVersion(declaredVersion);
+  if (!version.ok) {
+    problems.push(`Version : ${version.reason}`);
+  }
+
+  // --- 3. Contrat Zod (BLOQUANT) -------------------------------------------
+  const parsed = DatasetSchema.safeParse(raw);
   const zodErrors: string[] = [];
   if (!parsed.success) {
     for (const issue of parsed.error.issues.slice(0, 50)) {
@@ -196,13 +216,20 @@ function main(): number {
   }
 
   const now = new Date();
-  const stamp = now.toISOString().slice(0, 10);
+  // Horodatage UTC a la minute. La date seule s'ecraserait si l'audit tournait
+  // deux fois le meme jour - ce qui arrivera des que Malick livrera deux fois.
+  // Un artefact qui fait foi ne doit pas pouvoir disparaitre en silence.
+  const stamp = `${now.toISOString().slice(0, 13)}${now.toISOString().slice(14, 16)}Z`;
   const outPath = resolve(ROOT, args.out ?? `data/reports/audit-${stamp}.md`);
 
   const head: string[] = [
     `# Rapport d'audit — ${fileName}`,
     "",
-    `Genere le ${now.toISOString()} par \`pnpm data:audit\`.`,
+    `Genere le ${now.toISOString()} (**UTC**) par \`pnpm data:audit\`.`,
+    "",
+    "> Tous les horodatages de ce rapport, **nom de fichier compris, sont en UTC** : ils doivent",
+    "> rester comparables entre postes et en CI. Un audit lance a 00h30 a Paris porte donc la",
+    "> date de la veille. Ce n'est pas une erreur.",
     "",
     "> Ce rapport **ne corrige rien**. Il observe, compte et signale.",
     "> Les corrections passent par `data/mappings/`, valides a la main et versionnes.",
@@ -213,6 +240,7 @@ function main(): number {
     "|---|---|",
     `| Taille | ${bytes.length.toLocaleString("fr-FR")} octets |`,
     `| SHA-256 des octets bruts | \`${rawSha}\` |`,
+    `| \`meta.datasetVersion\` | \`${version.version}\` — importer compatible \`${SUPPORTED_DATASET_RANGE}\` — ${version.ok ? "compatible" : "**INCOMPATIBLE, bloquant**"} |`,
     `| Sidecar \`${basename(sidecarPath)}\` | ${
       sidecarOk === null
         ? "**ABSENT — bloquant**"
