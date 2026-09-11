@@ -34,6 +34,21 @@ import {
  * Les deux ecritures `?tech=a&tech=b` et `?tech[]=a&tech[]=b` sont equivalentes.
  */
 
+/**
+ * Donnees de REFERENCE : elles ne changent qu'a l'import, jamais au fil des
+ * requetes. Un an de cache serait malhonnete, une minute ne servirait a rien.
+ *
+ * Consequence assumee : apres un import, un client peut ignorer pendant une heure
+ * le NOM d'affichage d'un tag nouvellement apparu. Ce n'est pas grave par
+ * construction — `slug` est la cle fonctionnelle et il vient de `/api/facets`,
+ * qui n'est pas mis en cache ; `name` est cosmetique et modifiable sans migration
+ * (ADR-0003). Le front affiche le slug quand le nom lui manque.
+ */
+const REFERENCE_CACHE_CONTROL = "public, max-age=3600, stale-while-revalidate=86400";
+
+/** Depend de la requete : jamais mis en cache. */
+const QUERY_CACHE_CONTROL = "no-store";
+
 const FILTER_SEMANTICS =
   "Filtres multi-valeurs : OU a l'interieur d'une meme facette, ET entre facettes. " +
   "`?tech=linux&tech=windows&tool=nmap` signifie (Linux OU Windows) ET Nmap. " +
@@ -101,14 +116,17 @@ export const catalogRoutes: FastifyPluginAsyncZod = async (app) => {
           "Le compteur d'une facette est calcule sur l'ensemble filtre par tous les " +
           "filtres SAUF elle-meme. C'est ce qui permet de cocher une deuxieme valeur " +
           "dans la meme liste : comptes sur l'ensemble entierement filtre, les autres " +
-          "valeurs tomberaient a zero et l'interface se verrouillerait.",
+          "valeurs tomberaient a zero et l'interface se verrouillerait. " +
+          "Les facettes de tags ne portent PAS le nom d'affichage : il vient de " +
+          "`/api/tags`, mis en cache. Cette reponse-ci change a chaque filtre.",
         querystring: FacetQuerySchema,
         response: { 200: FacetsResponseSchema, 400: ProblemSchema },
       },
     },
-    async (request) => {
+    async (request, reply) => {
       const filters = request.query;
       const strategy = await resolveSearchStrategy(filters.q);
+      reply.header("cache-control", QUERY_CACHE_CONTROL);
       return computeFacets(filters, strategy);
     },
   );
@@ -121,12 +139,18 @@ export const catalogRoutes: FastifyPluginAsyncZod = async (app) => {
         summary: "Technologies, outils et competences avec leur nombre de rooms",
         description:
           "`slug` est la valeur a passer aux filtres `tech`, `tool` et `skill`. " +
-          "`name` est la forme d'affichage et peut changer sans migration.",
+          "`name` est la forme d'affichage et peut changer sans migration. " +
+          "C'est l'endpoint des NOMS : `/api/facets` ne rend que des couples " +
+          "`slug` -> compteur, le front joint les deux. Mis en cache une heure, " +
+          "ces donnees ne changeant qu'a l'import.",
         querystring: TagQuerySchema,
         response: { 200: TagListResponseSchema, 400: ProblemSchema },
       },
     },
-    async (request) => ({ data: await listTags(request.query.kind) }),
+    async (request, reply) => {
+      reply.header("cache-control", REFERENCE_CACHE_CONTROL);
+      return { data: await listTags(request.query.kind) };
+    },
   );
 
   app.get(
@@ -142,7 +166,10 @@ export const catalogRoutes: FastifyPluginAsyncZod = async (app) => {
         response: { 200: CategoryListResponseSchema },
       },
     },
-    async () => ({ data: await listCategories() }),
+    async (_request, reply) => {
+      reply.header("cache-control", REFERENCE_CACHE_CONTROL);
+      return { data: await listCategories() };
+    },
   );
 
   app.get(
@@ -155,6 +182,9 @@ export const catalogRoutes: FastifyPluginAsyncZod = async (app) => {
         response: { 200: StatsResponseSchema },
       },
     },
-    async () => computeStats(),
+    async (_request, reply) => {
+      reply.header("cache-control", REFERENCE_CACHE_CONTROL);
+      return computeStats();
+    },
   );
 };

@@ -6,7 +6,7 @@ import { assertDatabaseReady, buildTestApp, closeDatabase, EXPECTED_ROOMS } from
 let app: FastifyInstance;
 
 type Counted = { key: string; count: number };
-type CountedTag = { slug: string; name: string; count: number };
+type CountedTag = { slug: string; count: number };
 type Facets = {
   difficulty: Array<Counted & { level: number }>;
   type: Counted[];
@@ -132,6 +132,49 @@ describe("/api/facets — comptage croise", () => {
   it("les facettes refusent les memes valeurs invalides que la liste", async () => {
     const response = await app.inject({ method: "GET", url: "/api/facets?difficulty=trivial" });
     expect(response.statusCode).toBe(400);
+  });
+
+  it("les facettes de tags ne transportent PAS le nom d'affichage", async () => {
+    // Donnee de reference : elle vit dans /api/tags, qui est mis en cache. Ici
+    // ne voyage que ce qui change d'un filtre a l'autre.
+    const response = await app.inject({ method: "GET", url: "/api/facets" });
+    const body = response.json<Facets>();
+    for (const entry of [...body.tech, ...body.tool, ...body.skill]) {
+      expect(entry).not.toHaveProperty("name");
+    }
+    expect(Object.keys(body.tech[0] ?? {}).sort()).toEqual(["count", "slug"]);
+  });
+
+  it("chaque slug de facette se retrouve dans /api/tags", async () => {
+    // La jointure que fait le front doit etre totale : un slug sans nom
+    // afficherait le slug brut a l'utilisateur.
+    const facetBody = await facets("/api/facets");
+    const tagResponse = await app.inject({ method: "GET", url: "/api/tags" });
+    const known = new Set(
+      tagResponse.json<{ data: Array<{ slug: string }> }>().data.map((tag) => tag.slug),
+    );
+    for (const entry of [...facetBody.tech, ...facetBody.tool, ...facetBody.skill]) {
+      expect(known, entry.slug).toContain(entry.slug);
+    }
+  });
+
+  it("/api/facets n'est jamais mis en cache, /api/tags l'est", async () => {
+    const facetResponse = await app.inject({ method: "GET", url: "/api/facets" });
+    expect(facetResponse.headers["cache-control"]).toBe("no-store");
+
+    for (const url of ["/api/tags", "/api/categories", "/api/stats"]) {
+      const response = await app.inject({ method: "GET", url });
+      expect(response.headers["cache-control"], url).toContain("max-age=3600");
+    }
+  });
+
+  it("les reponses volumineuses sont compressees quand le client l'accepte", async () => {
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/rooms?limit=100",
+      headers: { "accept-encoding": "gzip" },
+    });
+    expect(response.headers["content-encoding"]).toBe("gzip");
   });
 });
 

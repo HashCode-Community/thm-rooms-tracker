@@ -90,9 +90,14 @@ export const RoomListResponseSchema = z.object({
   search: z.object({ term: z.string(), strategy: z.enum(["fulltext", "trigram"]) }).nullable(),
 });
 
+/**
+ * Pas de `name` ici, et c'est delibere : la forme d'affichage vient de
+ * `/api/tags`, qui est mis en cache. `/api/facets` est appele a chaque
+ * changement de filtre et ne transporte que ce qui change. Le front joint sur
+ * le `slug` — et affiche le slug si le nom lui manque encore.
+ */
 const CountedTagSchema = z.object({
   slug: z.string(),
-  name: z.string(),
   count: z.number().int(),
 });
 

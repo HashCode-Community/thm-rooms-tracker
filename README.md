@@ -151,8 +151,16 @@ Python. Le seul point de contact est `data/datasets/rooms.v1.json` et son schema
 | `pnpm --filter @thm/api test` | les deux | oui |
 | `pnpm --filter @thm/api typecheck:guard` | verifie que la sonde d'inference mord encore | non |
 
-Les tests d'API **ne se sautent pas** quand la base manque : ils echouent, avec la
-commande a taper. Un test qui se desactive tout seul est un test qui ment.
+> **A lire avant de conclure que le depot est casse.**
+> `pnpm test` **echoue si Docker n'est pas lance** : les tests d'API ont besoin d'une
+> base peuplee. Ce n'est pas un bug, c'est voulu — un test qui se desactive tout seul
+> quand l'infrastructure manque est un test qui ment, et une CI verte qui ne teste
+> rien est pire que pas de CI.
+>
+> `pnpm --filter @thm/api test:unit` n'exige rien et couvre le dataset, le contrat et
+> la normalisation. C'est la commande a lancer pour verifier un clone.
+
+Pour obtenir une base utilisable :
 
 ```bash
 pnpm db:up
@@ -160,6 +168,8 @@ pnpm --filter @thm/api db:migrate
 pnpm --filter @thm/api db:seed
 pnpm data:import --apply --apply-mappings
 ```
+
+Le message d'echec des tests d'API rappelle ces quatre commandes.
 
 ---
 
@@ -182,6 +192,13 @@ Deux comportements a connaitre, parce qu'ils ne se devinent pas :
 2. **Le compteur d'une facette ignore son propre filtre.** Sinon, cocher « Linux »
    ferait tomber toutes les autres technologies a zero et l'interface se
    verrouillerait sur un seul choix.
+
+**Donnees de reference contre resultats de requete.** `/api/tags` rend les NOMS des
+tags (cache une heure, ils ne changent qu'a l'import). `/api/facets` ne rend que des
+couples `slug` -> compteur, jamais mis en cache. Le front joint les deux sur le
+`slug`, et affiche le slug brut si le nom lui manque encore.
+
+Les reponses sont compressees (`br`, `gzip`, `deflate`) au-dela de 1 ko.
 
 La documentation interactive est sur `/docs` — **en developpement uniquement**.
 

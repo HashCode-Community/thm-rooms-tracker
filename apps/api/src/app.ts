@@ -1,3 +1,4 @@
+import fastifyCompress from "@fastify/compress";
 import fastifySwagger from "@fastify/swagger";
 import fastifySwaggerUi from "@fastify/swagger-ui";
 import Fastify, { type FastifyInstance } from "fastify";
@@ -42,6 +43,16 @@ export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
   // une seule definition, pas de documentation a maintenir en parallele du code.
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
+
+  // Compression. Les reponses du catalogue sont du JSON tres repetitif : les
+  // memes cles sur chaque room, les memes slugs sur chaque facette. C'est le cas
+  // ou gzip rend le plus. `threshold` evite de compresser les petites reponses,
+  // ou le cout CPU depasserait le gain.
+  await app.register(fastifyCompress, {
+    global: true,
+    encodings: ["br", "gzip", "deflate"],
+    threshold: 1024,
+  });
 
   registerProblemHandlers(app, config.exposeErrorDetail);
 

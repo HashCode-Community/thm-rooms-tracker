@@ -149,6 +149,32 @@ est la bonne. 714 rooms et quelques dizaines d'étapes : l'agrégat est gratuit.
 `pnpm db:migrate` **avant** d'appliquer les migrations, de façon idempotente
 (`CREATE EXTENSION IF NOT EXISTS`). Le SQL généré échouerait sans elles.
 
+### Tri alphabétique : `lower(title)`, et pourquoi pas mieux
+
+**Dette datée, 2026-09-11.** Le tri `sort=az` est `ORDER BY lower(title) ASC, code ASC`, pas
+`ORDER BY title`.
+
+**Raison.** `postgres:16-alpine` déclare `datcollate = en_US.utf8`, mais l'image est bâtie sur musl,
+qui n'implémente pas les collations glibc : le tri retombe en pratique sur l'ordre des octets et
+range les majuscules avant les minuscules — `CCT2019` avant `Cache Me Outside`. Le même SQL sur une
+image Debian ou chez un hébergeur géré donnerait l'ordre inverse. **Un tri A-Z qui change selon
+l'image Docker n'est pas un tri.** `lower()` rend l'ordre indépendant de la libc.
+
+**Ce qui n'est pas fait, et pourquoi.** La solution complète est
+`ORDER BY title COLLATE "und-x-icu"` : PostgreSQL 16 embarque ICU, indépendant de la libc, et trie
+correctement les accents. Exposition mesurée sur le dataset : **1 seul titre non-ASCII sur 714**
+(`IDOR - Santa’s Little IDOR`, U+2019 en milieu de chaîne) et **zéro titre à initiale non
+alphanumérique**. Les extrémités du tri sont saines (`0day, 0x41haz, 25 Days…` / `… Zeno`), et ce
+caractère unique n'affecte aucun ordre relatif. Basculer coûterait une ligne pour un bénéfice nul
+aujourd'hui.
+
+**Déclencheur de bascule.** L'apparition d'un titre à initiale accentuée ou non-ASCII. Le correctif
+est alors une seule expression dans `SORT_EXPRESSIONS`, `apps/api/src/queries/room-filters.ts`.
+
+**Index.** Aucun index btree sur `title` seul n'existe, et il ne faut pas en créer pour ce tri : il
+ne le servirait pas, l'ordre portant sur `lower(title)` puis `code`. Le seul index sur `title` est
+`rooms_title_trgm_idx`, un GIN trigram destiné au repli de recherche — usage différent, conservé.
+
 ## 8. Index : celui qu'on oublie toujours
 
 `room_tags` a pour clé primaire `(room_id, tag_id)`. Cet index composite **ne sert pas** à filtrer par
