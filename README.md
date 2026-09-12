@@ -2,7 +2,7 @@
 
 > 🎓 Projet étudiant en cybersécurité — réalisé en équipe.
 >
-> 📌 **Document mis à jour le 12 septembre 2026.** La roadmap d'origine (cadrage du mentor) est
+> 📌 **Document mis à jour le 12 septembre 2026.** La roadmap d'origine (cadrage initial de Malick) est
 > conservée à l'identique ; les cases cochées, les statuts et les sections marquées 🆕 reflètent
 > l'avancement réel. Les écarts par rapport au cadrage initial sont listés et justifiés
 > en section « ⚖️ Écarts assumés ».
@@ -80,8 +80,6 @@ commencer.
 
 - 🧭 **Coordinateur (transverse aux 3 projets du groupe) :** Malick Ramzy SOPODOU.
 - 🧑‍🤝‍🧑 **Coéquipier·ère dédié·e à ce projet :** Nelkael.
-- 🎓 **Mentor :** [nom du mentor] — voir "📊 Suivi & compte-rendu au mentor"
-  ci-dessous.
 
 ### 🧩 Répartition des rôles proposée (à ajuster ensemble)
 
@@ -94,7 +92,7 @@ La Phase 1 (cadrage légal/éthique) et la Phase 10 (documentation) se
 font ensemble : ce sont des points d'engagement communs, pas une
 tâche d'une seule personne.
 
-> 🆕 **Point d'organisation à trancher avec le mentor.** Une extraction ponctuelle des 714 rooms
+> 🆕 **Point d'organisation à trancher ensemble.** Une extraction ponctuelle des 714 rooms
 > a été réalisée pour débloquer le travail sur la base de données et la restitution, qui étaient
 > bloqués sans jeu de données. **Cette extraction ne remplace pas le scraper de la phase 5** :
 > le scraper automatisé, reproductible et respectueux du rate limiting reste à écrire, et c'est
@@ -289,9 +287,9 @@ qu'il ne répond pas à l'objectif écrit en tête de ce document.
 > de deux dossiers (`scraper/` et `app/`), soit assumer deux dépôts avec le contrat de données
 > comme unique interface. **Notre recommandation : un seul dépôt**, conforme au cadrage, et qui
 > rend les PR croisées possibles — c'est justement sur les questions légales et éthiques que le
-> mentor a demandé une relecture mutuelle.
+> cadrage initial demande une relecture mutuelle.
 
-## 📊 Suivi & compte-rendu au mentor
+## 📊 Suivi & compte-rendu
 
 | Date | Fait | En cours | Bloquants | Prochaine étape |
 |---|---|---|---|---|
