@@ -194,13 +194,54 @@ Deux comportements a connaitre, parce qu'ils ne se devinent pas :
    verrouillerait sur un seul choix.
 
 **Donnees de reference contre resultats de requete.** `/api/tags` rend les NOMS des
-tags (cache une heure, ils ne changent qu'a l'import). `/api/facets` ne rend que des
-couples `slug` -> compteur, jamais mis en cache. Le front joint les deux sur le
-`slug`, et affiche le slug brut si le nom lui manque encore.
+tags (`max-age=300, stale-while-revalidate=3600` : ils ne changent qu'a l'import, mais
+cinq minutes bornent la fenetre pendant laquelle un tag tout neuf s'afficherait sous
+son slug). `/api/facets` ne rend que des couples `slug` -> compteur, jamais mis en
+cache. Le front joint les deux sur le `slug`, et affiche le slug brut a defaut de nom.
 
 Les reponses sont compressees (`br`, `gzip`, `deflate`) au-dela de 1 ko.
 
 La documentation interactive est sur `/docs` — **en developpement uniquement**.
+
+---
+
+## Parcours
+
+Contenu **editorial**, ecrit et relu a la main dans `data/roadmap/tracks/*.yaml`. Les
+donnees TryHackMe ne contiennent ni prerequis, ni ordre pedagogique, ni notion de
+parcours : rien ici n'est genere.
+
+```bash
+pnpm roadmap:seed                 # dry-run, le defaut
+pnpm roadmap:seed --apply         # ecrit en base
+pnpm roadmap:candidates           # regenere data/reports/roadmap-candidates.md
+```
+
+`roadmap:seed` **echoue bruyamment** plutot que d'ignorer quoi que ce soit :
+
+| Cas | Comportement |
+|---|---|
+| repertoire vide ou absent | refus |
+| `provenance` incomplete (dont `validated_by_completion`) | refus, chemin exact dans le YAML |
+| slug ou position en double | refus |
+| meme room deux fois dans le MEME parcours | refus |
+| etape sans aucune room `core` | refus |
+| `code` de room absent de la base | refus, rappelle que la casse compte |
+| `code` de room INACTIVE | refus, message distinct du precedent |
+
+Trois regles qui ne se devinent pas :
+
+1. **La progression se compte sur les rooms `core` seules.** Une room `optional` ou
+   `bonus` terminee ne gonfle pas le pourcentage.
+2. **La progression se compte par CODE DE ROOM, jamais par couple (etape, room).** Une
+   meme room appartient a plusieurs parcours ; la terminer quelque part la termine
+   partout. Scoper a l'etape casserait ce cas et seulement celui-la, donc sans se voir.
+3. **Le vocabulaire dit « recommande », jamais « requis ».** Un parcours est une
+   recommandation editoriale, pas un prerequis technique.
+
+`data/reports/roadmap-candidates.md` est marque `derived` : c'est un regroupement
+MECANIQUE des 714 rooms par tag, matiere premiere des prochains parcours. Ce n'est pas
+une roadmap et ca ne peut pas en devenir une par transformation.
 
 ---
 

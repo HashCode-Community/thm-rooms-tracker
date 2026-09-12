@@ -71,5 +71,31 @@ export {
 } from "./dataset.js";
 export type { QueryValue } from "./querystring.js";
 export { parseQueryString, stringifyQueryString } from "./querystring.js";
+export type {
+  Provenance,
+  StepProgress,
+  StepRoomRequirement,
+  TrackDetail,
+  TrackDetailResponse,
+  TrackLevel,
+  TrackListResponse,
+  TrackProgress,
+  TrackRoom,
+  TrackStep,
+  TrackSummary,
+} from "./roadmap.js";
+export {
+  computeTrackProgress,
+  ProvenanceSchema,
+  ROADMAP_DISCLAIMER,
+  STEP_ROOM_REQUIREMENTS,
+  TRACK_LEVELS,
+  TrackDetailResponseSchema,
+  TrackDetailSchema,
+  TrackListResponseSchema,
+  TrackRoomSchema,
+  TrackStepSchema,
+  TrackSummarySchema,
+} from "./roadmap.js";
 export type { VersionVerdict } from "./version.js";
 export { checkDatasetVersion, SUPPORTED_DATASET_RANGE } from "./version.js";

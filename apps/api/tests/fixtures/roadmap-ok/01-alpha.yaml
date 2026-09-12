@@ -1,0 +1,24 @@
+# FIXTURE DE TEST — ce n'est PAS un parcours du produit.
+# Elle existe pour prouver que `roadmap:seed` ecrit correctement et que la
+# progression se compte par room. Le contenu editorial reel vit dans
+# data/roadmap/tracks/ et n'est pas genere.
+slug: fixture-alpha
+title: Fixture Alpha
+level: beginner
+position: 1
+summary: "Jeu de test, pas un parcours."
+provenance:
+  method: "Fixture de test ecrite a la main pour valider le chargeur."
+  sources:
+    - "aucune : contenu fabrique"
+  validated_by_completion: false
+steps:
+  - title: "Premiere etape"
+    objective: "Verifier le chemin d'ecriture"
+    rooms:
+      - { code: picklerick, requirement: core }
+      - { code: furthernmap, requirement: optional, note: "La suite de cette serie est payante." }
+  - title: "Room partagee"
+    objective: "Elle reapparait dans le second parcours"
+    rooms:
+      - { code: cyberkillchainzmt, requirement: core }

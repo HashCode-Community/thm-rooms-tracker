@@ -763,3 +763,181 @@ label {
   color: var(--texte-doux);
   margin-bottom: var(--pas);
 }
+
+/* --- Parcours ----------------------------------------------------------- */
+
+/*
+ * Mention obligatoire sur les parcours. En tete de page, visible, jamais en note
+ * de bas de page : elle dit ce que ces parcours ne sont pas.
+ */
+.mention {
+  border: 1px solid var(--bord-fort);
+  border-left-width: 4px;
+  border-radius: var(--rayon);
+  background: var(--fond-doux);
+  padding: calc(var(--pas) * 1.5);
+  margin: calc(var(--pas) * 2) 0;
+  max-width: 78ch;
+  font-size: 0.875rem;
+}
+
+.parcours-liste {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--pas);
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+.parcours-carte {
+  border: 1px solid var(--bord);
+  border-radius: var(--rayon);
+  padding: calc(var(--pas) * 2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--pas);
+}
+
+.parcours-carte:hover {
+  border-color: var(--bord-fort);
+}
+
+.parcours-carte__titre {
+  font-size: 1.0625rem;
+}
+
+.parcours-carte__titre a {
+  text-decoration: none;
+}
+
+.parcours-carte__titre a:hover {
+  text-decoration: underline;
+}
+
+/*
+ * Etapes verticales numerotees. Ici la numerotation encode une SEQUENCE : le
+ * trait vertical relie les etapes pour le dire visuellement.
+ */
+.etapes {
+  list-style: none;
+  margin: calc(var(--pas) * 3) 0 0;
+  padding: 0;
+  max-width: 80ch;
+}
+
+.etape {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: calc(var(--pas) * 2);
+  padding-bottom: calc(var(--pas) * 3);
+  position: relative;
+}
+
+.etape:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: 16px;
+  top: 34px;
+  bottom: 0;
+  width: 2px;
+  background: var(--bord);
+}
+
+.etape__puce {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 2px solid var(--bord-fort);
+  background: var(--fond);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  z-index: 1;
+}
+
+.etape__corps {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 4px;
+  min-width: 0;
+}
+
+.etape__titre {
+  font-size: 1.0625rem;
+}
+
+.etape__rooms {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.etape-room {
+  border: 1px solid var(--bord);
+  border-radius: var(--rayon);
+  padding: calc(var(--pas) * 1.25);
+}
+
+/* Une room recommandee compte dans la progression ; une optionnelle non. La
+   difference se voit par le fond ET par le badge, jamais par la couleur seule. */
+.etape-room--optional,
+.etape-room--bonus {
+  background: var(--fond-doux);
+  border-style: dashed;
+}
+
+.etape-room__ligne {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.etape-room__titre {
+  font-weight: 600;
+  text-decoration: none;
+  margin-right: 2px;
+}
+
+.etape-room__titre:hover {
+  text-decoration: underline;
+}
+
+.badge--core {
+  background: var(--diff-easy);
+}
+
+/* La note est destinee a l'utilisateur final : plusieurs signalent que la suite
+   d'une serie est payante. Jamais repliee, jamais en petit gris illisible. */
+.etape-room__note {
+  margin-top: 6px;
+  padding-left: var(--pas);
+  border-left: 3px solid var(--bord-fort);
+  font-size: 0.8125rem;
+}
+
+.provenance {
+  border: 1px solid var(--bord);
+  border-radius: var(--rayon);
+  padding: calc(var(--pas) * 2);
+  margin-top: calc(var(--pas) * 2);
+  max-width: 78ch;
+  font-size: 0.875rem;
+}
+
+.provenance__titre {
+  font-size: 0.9375rem;
+  margin-bottom: 6px;
+}
+
+.provenance ul {
+  margin: 4px 0 0;
+  padding-left: 20px;
+}

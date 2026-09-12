@@ -34,15 +34,23 @@ import {
 
 /**
  * Donnees de REFERENCE : elles ne changent qu'a l'import, jamais au fil des
- * requetes. Un an de cache serait malhonnete, une minute ne servirait a rien.
+ * requetes.
  *
- * Consequence assumee : apres un import, un client peut ignorer pendant une heure
- * le NOM d'affichage d'un tag nouvellement apparu. Ce n'est pas grave par
- * construction — `slug` est la cle fonctionnelle et il vient de `/api/facets`,
- * qui n'est pas mis en cache ; `name` est cosmetique et modifiable sans migration
- * (ADR-0003). Le front affiche le slug quand le nom lui manque.
+ * `max-age=300` et non 3600. Une premiere version cachait une heure, en se
+ * disant qu'un nom de tag manquant retomberait sur le slug et que rien ne
+ * casserait. C'est vrai techniquement, et faux du point de vue de qui regarde :
+ * ce qui s'affiche alors, c'est `burp-suite` au lieu de `Burp Suite`, pendant une
+ * heure, JUSTE APRES un import — c'est-a-dire au moment precis ou les nouvelles
+ * rooms arrivent et ou quelqu'un regarde. Personne n'en conclut « cache
+ * expirant », tout le monde en conclut « site bacle ».
+ *
+ * `stale-while-revalidate` garde le benefice entier : le navigateur sert la
+ * version en cache instantanement et rafraichit en arriere-plan. La fenetre
+ * d'incoherence tombe a cinq minutes, pour 4 ko toutes les cinq minutes.
+ *
+ * Le repli sur le slug reste en place cote front, comme filet.
  */
-const REFERENCE_CACHE_CONTROL = "public, max-age=3600, stale-while-revalidate=86400";
+const REFERENCE_CACHE_CONTROL = "public, max-age=300, stale-while-revalidate=3600";
 
 /** Depend de la requete : jamais mis en cache. */
 const QUERY_CACHE_CONTROL = "no-store";

@@ -26,7 +26,9 @@
     "db:seed": "pnpm --filter @thm/api run db:seed",
     "typecheck:guard": "pnpm --filter @thm/api run typecheck:guard",
     "data:import": "node --env-file=.env --import tsx apps/api/src/scripts/import-dataset.ts",
-    "test": "pnpm -r run test"
+    "test": "pnpm -r run test",
+    "roadmap:seed": "pnpm --filter @thm/api roadmap:seed",
+    "roadmap:candidates": "pnpm --filter @thm/api roadmap:candidates"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.12",

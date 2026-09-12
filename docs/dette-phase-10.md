@@ -31,6 +31,53 @@ existe finit par être supprimée comme « inutile ».
 |---|---|---|
 | 7 | **Les trois critères de repli TypeScript 7** | La porte C2 a été franchie sur un périmètre réduit (API seule). Phase 10 = CI complète, front typé, tests Vitest. [ADR-0002](adr/0002-typescript-7.md) |
 
+## Poids du bundle front — mesuré, pas estimé
+
+**Mesure du 2026-09-12**, `pnpm --filter @thm/web build:analyse`. La méthode décode les
+`mappings` du source map et additionne les octets **réellement émis** par fichier source :
+c'est ce qui a survécu au secouage d'arbre et à la minification, pas la taille des paquets
+installés.
+
+```
+brut 403,2 ko · gzip 124,0 ko (ratio 30,8 %)
+```
+
+| Dépendance | Brut | gzip estimé | Part |
+|---|---:|---:|---:|
+| react-dom | 202,3 ko | 62,2 ko | 50,5 % |
+| **zod** | **80,8 ko** | **24,8 ko** | **20,2 %** |
+| @tanstack/router-core | 51,5 ko | 15,8 ko | 12,8 % |
+| (notre code) apps/web | 27,7 ko | 8,5 ko | 6,9 % |
+| @tanstack/react-router | 12,1 ko | 3,7 ko | 3,0 % |
+| react | 8,0 ko | 2,5 ko | 2,0 % |
+| (notre code) @thm/shared | 5,1 ko | 1,6 ko | 1,3 % |
+| @tanstack/history | 4,4 ko | 1,4 ko | 1,1 % |
+| @tanstack/store | 3,7 ko | 1,1 ko | 0,9 % |
+| scheduler | 3,5 ko | 1,1 ko | 0,9 % |
+| use-sync-external-store | 1,5 ko | 0,5 ko | 0,4 % |
+
+Le gzip par dépendance est une **estimation** : le ratio global est appliqué à chaque
+tranche. Compresser les tranches isolément donnerait un chiffre faux, la compression
+exploitant les redondances entre elles. Seul le total gzip est mesuré.
+
+**Ce que la mesure corrige.**
+
+- L'attribution « TanStack Router représente l'essentiel », écrite au rapport de la phase 6,
+  était **fausse**. L'ensemble TanStack (`router-core` + `react-router` + `history` + `store`)
+  pèse 71,7 ko bruts, soit **17,8 %**. React et React DOM en pèsent **53,4 %**.
+- **Zod part bien dans le navigateur**, comme supposé : 20,2 %, deuxième poste. C'est la
+  contrepartie directe de `RoomSearchSchema` et `RoomListQuerySchema` partagés avec l'API —
+  une seule définition du contrat de filtre des deux côtés du réseau. Le coût est connu et
+  assumé : sans lui, il faudrait deux définitions à garder synchronisées, ce qui est
+  précisément le défaut que `packages/shared` existe pour empêcher.
+
+**Rien n'est optimisé.** 124 ko compressés pour un outil de travail, c'est acceptable. La
+mesure est là pour que le chiffre soit connu, pas pour déclencher une action.
+
+**À refaire en phase 10**, la phase 8a ajoutant du code front.
+
+---
+
 ## Dettes à échéance conditionnelle
 
 Elles ne sont **pas** dues en phase 10. Elles sont ici pour ne pas être redécouvertes comme des bugs.

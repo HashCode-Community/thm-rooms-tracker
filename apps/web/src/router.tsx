@@ -1,6 +1,8 @@
 import { createRouter } from "@tanstack/react-router";
 import { ErrorState } from "./components/states.js";
 import { homeRoute } from "./routes/home.js";
+import { roadmapDetailRoute } from "./routes/roadmap-detail.js";
+import { roadmapListRoute } from "./routes/roadmap-list.js";
 import { roomDetailRoute } from "./routes/room-detail.js";
 import { roomsListRoute } from "./routes/rooms-list.js";
 import { rootRoute } from "./routes/root.js";
@@ -12,7 +14,13 @@ import { parseSearch, stringifySearch } from "./search.js";
  * Trois routes ne justifient ni un greffon Vite, ni un arbre de routes genere,
  * ni le bruit de sortie de git qui va avec.
  */
-const routeTree = rootRoute.addChildren([homeRoute, roomsListRoute, roomDetailRoute]);
+const routeTree = rootRoute.addChildren([
+  homeRoute,
+  roomsListRoute,
+  roomDetailRoute,
+  roadmapListRoute,
+  roadmapDetailRoute,
+]);
 
 export const router = createRouter({
   routeTree,

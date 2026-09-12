@@ -12,6 +12,7 @@ import type { AppConfig } from "./config.js";
 import { registerProblemHandlers } from "./http/problem.js";
 import { catalogRoutes } from "./routes/catalog.js";
 import { healthRoutes } from "./routes/health.js";
+import { trackRoutes } from "./routes/tracks.js";
 
 /**
  * Fabrique de l'application.
@@ -80,6 +81,7 @@ export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
 
   await app.register(healthRoutes);
   await app.register(catalogRoutes);
+  await app.register(trackRoutes);
 
   return app;
 }

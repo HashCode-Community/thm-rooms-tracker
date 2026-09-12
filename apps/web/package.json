@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc -p tsconfig.json --noEmit && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "build:analyse": "vite build --sourcemap && node --import tsx scripts/analyse-bundle.ts"
   },
   "dependencies": {
     "@tanstack/react-router": "1.170.35",

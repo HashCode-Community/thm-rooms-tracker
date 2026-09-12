@@ -19,6 +19,7 @@ function Layout(): ReactNode {
           <nav className="nav" aria-label="Navigation principale">
             <Link to="/">Accueil</Link>
             <Link to="/rooms">Catalogue</Link>
+            <Link to="/roadmap">Parcours</Link>
           </nav>
         </div>
       </header>

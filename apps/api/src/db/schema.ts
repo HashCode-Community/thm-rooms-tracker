@@ -305,6 +305,18 @@ export const tracks = pgTable("tracks", {
   level: trackLevel("level").notNull(),
   position: integer("position").notNull().default(0),
   isPublished: boolean("is_published").notNull().default(false),
+
+  /**
+   * D'ou vient ce parcours, et ce qu'il n'est pas.
+   *
+   * OBLIGATOIRE, expose par l'API, AFFICHE dans l'interface. Un parcours dont la
+   * methode de construction est invisible se lit comme une autorite. Avec sa
+   * provenance sous les yeux, il se lit pour ce qu'il est : une recommandation.
+   *
+   * Contient notamment `validated_by_completion`, qui dit si l'equipe a
+   * reellement suivi le parcours de bout en bout.
+   */
+  provenance: jsonb("provenance").notNull(),
 });
 
 export const trackSteps = pgTable(

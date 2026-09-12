@@ -164,7 +164,8 @@ describe("/api/facets — comptage croise", () => {
 
     for (const url of ["/api/tags", "/api/categories", "/api/stats"]) {
       const response = await app.inject({ method: "GET", url });
-      expect(response.headers["cache-control"], url).toContain("max-age=3600");
+      expect(response.headers["cache-control"], url).toContain("max-age=300");
+      expect(response.headers["cache-control"], url).toContain("stale-while-revalidate");
     }
   });
 

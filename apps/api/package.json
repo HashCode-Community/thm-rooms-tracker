@@ -15,7 +15,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:unit": "vitest run tests/dataset-stats.test.ts",
-    "test:api": "vitest run tests/api"
+    "test:api": "vitest run tests/api",
+    "roadmap:seed": "node --env-file=../../.env --import tsx src/scripts/seed-roadmap.ts",
+    "roadmap:candidates": "node --env-file=../../.env --import tsx src/scripts/roadmap-candidates.ts"
   },
   "dependencies": {
     "@fastify/compress": "9.2.0",

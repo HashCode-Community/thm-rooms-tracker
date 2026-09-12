@@ -63,13 +63,13 @@ function Home(): ReactNode {
           </Link>
         </li>
         <li>
-          <div className="porte" aria-disabled="true">
+          <Link to="/roadmap" className="porte">
             <span className="porte__titre">Parcours</span>
             <span className="petit doux">
-              Pas encore disponible. Les parcours sont un contenu editorial : ils ne se deduisent
-              d'aucune donnee TryHackMe et ne seront pas inventes.
+              Un ordre de lecture dans les 714 rooms. Contenu editorial, ecrit a la main : les
+              donnees TryHackMe ne contiennent aucun ordre pedagogique.
             </span>
-          </div>
+          </Link>
         </li>
         <li>
           <div className="porte" aria-disabled="true">
