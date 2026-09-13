@@ -1,0 +1,16 @@
+# ---------------------------------------------------------------------------
+# Racine du depot d'equipe.
+#
+# Le projet web sous `app/` a son propre .gitattributes, qui ne s'applique qu'a
+# `app/`. Sans cette regle ici, les fichiers de la racine et de `scraper/`
+# suivraient `core.autocrlf` de chaque poste : le meme fichier deviendrait un
+# diff fantome complet entre Malick et Nel.
+#
+# La protection des octets du dataset, elle, vit dans app/.gitattributes, au
+# plus pres du fichier qu'elle protege.
+# ---------------------------------------------------------------------------
+* text=auto eol=lf
+
+# Scripts Windows : cmd.exe ne tolere pas les fins de ligne LF.
+*.bat text eol=crlf
+*.cmd text eol=crlf

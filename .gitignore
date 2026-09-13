@@ -1,0 +1,23 @@
+# ---------------------------------------------------------------------------
+# Racine du depot d'equipe.
+#
+# Le projet web vit sous `app/` et a son propre .gitignore, qui ne couvre que
+# `app/`. Ce fichier-ci protege la RACINE : sans lui, un `git add -A` depuis la
+# racine indexe le `.env` et les artefacts de developpement qui s'y trouvent.
+# Ce n'est pas theorique : c'est arrive pendant la migration.
+# ---------------------------------------------------------------------------
+
+# Secrets. Jamais commite, voir app/.env.example.
+.env
+.env.local
+.env.*.local
+
+# Dependances installees a la racine par une version anterieure de
+# l'arborescence, et par prudence si quelqu'un lance pnpm ici.
+node_modules/
+
+# Captures d ecran de verification manuelle.
+/*.png
+
+# Logs
+*.log

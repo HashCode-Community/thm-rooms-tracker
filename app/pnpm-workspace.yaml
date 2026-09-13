@@ -1,0 +1,11 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# esbuild telecharge son binaire natif via un script post-install.
+# Autorise explicitement : pnpm bloque tous les scripts par defaut.
+allowBuilds:
+  esbuild: true
+
+minimumReleaseAgeExclude:
+  - '@tanstack/react-router@1.170.35'

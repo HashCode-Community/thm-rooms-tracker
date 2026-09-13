@@ -1,0 +1,14 @@
+# FIXTURE DE TEST — voir 01-alpha.yaml.
+slug: fixture-beta
+title: Fixture Beta
+level: intermediate
+position: 2
+provenance:
+  method: "Fixture de test ecrite a la main."
+  sources: []
+  validated_by_completion: false
+steps:
+  - title: "Reprise de la room partagee"
+    rooms:
+      - { code: cyberkillchainzmt, requirement: core }
+      - { code: AIforcyber-aoc2025-y9wWQ1zRgB, requirement: core }

@@ -1,0 +1,236 @@
+# =============================================================================
+# NORMALISATION DES NOMS D'OUTILS
+# =============================================================================
+#
+# ETAT : VALIDE PAR NEL (reponse Q9, phase 2) ET APPLIQUE.
+#
+# `merge` et `rename` sont actifs. `canonical` reste vide, et c'est normal :
+# voir la note au-dessus de cette section.
+#
+# Ce fichier est la seule voie autorisee pour corriger un nom d'outil.
+# Aucune correction en dur dans le code : la donnee source doit rester intacte
+# et la transformation rejouable.
+#
+# -----------------------------------------------------------------------------
+# LA REGLE QUI DECIDE merge OU rename
+# -----------------------------------------------------------------------------
+#
+# Appliquee dans cet ordre exact, sans exception :
+#
+#   1. retrait du suffixe d'affichage :  /\s*-?\s*NEW$/i
+#   2. trim()
+#   3. comparaison casefold()  (trim + minuscules) pour chercher un jumeau
+#
+#   -> un jumeau existe      => `merge`   (deux valeurs convergent vers une seule)
+#   -> aucun jumeau          => `rename`  (orphelin : on retire juste le badge)
+#
+# Le tiret optionnel de l'etape 1 est indispensable. Sans lui, "Empire - NEW"
+# donne "Empire -", et son jumeau "Empire" (2 occurrences) n'est jamais trouve.
+#
+# La casefold de l'etape 3 est tout aussi indispensable : "Enum4Linux NEW"
+# donne "Enum4Linux", dont le jumeau reel s'ecrit "Enum4linux", avec un L
+# minuscule. Une comparaison sensible a la casse le classerait a tort en
+# `rename`.
+#
+# -----------------------------------------------------------------------------
+# CE QUE CE FICHIER NE FAIT PLUS (decision ADR-0001 Q9)
+# -----------------------------------------------------------------------------
+#
+# Le schema separe deux roles dans `tags(kind, slug, name)` :
+#
+#   slug = forme normalisee, casefold, sans espaces   -> cle de fusion,
+#          cle d'unicite, et valeur du parametre de filtre dans l'URL
+#   name = forme d'affichage, choisie une fois        -> cosmetique, modifiable
+#          sans migration
+#
+# Consequence : la deduplication par casse est STRUCTURELLE. Deux ecritures qui
+# ne different que par la casse ou la ponctuation produisent le meme slug, donc
+# le meme tag, sans que ce fichier ait a les lister.
+#
+# ATTENTION : sur CE mapping-ci, la deduplication structurelle n'a rien a faire.
+# Verifie sur le dataset apres application du mapping : 179 outils produisent 179
+# slugs, 103 competences en produisent 103, 15 technologies en produisent 15.
+# ZERO collision de slug. Les 7 fusions sont toutes faites au niveau du NOM, par
+# les entrees `merge` ci-dessous — y compris "enum4linux", dont les DEUX variantes
+# source sont listees explicitement.
+#
+# Correction 2026-09-11 : une version anterieure de ce commentaire annoncait
+# « 180 outils produisent 179 slugs, l'unique collision etant enum4linux ».
+# C'etait l'arithmetique d'un mapping different (un `rename` vers "Enum4Linux"
+# laissant "Enum4linux" intact). Cf. ADR-0003.
+#
+# Ce fichier ne sert donc plus qu'aux cas que la normalisation ne peut PAS
+# attraper : les suffixes d'affichage et les fautes de frappe.
+#
+# Implementation de reference : apps/api/src/scripts/dataset-analysis.ts,
+# fonction `analyseToolNames`. Chiffres a jour dans le dernier rapport
+# data/reports/audit-*.md.
+#
+# -----------------------------------------------------------------------------
+# CHIFFRES OBSERVES (dataset 1.0.0, sha256 15b1dd50...)
+# -----------------------------------------------------------------------------
+#
+#   186 outils distincts au total
+#    12 valeurs distinctes portant " NEW", 17 occurrences, sur 14 rooms
+#     5 d'entre elles ont un jumeau  -> merge
+#     7 sont orphelines              -> rename
+#     2 fautes de frappe averees     -> merge
+#     = 7 merges et 7 renames proposes ci-dessous
+#
+# =============================================================================
+
+version: 1
+
+# -----------------------------------------------------------------------------
+# merge : plusieurs ecritures d'un MEME outil convergent vers une forme canonique.
+# Le comptage des facettes additionne les occurrences des variantes.
+# -----------------------------------------------------------------------------
+merge:
+  # --- issus du suffixe " NEW" (la forme nue existe deja) ---
+  "Empire":
+    # "Empire - NEW" porte en plus un tiret parasite. 2 + 1 = 3 occurrences.
+    - "Empire - NEW"
+  "MITRE ATT&CK Framework":
+    # 2 + 2 = 4 occurrences.
+    - "MITRE ATT&CK Framework NEW"
+  "enum4linux":
+    # Forme canonique TOUT EN MINUSCULES : c'est un script Perl, le binaire
+    # s'appelle `enum4linux`, comme `enum4linux-ng`. "Enum4Linux" aurait ete une
+    # TROISIEME variante inventee, pas la casse reelle.
+    # Les DEUX variantes source sont listees. 2 + 1 = 3 occurrences.
+    - "Enum4linux"
+    - "Enum4Linux NEW"
+  "Hydra":
+    # 27 + 1 = 28 occurrences. A ne pas confondre avec Ghidra, outil distinct.
+    - "Hydra NEW"
+  "Responder":
+    # 3 + 1 = 4 occurrences.
+    - "Responder NEW"
+
+  # --- fautes de frappe averees ---
+  "Burp Suite":
+    # 47 + 1 = 48 occurrences.
+    - "Burpe Suite"
+  "Autopsy":
+    # 3 + 1 = 4 occurrences.
+    - "Autospy"
+
+# -----------------------------------------------------------------------------
+# rename : l'outil n'a qu'une ecriture, on retire seulement le badge d'affichage.
+# Aucune fusion, aucun comptage n'est modifie : seul le libelle change.
+#
+# NOTE : c'est bien une modification de la donnee affichee. Elle est ici parce
+# que Nel l'a explicitement validee (reponse Q3) : " NEW" est un badge du site
+# TryHackMe, pas un element du nom de l'outil.
+# -----------------------------------------------------------------------------
+rename:
+  "ATT&CK Navigator NEW": "ATT&CK Navigator"   # 2 occurrences
+  "Audit Policy NEW": "Audit Policy"           # 1 occurrence
+  "Event Viewer NEW": "Event Viewer"           # 3 occurrences
+  "Log Viewer NEW": "Log Viewer"               # 1 occurrence
+  "Microsoft Outlook NEW": "Microsoft Outlook" # 1 occurrence
+  "Netcat NEW": "Netcat"                       # 2 occurrences
+  "Pwntools NEW": "Pwntools"                   # 1 occurrence
+
+# =============================================================================
+# canonical : forme d'affichage imposee en cas de COLLISION DE SLUG
+# =============================================================================
+#
+# Quand deux valeurs distinctes produisent le meme `tags.slug`, elles ne font
+# qu'une seule ligne en base. Il faut alors decider laquelle atterrit dans
+# `tags.name`.
+#
+# SANS cette section, la reponse serait « la premiere rencontree », donc l'ORDRE
+# DE PARCOURS des rooms. Le dataset est trie par `code`, donc c'est stable
+# aujourd'hui. Mais au prochain scrape, si l'ordre change ou si une room
+# disparait, le nom affiche peut basculer d'une variante a l'autre. Le rapport
+# d'import signalerait une modification que personne ne saurait expliquer, et on
+# chercherait un bug qui n'existe pas.
+#
+# REGLE : l'importer REFUSE DE TOURNER s'il rencontre une collision de slug sans
+# forme canonique declaree ici. Meme philosophie que le garde des 5 % : quand
+# deux donnees se contredisent, on s'arrete, on ne devine pas.
+#
+# Cle = le slug en collision. Valeur = le `name` a afficher.
+# -----------------------------------------------------------------------------
+
+# VIDE, ET C'EST NORMAL — le garde est dormant, pas inutile.
+#
+# Avec le mapping ci-dessus, AUCUNE collision de slug ne se produit : le `merge`
+# de "enum4linux" liste explicitement les deux variantes source, donc elles
+# convergent des le niveau du NOM, avant la slugification. Il n'y a rien a
+# arbitrer.
+#
+# La collision n'apparaitrait qu'avec un mapping ecrit autrement — par exemple un
+# `rename` de "Enum4Linux NEW" vers "Enum4Linux" laissant "Enum4linux" intact :
+# les deux formes ne se rejoindraient alors que par la casefold du slug.
+# Verifie : dans ce cas l'importer refuse de tourner et indique la ligne a
+# ajouter ici.
+#
+# Le garde existe donc pour le jour ou TryHackMe introduira une variante de
+# casse, ou pour une reecriture de ce fichier. Il ne sert a rien aujourd'hui.
+canonical: {}
+
+# -----------------------------------------------------------------------------
+# trim : espaces parasites. Traite systematiquement a l'import sur TOUS les
+# champs texte (decision Q5), donc rien a declarer ici. Liste pour memoire :
+#
+#   " Microsoft Sentinel"  -> "Microsoft Sentinel"   (1 outil)
+#   14 titres de rooms
+#   37 descriptions de rooms
+# -----------------------------------------------------------------------------
+
+# =============================================================================
+# NE PAS FUSIONNER — liste de garde
+# =============================================================================
+#
+# DECISION (ADR-0001 Q9) : aucune detection automatique de similarite ne sera
+# implementee. Elle produirait 7 faux positifs connus et verifies presents dans
+# le dataset, soit 12 valeurs distinctes, listes ci-dessous. Les fusions sont explicites et validees a la
+# main. La liste `merge` ci-dessus est CLOSE.
+#
+# Ce n'est pas une absence de fonctionnalite : c'est un choix, et le voici ecrit
+# pour que personne ne « l'ajoute » dans six mois en croyant combler un oubli.
+#
+#   LinPeas       / WinPeas        Linux vs Windows. Enumeration par plateforme.
+#   LECmd.exe     / PECmd.exe      Parseurs forensiques : LNK vs Prefetch.
+#     + MFTCmd.exe                 Troisieme valeur de la meme famille dans le
+#                                  dataset, parseur de $MFT. 1 occurrence.
+#                                  Ajoute sur signalement de Nel, phase 5.
+#                                  -> A NE PAS FUSIONNER avec LECmd/PECmd, qui
+#                                     sont bien des outils differents.
+#                                  -> MAIS voir la question ouverte ci-dessous.
+#   Netcat        / Ncat           Ncat est la reimplementation du projet Nmap.
+#                                  ("Netcat" nu = 0 occurrence, "Ncat" = 6)
+#   DnSpy         / ILSpy          Deux decompilateurs .NET differents.
+#                                  (DnSpy = 2 occurrences, ILSpy = 1)
+#                                  La casse reelle est "DnSpy", avec un D
+#                                  MAJUSCULE. Chercher "dnSpy" ne rend rien :
+#                                  ce n'est pas une absence, c'est une erreur
+#                                  de requete. Verifie deux fois.
+#   ProcDOT       / Procmon        Visualisation vs capture d'evenements.
+#   Ghidra        / Hydra          Retro-ingenierie vs cassage de mots de passe.
+#   Empire        / Impacket       Rien a voir, cites pour eviter tout raccourci.
+#
+# =============================================================================
+# QUESTION OUVERTE — "MFTCmd.exe" est probablement mal orthographie
+# =============================================================================
+#
+# L'outil d'Eric Zimmerman s'appelle MFTECmd, avec un E : le depot officiel est
+# github.com/EricZimmerman/MFTECmd (« MFT Explorer Command line », par symetrie
+# avec LECmd = LNK Explorer et PECmd = Prefetch Explorer). Verifie le 2026-09-11.
+#
+# Dans le dataset :   "MFTCmd.exe"  = 1 occurrence
+#                     "MFTECmd.exe" = 0 occurrence
+#
+# Il n'y a donc AUCUN jumeau a fusionner : ce serait un `rename` de correction
+# orthographique, pas un `merge`. Contrairement a "Burpe Suite" et "Autospy", dont
+# la forme correcte existait deja dans les donnees et rendait la fusion evidente,
+# celle-ci corrigerait une valeur vers une forme ABSENTE de la source.
+#
+# NON APPLIQUE. C'est une modification de donnee affichee sur la seule base d'une
+# connaissance externe : elle releve d'un arbitrage de Nel, pas d'une initiative.
+# Pour l'appliquer, ajouter sous `rename:` :
+#     "MFTCmd.exe": "MFTECmd.exe"
+#
+# =============================================================================

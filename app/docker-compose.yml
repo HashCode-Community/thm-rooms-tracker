@@ -1,0 +1,25 @@
+# Postgres local uniquement. Aucun autre service : l'API et le front tournent
+# sur le poste, pas dans Docker (cf. brief - pas de Docker en prod).
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: thm-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-thm}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-thm_local_dev_only}
+      POSTGRES_DB: ${POSTGRES_DB:-thm_roadmap}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - thm_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-thm} -d ${POSTGRES_DB:-thm_roadmap}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  thm_pgdata:
+    name: thm_pgdata

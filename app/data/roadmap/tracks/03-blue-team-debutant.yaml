@@ -1,0 +1,70 @@
+slug: blue-team-debutant
+title: Blue Team débutant
+level: beginner
+position: 3
+summary: >-
+  La défense, dans l'ordre du métier d'analyste SOC : comprendre l'attaquant,
+  lire des logs, utiliser un SIEM, traiter une alerte, puis investiguer un incident.
+  Prérequis recommandé : le parcours Fondamentaux.
+
+provenance:
+  method: >-
+    Même méthode que les autres parcours. L'ordre suit le quotidien réel d'un analyste
+    niveau 1 (détection → triage → escalade → investigation), pas une donnée TryHackMe.
+  sources:
+    - "Métadonnées du catalogue TryHackMe : difficulté, durée, compétences, technologies, outils"
+    - "Nombre de participants par room, utilisé comme indicateur de fiabilité"
+    - "Progression pédagogique standard du domaine — choix éditorial de l'équipe"
+  validated_by_completion: false
+
+steps:
+  - title: "Le métier d'analyste"
+    objective: "Savoir concrètement à quoi ressemble une journée en SOC avant de choisir cette voie."
+    rooms:
+      - { code: jrsecanalystintrouxo, requirement: core }
+      - { code: socroleinblueteam, requirement: core }
+      - { code: socfundamentals, requirement: core }
+
+  - title: "Comprendre l'attaquant"
+    objective: "On ne défend pas ce qu'on ne comprend pas. Les modèles qui décrivent comment une attaque se déroule."
+    rooms:
+      - { code: cyberkillchainzmt, requirement: core }
+      - { code: unifiedkillchain, requirement: core }
+      - { code: pyramidofpainax, requirement: core, note: "Explique pourquoi certains indicateurs valent bien plus que d'autres. Concept central du métier." }
+
+  - title: "Lire des logs"
+    objective: "La matière première de la défense. Savoir où ils sont, ce qu'ils contiennent, ce qu'ils ne contiennent pas."
+    rooms:
+      - { code: introtologs, requirement: core }
+      - { code: trafficanalysisessentials, requirement: core }
+
+  - title: "Le SIEM"
+    objective: "L'outil central d'un SOC : centraliser les logs, écrire des règles, déclencher des alertes."
+    rooms:
+      - { code: introtosiem, requirement: core, note: "120 min. C'est la pièce maîtresse du parcours." }
+
+  - title: "Phishing"
+    objective: "Analyser un email malveillant : en-têtes, pièces jointes, liens. C'est le type d'alerte le plus fréquent en SOC réel."
+    rooms:
+      - { code: phishingemails1tryoe, requirement: core }
+      - { code: phishingemails2rytmuv, requirement: core }
+
+  - title: "Endpoint et forensique"
+    objective: "Regarder ce qui s'est passé sur une machine : processus, fichiers, traces laissées par un attaquant."
+    rooms:
+      - { code: introtoendpointsecurity, requirement: core }
+      - { code: introdigitalforensics, requirement: core }
+      - { code: windowsforensics1, requirement: optional, note: "Classée medium, registre Windows. Ta première marche de difficulté côté défense." }
+
+  - title: "Traiter une alerte de bout en bout"
+    objective: "Ce que tu feras réellement au quotidien : trier, qualifier, escalader, documenter."
+    rooms:
+      - { code: socl1alerttriage, requirement: core }
+      - { code: socl1alertreporting, requirement: core }
+      - { code: introductoryroomdfirmodule, requirement: core }
+
+  - title: "Investiguer seul"
+    objective: "Une machine compromise, aucun guide. Trouve ce que l'attaquant a fait."
+    rooms:
+      - { code: investigatingwindows, requirement: core }
+      - { code: crackthehash, requirement: optional, note: "Complément utile : comprendre comment les mots de passe se cassent." }
