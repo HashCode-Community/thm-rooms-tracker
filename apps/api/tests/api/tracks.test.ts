@@ -1,8 +1,11 @@
+import { execFile } from "node:child_process";
 import { resolve } from "node:path";
+import { promisify } from "node:util";
+import { eq } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { db } from "../../src/db/client.js";
-import { tracks } from "../../src/db/schema.js";
+import { rooms, tracks } from "../../src/db/schema.js";
 import type { TrackFile } from "../../src/scripts/roadmap-source.js";
 import {
   checkTrackCoherence,
@@ -18,26 +21,64 @@ import { assertDatabaseReady, buildTestApp, closeDatabase } from "./harness.js";
  *
  * Ces tests SEMENT des parcours de fixture, puis rendent la base telle qu'ils
  * l'ont trouvee. `applyTracks` etant un remplacement complet, semer une fixture
- * efface les parcours du produit : le `afterAll` n'est pas une politesse, c'est
- * ce qui empeche `pnpm test` de laisser le site sans roadmap.
+ * efface les trois parcours du produit : le `afterAll` n'est pas une politesse,
+ * c'est ce qui empeche `pnpm test` de laisser le site sans roadmap.
  *
  * Le contenu editorial reel vit dans `data/roadmap/tracks/` et n'est jamais ecrit
- * ici.
- *
- * Les fixtures sont explicitement nommees « fixture » pour que personne ne les
- * confonde un jour avec un parcours du produit.
+ * ici. Les fixtures sont explicitement nommees « fixture » pour que personne ne
+ * les confonde un jour avec un parcours du produit.
  */
 
 const FIXTURES = resolve(import.meta.dirname, "../fixtures/roadmap-ok");
 
-/** Racine du paquet api. */
+/** Racine du depot : `--dir` du seeder s'y resout, pas au repertoire courant. */
 const API_DIR = resolve(import.meta.dirname, "../..");
+const FIXTURE_CLE_INCONNUE = resolve(import.meta.dirname, "../fixtures/roadmap-cle-inconnue");
 
 /** Le contenu editorial REEL du produit. Pas une fixture. */
 const TRACKS_REELS = resolve(API_DIR, "../../data/roadmap/tracks");
 
+/** Room inseree INACTIVE le temps d'un test, puis supprimee. */
+const CODE_INACTIF = "fixture-room-inactive";
+
+const execFileAsync = promisify(execFile);
+
+/**
+ * Lance le VRAI script de seed sur un repertoire de fixtures.
+ *
+ * Un refus teste par appel de fonction prouve que la fonction sait dire non ; il
+ * ne prouve pas que le script s'arrete. Ici on verifie le code de sortie ET le
+ * texte que l'operateur lira, parce que c'est le texte qui porte la difference
+ * entre « faute de frappe » et « room retiree par TryHackMe ».
+ */
+async function runSeed(fixtureDir: string): Promise<{ code: number; stderr: string }> {
+  try {
+    await execFileAsync(
+      process.execPath,
+      ["--import", "tsx", "src/scripts/seed-roadmap.ts", "--dir", fixtureDir],
+      { cwd: API_DIR, env: process.env },
+    );
+    return { code: 0, stderr: "" };
+  } catch (error) {
+    const failure = error as { code?: number; stderr?: string };
+    return { code: failure.code ?? -1, stderr: failure.stderr ?? "" };
+  }
+}
+
 let app: FastifyInstance;
 
+/**
+ * Les parcours presents AVANT ce fichier de test.
+ *
+ * `applyTracks` est un remplacement complet : semer une fixture efface les trois
+ * parcours du produit. La regle est donc « rendre la base telle qu'on l'a
+ * trouvee », pas « imposer un etat » :
+ *   - elle avait des parcours  -> on les restaure depuis les YAML, qui font foi ;
+ *   - elle n'en avait pas      -> on la laisse vide.
+ *
+ * Sans ca, `pnpm test` laisserait le site sans roadmap : exactement la
+ * disparition silencieuse que le seed bruyant existe pour empecher.
+ */
 let slugsAvant: string[] = [];
 
 async function slugsEnBase(): Promise<string[]> {
@@ -115,6 +156,47 @@ describe("chargement du contenu editorial", () => {
   it("`validated_by_completion` est lu tel quel, jamais suppose", () => {
     const [alpha] = loadTrackFiles(FIXTURES);
     expect(alpha?.track.provenance.validated_by_completion).toBe(false);
+  });
+
+  /**
+   * Regression du defaut reel : `provenance` etait un `z.object`, qui SUPPRIME
+   * une cle inconnue au lieu de la refuser. Les trois parcours du produit ont
+   * ete ecrits avec `source:` au singulier et un `review_after:` hors contrat,
+   * tous deux manges en silence — `sources` restait vide et le bloc « Sur la
+   * base de : » ne s'affichait jamais, pendant que le seed sortait en code 0.
+   *
+   * Si ce test passe au vert apres un retour a `z.object`, c'est qu'il ne teste
+   * plus rien : verifier que le message nomme bien la cle, pas seulement que ca
+   * echoue.
+   */
+  it("refuse une cle inconnue DANS `provenance`, au lieu de l'avaler", () => {
+    expect(() => loadTrackFiles(FIXTURE_CLE_INCONNUE)).toThrow(RoadmapSourceError);
+
+    let message = "";
+    try {
+      loadTrackFiles(FIXTURE_CLE_INCONNUE);
+    } catch (error) {
+      message = error instanceof Error ? error.message : String(error);
+    }
+
+    // Le fichier, le chemin dans le document, et la cle fautive.
+    expect(message).toContain("01-fixture.yaml");
+    expect(message).toContain("provenance");
+    expect(message).toContain("review_after");
+  });
+
+  it("les trois parcours du produit chargent, et leur `sources` n'est pas vide", () => {
+    // Le contenu editorial reel, pas une fixture. Si quelqu'un reintroduit
+    // `source:` au singulier, `sources` retombe a zero et ce test tombe.
+    const loaded = loadTrackFiles(TRACKS_REELS);
+    expect(loaded.map((entry) => entry.track.slug)).toEqual([
+      "fondamentaux",
+      "red-team-debutant",
+      "blue-team-debutant",
+    ]);
+    for (const { file, track } of loaded) {
+      expect(track.provenance.sources, `${file} : provenance.sources vide`).toHaveLength(3);
+    }
   });
 });
 
@@ -198,6 +280,69 @@ describe("garde de coherence", () => {
     ]);
     expect(issues.map((issue) => issue.kind)).toContain("etape-sans-room-core");
   });
+});
+
+/**
+ * Les deux refus les plus importants du seed, prouves par le VRAI script.
+ *
+ * Ils n'etaient jusqu'ici verifies que dans le sens passant : le `beforeAll`
+ * assert que `missing` et `inactive` sont VIDES. Un garde qu'on n'a jamais vu
+ * refuser n'est pas un garde.
+ *
+ * La distinction entre les deux messages est la valeur testee, pas le fait
+ * qu'ils echouent : une faute de frappe se corrige dans le YAML, une room
+ * retiree par TryHackMe se remplace par une autre room. Chaque test verifie
+ * donc aussi l'ABSENCE du message de l'autre cas.
+ */
+describe("refus du seed, prouves par le vrai script", () => {
+  beforeAll(async () => {
+    // Room INACTIVE : invisible du catalogue actif, donc sans effet sur les
+    // assertions a 714 des autres fichiers de test, qui tournent en parallele.
+    const [modele] = await db
+      .select({ difficultyId: rooms.difficultyId, roomTypeId: rooms.roomTypeId })
+      .from(rooms)
+      .limit(1);
+    if (modele === undefined) throw new Error("base vide : lancer `pnpm data:import --apply`");
+
+    await db.insert(rooms).values({
+      code: CODE_INACTIF,
+      title: "Fixture room inactive",
+      difficultyId: modele.difficultyId,
+      roomTypeId: modele.roomTypeId,
+      thmUrl: `https://tryhackme.com/room/${CODE_INACTIF}`,
+      isActive: false,
+      raw: {},
+    });
+  });
+
+  afterAll(async () => {
+    await db.delete(rooms).where(eq(rooms.code, CODE_INACTIF));
+  });
+
+  it("refuse un `code` ABSENT, et rappelle que la comparaison est sensible a la casse", async () => {
+    // La fixture cite `PickleRick` ; la room s'appelle `picklerick`.
+    const { code, stderr } = await runSeed("apps/api/tests/fixtures/roadmap-code-absent");
+
+    expect(code, "le seed a accepte un code inexistant").toBe(1);
+    expect(stderr).toContain("SEED REFUSE");
+    expect(stderr).toContain('absente : "PickleRick"');
+    expect(stderr).toContain("SENSIBLE A LA CASSE");
+    // Surtout pas le message de l'autre cas : la room n'a pas disparu, elle
+    // n'a jamais existe sous cette orthographe.
+    expect(stderr).not.toContain("INACTIVES");
+  }, 60_000);
+
+  it("refuse un `code` INACTIF, avec un message DISTINCT du code absent", async () => {
+    const { code, stderr } = await runSeed("apps/api/tests/fixtures/roadmap-code-inactif");
+
+    expect(code, "le seed a accepte une room inactive").toBe(1);
+    expect(stderr).toContain("SEED REFUSE");
+    expect(stderr).toContain(`inactive : "${CODE_INACTIF}"`);
+    expect(stderr).toContain("disparu du dernier scrape");
+    // Ce n'est PAS une faute de frappe : proposer de verifier l'orthographe
+    // enverrait l'operateur chercher au mauvais endroit.
+    expect(stderr).not.toContain("SENSIBLE A LA CASSE");
+  }, 60_000);
 });
 
 describe("GET /api/tracks", () => {

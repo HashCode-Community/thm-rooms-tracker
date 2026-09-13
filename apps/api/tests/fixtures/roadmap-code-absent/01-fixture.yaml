@@ -1,0 +1,17 @@
+# FIXTURE DE TEST — le seed doit la REFUSER, code absent de la base.
+# `PickleRick` n'existe pas : la room s'appelle `picklerick`. La seule difference
+# est la casse, et c'est voulu — le message de refus doit dire que la comparaison
+# est SENSIBLE A LA CASSE (ADR-0001 Q1).
+slug: fixture-code-absent
+title: Fixture code absent
+level: beginner
+position: 1
+provenance:
+  method: "Fixture de test : le code cite n'existe pas en base."
+  sources:
+    - "aucune : contenu fabrique"
+  validated_by_completion: false
+steps:
+  - title: "Etape citant un code inexistant"
+    rooms:
+      - { code: PickleRick, requirement: core }

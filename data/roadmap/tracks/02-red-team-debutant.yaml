@@ -1,0 +1,71 @@
+slug: red-team-debutant
+title: Red Team débutant
+level: beginner
+position: 2
+summary: >-
+  L'offensive, dans l'ordre où on l'apprend : méthode, reconnaissance, énumération,
+  exploitation web, élévation de privilèges, puis des machines à casser seul.
+  Prérequis recommandé : le parcours Fondamentaux.
+
+provenance:
+  method: >-
+    Même méthode que le parcours Fondamentaux : sélection sur métadonnées et popularité,
+    ordre issu de la méthodologie de test d'intrusion standard (reconnaissance →
+    énumération → exploitation → post-exploitation). Les rooms ne déclarent aucun
+    prérequis entre elles ; l'enchaînement est notre recommandation.
+  sources:
+    - "Métadonnées du catalogue TryHackMe : difficulté, durée, compétences, technologies, outils"
+    - "Nombre de participants par room, utilisé comme indicateur de fiabilité"
+    - "Progression pédagogique standard du domaine — choix éditorial de l'équipe"
+  validated_by_completion: false
+
+steps:
+  - title: "La méthode avant les outils"
+    objective: "Comprendre ce qu'est un test d'intrusion, son cadre légal et ses étapes. Sauter cette étape produit des gens qui lancent des outils sans savoir pourquoi."
+    rooms:
+      - { code: pentestingfundamentals, requirement: core }
+      - { code: redteamfundamentals, requirement: core }
+
+  - title: "Reconnaissance passive"
+    objective: "Récolter de l'information sur une cible sans jamais la toucher. C'est là que commence tout engagement réel."
+    rooms:
+      - { code: passiverecon, requirement: core }
+      - { code: googledorking, requirement: core }
+      - { code: ohsint, requirement: core, note: "Challenge OSINT. Frustrant et formateur : cherche, ne devine pas." }
+
+  - title: "Scan et énumération"
+    objective: "Découvrir ce qui tourne sur une machine et sur quels ports. Nmap est l'outil que tu utiliseras le plus souvent de ta carrière."
+    rooms:
+      - { code: furthernmap, requirement: core }
+      - { code: nmap02, requirement: core, note: "120 min. Comprendre la différence entre les types de scan vaut l'investissement." }
+      - { code: networkservices, requirement: core }
+
+  - title: "Vulnérabilités web"
+    objective: "Exploiter les failles les plus courantes du web : authentification faible, injection SQL, mauvaise configuration."
+    rooms:
+      - { code: introwebapplicationsecurity, requirement: core }
+      - { code: enumerationbruteforce, requirement: core }
+      - { code: sqlinjectionlm, requirement: core, note: "Classée medium : c'est ta première marche de difficulté. Normal de ralentir ici." }
+      - { code: burpsuiterepeater, requirement: optional, note: "Burp Suite est l'outil de référence. ATTENTION : l'introduction de la série n'est pas gratuite, seul cet épisode l'est. Tu apprendras l'outil dans le désordre." }
+
+  - title: "Exploitation guidée"
+    objective: "Compromettre une machine complète, avec un guide pas à pas. Trois systèmes différents pour voir que la méthode reste la même."
+    rooms:
+      - { code: vulnversity, requirement: core }
+      - { code: kenobi, requirement: core }
+      - { code: blue, requirement: core, note: "Une machine Windows, exploitation d'une vulnérabilité historique connue." }
+
+  - title: "Élévation de privilèges"
+    objective: "Passer d'un accès limité à un contrôle total. C'est ce qui sépare un accès sans intérêt d'une compromission réelle."
+    rooms:
+      - { code: linprivesc, requirement: core }
+      - { code: postexploit, requirement: core }
+      - { code: windows10privesc, requirement: optional, note: "Côté Windows. À faire si tu vises l'Active Directory ensuite." }
+
+  - title: "Machines en autonomie"
+    objective: "Refaire seul, sans guide, ce que tu as appris. C'est ici que ça rentre vraiment."
+    rooms:
+      - { code: basicpentestingjt, requirement: core }
+      - { code: cowboyhacker, requirement: core }
+      - { code: agentsudoctf, requirement: core }
+      - { code: rrootme, requirement: optional }

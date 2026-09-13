@@ -25,10 +25,27 @@ export type StepRoomRequirement = (typeof STEP_ROOM_REQUIREMENTS)[number];
  * ne sait pas comment il a ete construit se lit comme une autorite ; avec sa
  * provenance sous les yeux, il se lit comme une recommandation, ce qu'il est.
  */
-export const ProvenanceSchema = z.object({
+/**
+ * STRICT, et ca n'est pas une precaution de style.
+ *
+ * Ce bloc etait un `z.object` ordinaire, qui SUPPRIME une cle inconnue au lieu de
+ * la refuser. Les trois parcours du produit ont ete ecrits avec `source:` au
+ * singulier et un `review_after:` qui n'a jamais ete au contrat : les deux ont ete
+ * manges en silence, `sources` est reste vide, et le bloc « Sur la base de : » de
+ * l'interface ne s'affichait jamais. Le seed sortait en code 0 sans rien dire.
+ *
+ * Le reste du contrat editorial est en `strictObject` depuis le debut. Ce bloc
+ * etait le seul trou, et c'est par la que le contenu est passe.
+ */
+export const ProvenanceSchema = z.strictObject({
   /** Comment les rooms ont ete choisies, en clair. */
   method: z.string().min(1),
-  /** Ce sur quoi la selection s'appuie : metadonnees, popularite, etc. */
+  /**
+   * Ce sur quoi la selection s'appuie. TEXTE LIBRE destine a l'utilisateur final,
+   * rendu sous « Sur la base de : ». A ne pas confondre avec
+   * `room_categories.source`, qui est l'enumeration `thm | derived | manual` et
+   * ne decrit pas la meme chose.
+   */
   sources: z.array(z.string().min(1)).default([]),
   /**
    * `false` tant que l'equipe n'a pas suivi le parcours de bout en bout.
