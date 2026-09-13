@@ -279,10 +279,30 @@ describe("/api/rooms/:code", () => {
     expect(room.code).toBe("picklerick");
     expect(room.title).toBe("Pickle Rick");
     expect(room.isActive).toBe(true);
-    // Vides aujourd'hui : aucune categorie ni parcours n'est deduit des donnees
-    // TryHackMe, et rien ne sera invente. La phase 7 les remplira.
+    // `categories` reste vide : aucune categorie n'est deduite des donnees
+    // TryHackMe, et rien ne sera invente.
     expect(room.categories).toEqual([]);
-    expect(room.trackSteps).toEqual([]);
+    // Le NOMBRE de `trackSteps` ne s'assert pas ici. Il valait 0 jusqu'a la
+    // phase 7, quand aucun parcours n'existait ; `picklerick` est depuis cite
+    // par `01-fondamentaux.yaml`, et tracks.test.ts seme des fixtures en
+    // parallele. Compter depuis ce fichier donnerait un resultat dependant de
+    // l'ordre des workers. Quels parcours contiennent quelle room est couvert
+    // par tracks.test.ts, qui maitrise l'etat des parcours.
+    //
+    // La FORME, elle, appartient a cet endpoint et s'assert ici.
+    expect(Array.isArray(room.trackSteps)).toBe(true);
+    for (const etape of room.trackSteps) {
+      expect(etape).toMatchObject({
+        trackSlug: expect.any(String),
+        trackTitle: expect.any(String),
+        stepPosition: expect.any(Number),
+        stepTitle: expect.any(String),
+        requirement: expect.stringMatching(/^(core|optional|bonus)$/),
+      });
+      // `note` est un texte editorial destine a l'utilisateur : present ou
+      // `null`, jamais absent de la reponse.
+      expect(etape).toHaveProperty("note");
+    }
   });
 
   it("la casse du code est SIGNIFIANTE", async () => {

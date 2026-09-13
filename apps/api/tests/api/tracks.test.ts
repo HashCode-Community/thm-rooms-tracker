@@ -16,9 +16,13 @@ import { assertDatabaseReady, buildTestApp, closeDatabase } from "./harness.js";
 /**
  * Parcours : chargement, refus, ecriture, exposition.
  *
- * Ces tests SEMENT des parcours de fixture puis nettoient. Ils ne touchent ni aux
- * rooms, ni aux tags : `tracks` est vide en dehors d'eux, et le contenu editorial
- * reel vit dans `data/roadmap/tracks/`, jamais ici.
+ * Ces tests SEMENT des parcours de fixture, puis rendent la base telle qu'ils
+ * l'ont trouvee. `applyTracks` etant un remplacement complet, semer une fixture
+ * efface les parcours du produit : le `afterAll` n'est pas une politesse, c'est
+ * ce qui empeche `pnpm test` de laisser le site sans roadmap.
+ *
+ * Le contenu editorial reel vit dans `data/roadmap/tracks/` et n'est jamais ecrit
+ * ici.
  *
  * Les fixtures sont explicitement nommees « fixture » pour que personne ne les
  * confonde un jour avec un parcours du produit.
@@ -26,10 +30,25 @@ import { assertDatabaseReady, buildTestApp, closeDatabase } from "./harness.js";
 
 const FIXTURES = resolve(import.meta.dirname, "../fixtures/roadmap-ok");
 
+/** Racine du paquet api. */
+const API_DIR = resolve(import.meta.dirname, "../..");
+
+/** Le contenu editorial REEL du produit. Pas une fixture. */
+const TRACKS_REELS = resolve(API_DIR, "../../data/roadmap/tracks");
+
 let app: FastifyInstance;
+
+let slugsAvant: string[] = [];
+
+async function slugsEnBase(): Promise<string[]> {
+  const lignes = await db.select({ slug: tracks.slug }).from(tracks);
+  return lignes.map((ligne) => ligne.slug).sort();
+}
 
 beforeAll(async () => {
   await assertDatabaseReady();
+
+  slugsAvant = await slugsEnBase();
 
   const loaded = loadTrackFiles(FIXTURES);
   const { idByCode, missing, inactive } = await resolveCitedRooms([...citedRoomCodes(loaded)]);
@@ -41,8 +60,43 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  // La base ne garde aucune trace des fixtures.
-  await db.delete(tracks);
+  if (slugsAvant.length > 0) {
+    const reel = loadTrackFiles(TRACKS_REELS);
+    const { idByCode, missing, inactive } = await resolveCitedRooms([...citedRoomCodes(reel)]);
+    if (missing.length > 0 || inactive.length > 0) {
+      throw new Error(
+        "Restauration des parcours reels impossible : " +
+          `${missing.length} code(s) absent(s), ${inactive.length} inactif(s). ` +
+          "Relancer `pnpm roadmap:seed` pour le detail.",
+      );
+    }
+    await applyTracks(reel, idByCode);
+  } else {
+    // La base etait vide de parcours : elle le redevient. Les fixtures ne
+    // laissent rien.
+    await db.delete(tracks);
+  }
+
+  /**
+   * La restauration se VERIFIE, elle ne se suppose pas.
+   *
+   * Sans ce controle, supprimer le bloc ci-dessus laisserait les 22 tests au
+   * vert et le site sans roadmap — mesure faite : 3 parcours avant, 0 apres,
+   * suite verte. Une remise en etat que rien ne surveille n'est pas une remise
+   * en etat, c'est une intention.
+   */
+  const slugsApres = await slugsEnBase();
+  const attendu = slugsAvant.join(", ") || "(aucun)";
+  const obtenu = slugsApres.join(", ") || "(aucun)";
+  if (attendu !== obtenu) {
+    throw new Error(
+      "Ce fichier de test n'a pas rendu la base dans l'etat ou il l'a trouvee.\n" +
+        `  avant : ${attendu}\n` +
+        `  apres : ${obtenu}\n` +
+        "Relancer `pnpm roadmap:seed --apply` pour remettre les parcours en base.",
+    );
+  }
+
   await app.close();
   await closeDatabase();
 });
