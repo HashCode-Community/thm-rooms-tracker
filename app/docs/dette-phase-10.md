@@ -87,3 +87,4 @@ Elles ne sont **pas** dues en phase 10. Elles sont ici pour ne pas être redéco
 | `ORDER BY lower(title)` au lieu de `COLLATE "und-x-icu"` | Un titre à initiale accentuée ou non-ASCII apparaît dans le dataset. Exposition mesurée le 2026-09-11 : 1 titre non-ASCII sur 714, sans impact sur l'ordre. [ADR-0003](adr/0003-schema-postgres.md) |
 | `canonical:` vide dans le mapping de normalisation | TryHackMe introduit une variante de casse, ou le mapping est réécrit. L'importer refuse alors de tourner et indique la ligne à ajouter. |
 | `MFTCmd.exe` vs `MFTECmd.exe` | Arbitrage de Nel. La question est posée dans `data/mappings/normalisation-outils.yaml`, non appliquée. |
+| Export de progression sans import JSON | Asymétrie assumée en phase 8a : l'utilisateur peut sortir ses données, pas les réinjecter. Si les comptes sont ajoutés, le chemin de reprise sera progression locale → compte, pas un import JSON. |
