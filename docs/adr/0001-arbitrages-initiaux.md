@@ -187,13 +187,17 @@ donc deux *sites* au sens du navigateur. Un cookie `SameSite=Lax` **n'est pas en
 **Décision.** Le brief d'amorçage est un document à tester, pas une spécification. La
 source de vérité sur les données est le rapport généré par `pnpm data:audit` dans `data/reports/`.
 
+> **Où est le brief.** Il n'est pas dans ce dépôt : c'est un document de travail interne, conservé
+> côté équipe. Les décisions qu'il a produites vivent ici, dans `docs/adr/`, et ce sont elles qui
+> font foi. Aucun fichier de ce dépôt ne dépend de sa présence.
+
 **Raison.** Trois chiffres du §5 étaient faux (13 outils `" NEW"` au lieu de 12 distincts / 17
 occurrences / 14 rooms ; 6 paires au lieu de 7 ; `~103` compétences alors que 103 est exact), un
 libellé était faux (`Enum4Linux`/`Enum4linux` : la forme `Enum4Linux` nue n'existe pas), et cinq
 anomalies réelles manquaient.
 
-**Corollaire opérationnel.** Toute correction confirmée est répercutée dans le brief par un commit
-`docs:` séparé. Un brief faux versionné dans le repo empoisonne toutes les sessions suivantes.
+**Corollaire opérationnel.** Toute correction confirmée est répercutée dans le brief par une
+modification séparée. Un brief faux laissé tel quel empoisonne toutes les sessions suivantes.
 
 ---
 
