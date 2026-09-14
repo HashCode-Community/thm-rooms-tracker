@@ -1,10 +1,11 @@
-import type {
-  CategoryListResponse,
-  RoomBatchResponse,
-  RoomBrief,
-  TagListResponse,
-  TrackDetailResponse,
-  TrackListResponse,
+import {
+  type CategoryListResponse,
+  MAX_BATCH_CODES,
+  type RoomBatchResponse,
+  type RoomBrief,
+  type TagListResponse,
+  type TrackDetailResponse,
+  type TrackListResponse,
 } from "@thm/shared";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { urls } from "./urls.js";
@@ -111,16 +112,75 @@ export type ProgressionResources = Readonly<{
 }>;
 
 /**
+ * Decoupe les codes en tranches que l'API accepte.
+ *
+ * `MAX_BATCH_CODES` est IMPORTEE du contrat partage, jamais recopiee. Une borne
+ * dupliquee derive, et la derive ne se voit qu'en production : c'est exactement
+ * le defaut corrige ici, ou le front envoyait les 714 codes d'un coup a un point
+ * d'entree qui en accepte 200. Mesure avant correction : 400 codes rendaient
+ * HTTP 400, donc la page mourait a 201 rooms terminees sur 714.
+ *
+ * Mesure des URL produites sur le dataset 1.0.0 : 4,0 ko pour une tranche de 200
+ * codes reels, 5,9 ko dans le pire cas theorique (les 200 codes les plus longs).
+ * Sous les 8 ko qu'un proxy accorde par defaut a la ligne de requete, mais le
+ * chiffre est note dans la dette de deploiement : un proxy regle plus bas
+ * rendrait 414 sans que rien dans le code ne change.
+ */
+export function chunkCodes(codes: readonly string[]): readonly (readonly string[])[] {
+  const chunks: (readonly string[])[] = [];
+  for (let index = 0; index < codes.length; index += MAX_BATCH_CODES) {
+    chunks.push(codes.slice(index, index + MAX_BATCH_CODES));
+  }
+  return chunks;
+}
+
+/**
+ * Recompose les tranches dans L'ORDRE DES CODES DEMANDES.
+ *
+ * Le point d'entree rend chaque tranche triee par `lower(title), code`. Concatener
+ * deux tranches ainsi triees ne redonne PAS une liste triee par titre : le
+ * resultat dependrait du decoupage, donc du nombre de rooms terminees. Reproduire
+ * le tri cote navigateur demanderait de reproduire la collation de PostgreSQL,
+ * ce qui est faux des le premier titre non-ASCII — il y en a un dans le dataset.
+ *
+ * L'ordre rendu est donc celui de l'appelant, qui ne depend d'aucune tranche.
+ * L'invariant tenu ici est plus fort que l'ordre : `rooms` et `missing` forment
+ * ensemble, exactement une fois chacun, les codes demandes. Aucun code ne peut
+ * disparaitre entre deux tranches.
+ */
+function recompose(
+  requestedCodes: readonly string[],
+  batches: readonly RoomBatchResponse[],
+): { rooms: readonly RoomBrief[]; missing: readonly string[] } {
+  const byCode = new Map<string, RoomBrief>();
+  for (const batch of batches) {
+    for (const room of batch.rooms) byCode.set(room.code, room);
+  }
+
+  const rooms: RoomBrief[] = [];
+  const missing: string[] = [];
+  const seen = new Set<string>();
+  for (const code of requestedCodes) {
+    if (seen.has(code)) continue;
+    seen.add(code);
+    const room = byCode.get(code);
+    if (room === undefined) missing.push(code);
+    else rooms.push(room);
+  }
+  return { rooms, missing };
+}
+
+/**
  * Les codes sont la seule donnee catalogue conservee dans le navigateur. Les
  * titres, durees et statuts actifs restent donc lus depuis leur source de
  * verite, y compris pour une room retiree du catalogue.
  *
- * UNE requete pour toutes les rooms, pas une par room.
+ * UNE requete par tranche de 200 codes, pas une par room.
  *
- * La version precedente faisait `Promise.all` sur un appel par code. Mesure au
- * navigateur avec les 61 rooms des trois parcours : 65 requetes HTTP par
- * affichage, et lineaire ensuite — 300 rooms terminees auraient donne 304
- * requetes. Deux consequences, la seconde pire que la premiere :
+ * La version 8a faisait `Promise.all` sur un appel par code. Mesure au navigateur
+ * avec les 61 rooms des trois parcours : 65 requetes HTTP par affichage, et
+ * lineaire ensuite — 300 rooms terminees auraient donne 304 requetes. Deux
+ * consequences, la seconde pire que la premiere :
  *
  *   1. le navigateur plafonne a six connexions par origine, donc onze vagues ;
  *   2. `Promise.all` rejette au premier echec. Un seul code inconnu, ou un seul
@@ -129,21 +189,25 @@ export type ProgressionResources = Readonly<{
  *      parfaitement valide a cause d'une seule entree.
  *
  * `/api/rooms/batch` rend les deux impossibles : les codes inconnus reviennent
- * dans `missing` avec un statut 200, et le total tient en 5 requetes.
+ * dans `missing` avec un statut 200, et le catalogue entier tient en 4 tranches.
  */
 export async function loadProgressionResources(
   completedRoomCodes: readonly string[],
   signal: AbortSignal,
 ): Promise<ProgressionResources> {
-  const [batch, trackList] = await Promise.all([
-    request<RoomBatchResponse>(urls.roomBatch(completedRoomCodes), signal),
+  const [batches, trackList] = await Promise.all([
+    Promise.all(
+      chunkCodes(completedRoomCodes).map((chunk) =>
+        request<RoomBatchResponse>(urls.roomBatch(chunk), signal),
+      ),
+    ),
     request<TrackListResponse>(urls.tracks(), signal),
   ]);
   const tracks = await Promise.all(
     trackList.data.map((track) => request<TrackDetailResponse>(urls.track(track.slug), signal)),
   );
 
-  return { rooms: batch.rooms, missing: batch.missing, tracks };
+  return { ...recompose(completedRoomCodes, batches), tracks };
 }
 
 // --- Hook de chargement ----------------------------------------------------
