@@ -11,6 +11,7 @@ import {
   TypeBadge,
 } from "../components/badges.js";
 import { Empty, ErrorState, Loading } from "../components/states.js";
+import { RoomCompletionControl } from "../progression.js";
 import { rootRoute } from "./root.js";
 
 function RoomDetail(): ReactNode {
@@ -86,6 +87,10 @@ function RoomView({ room, stale }: { room: RoomDetailPayload; stale: boolean }):
               <span aria-hidden="true">↗</span>
               <span className="visuellement-cache">(nouvel onglet)</span>
             </a>
+          </p>
+
+          <p>
+            <RoomCompletionControl code={room.code} />
           </p>
 
           <TagGroup title="Technologies" tags={room.tags.technology} facet="tech" />

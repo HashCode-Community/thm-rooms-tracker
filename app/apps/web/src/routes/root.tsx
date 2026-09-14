@@ -1,6 +1,7 @@
 import { createRootRoute, Link, Outlet } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { ErrorState } from "../components/states.js";
+import { ProgressionPersistenceWarning } from "../progression.js";
 
 function Layout(): ReactNode {
   return (
@@ -20,11 +21,13 @@ function Layout(): ReactNode {
             <Link to="/">Accueil</Link>
             <Link to="/rooms">Catalogue</Link>
             <Link to="/roadmap">Parcours</Link>
+            <Link to="/progression">Progression</Link>
           </nav>
         </div>
       </header>
 
       <main id="contenu" className="page">
+        <ProgressionPersistenceWarning />
         <Outlet />
       </main>
 

@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import type { Provenance as ProvenanceData, TrackRoom } from "@thm/shared";
 import type { ReactNode } from "react";
+import { RoomCompletionControl } from "../progression.js";
 import { DifficultyBadge, formatDuration, TypeBadge } from "./badges.js";
 
 /**
@@ -109,6 +110,7 @@ export function StepRoom({ room }: { room: TrackRoom }): ReactNode {
         <DifficultyBadge difficulty={room.difficulty} />
         <TypeBadge type={room.type} />
         <span className="petit doux">{formatDuration(room.durationMinutes)}</span>
+        <RoomCompletionControl code={room.code} presentation="checkbox" />
       </div>
 
       {room.note !== null && <p className="etape-room__note">{room.note}</p>}

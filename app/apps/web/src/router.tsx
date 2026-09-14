@@ -1,6 +1,7 @@
 import { createRouter } from "@tanstack/react-router";
 import { ErrorState } from "./components/states.js";
 import { homeRoute } from "./routes/home.js";
+import { progressionRoute } from "./routes/progression.js";
 import { roadmapDetailRoute } from "./routes/roadmap-detail.js";
 import { roadmapListRoute } from "./routes/roadmap-list.js";
 import { roomDetailRoute } from "./routes/room-detail.js";
@@ -11,11 +12,11 @@ import { parseSearch, stringifySearch } from "./search.js";
 /**
  * Routes declarees en code, sans generation de fichier.
  *
- * Trois routes ne justifient ni un greffon Vite, ni un arbre de routes genere,
- * ni le bruit de sortie de git qui va avec.
+ * Ce petit arbre ne justifie ni un greffon Vite, ni une generation de fichiers.
  */
 const routeTree = rootRoute.addChildren([
   homeRoute,
+  progressionRoute,
   roomsListRoute,
   roomDetailRoute,
   roadmapListRoute,

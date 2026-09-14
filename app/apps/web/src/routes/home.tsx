@@ -72,10 +72,12 @@ function Home(): ReactNode {
           </Link>
         </li>
         <li>
-          <div className="porte" aria-disabled="true">
+          <Link to="/progression" className="porte">
             <span className="porte__titre">Ma progression</span>
-            <span className="petit doux">Pas encore disponible.</span>
-          </div>
+            <span className="petit doux">
+              Retrouver les rooms terminees, le temps cumule et l'avancement des parcours.
+            </span>
+          </Link>
         </li>
       </ul>
     </>

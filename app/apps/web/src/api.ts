@@ -1,4 +1,10 @@
-import type { CategoryListResponse, TagListResponse } from "@thm/shared";
+import type {
+  CategoryListResponse,
+  RoomDetail,
+  TagListResponse,
+  TrackDetailResponse,
+  TrackListResponse,
+} from "@thm/shared";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { urls } from "./urls.js";
 
@@ -94,6 +100,31 @@ export function loadCategories(): Promise<CategoryListResponse> {
     throw error;
   });
   return categoriesPromise;
+}
+
+export type ProgressionResources = Readonly<{
+  rooms: readonly RoomDetail[];
+  tracks: readonly TrackDetailResponse[];
+}>;
+
+/**
+ * Les codes sont la seule donnee catalogue conservee dans le navigateur. Les
+ * titres, durees et statuts actifs restent donc lus depuis leur source de
+ * verite, y compris pour une room retiree du catalogue.
+ */
+export async function loadProgressionResources(
+  completedRoomCodes: readonly string[],
+  signal: AbortSignal,
+): Promise<ProgressionResources> {
+  const [rooms, trackList] = await Promise.all([
+    Promise.all(completedRoomCodes.map((code) => request<RoomDetail>(urls.room(code), signal))),
+    request<TrackListResponse>(urls.tracks(), signal),
+  ]);
+  const tracks = await Promise.all(
+    trackList.data.map((track) => request<TrackDetailResponse>(urls.track(track.slug), signal)),
+  );
+
+  return { rooms, tracks };
 }
 
 // --- Hook de chargement ----------------------------------------------------
