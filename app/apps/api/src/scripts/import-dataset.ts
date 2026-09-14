@@ -15,7 +15,15 @@ import {
   teams,
 } from "../db/schema.js";
 import { sha256Hex } from "./dataset-analysis.js";
-import { loadMapping, type Mapping, resolveTags, roomTagSlugs, trimText } from "./normalise.js";
+import {
+  buildTagLedger,
+  loadMapping,
+  type Mapping,
+  resolveTags,
+  roomTagSlugs,
+  type TagLedger,
+  trimText,
+} from "./normalise.js";
 
 /**
  * `pnpm data:import [--file <chemin>] [--apply] [--apply-mappings] [--force]`
@@ -84,6 +92,8 @@ type Report = {
   tagsCreated: number;
   tagsTotal: number;
   collisions: Array<{ kind: string; slug: string; names: string[] }>;
+  /** Trajet de chaque valeur brute jusqu'a la table `tags`. */
+  tagLedger: TagLedger | null;
   warnings: string[];
 };
 
@@ -100,6 +110,7 @@ const emptyReport = (datasetVersion: string, checksum: string): Report => ({
   tagsCreated: 0,
   tagsTotal: 0,
   collisions: [],
+  tagLedger: null,
   warnings: [],
 });
 
@@ -213,6 +224,54 @@ try {
       `Declarer la forme retenue dans ${basename(mappingPath)}, section \`canonical:\` :`,
       ...resolved.unresolved.map((c) => `  ${c.slug}: "${c.names[0] ?? c.slug}"`),
     ]);
+  }
+
+  // --- 5 bis. Journal des tags, et sa reconciliation (bloquant) ------------
+  //
+  // 304 valeurs brutes distinctes donnent 296 tags. L'ecart est legitime, mais
+  // il doit etre ECRIT : un chiffre qui baisse sans explication tombe sous la
+  // regle « aucune modification silencieuse des donnees ».
+  //
+  // Le journal recompte depuis les rooms, par un chemin distinct de
+  // `resolveTags`. Les deux doivent tomber sur le meme nombre. S'ils divergent,
+  // c'est qu'une valeur disparait quelque part sans etre comptee, et l'import
+  // s'arrete plutot que d'ecrire un chiffre qu'il ne sait pas justifier.
+  const ledger = buildTagLedger(dataset.rooms, mapping);
+  report.tagLedger = ledger;
+
+  if (!ledger.reconciled) {
+    fail("Le journal des tags ne se reconcilie pas.", [
+      ...ledger.byKind
+        .filter((k) => !k.reconciled)
+        .map(
+          (k) =>
+            `${k.kind} : ${k.incoming} entrantes - ${k.discardedAbsence} absence(s) - ` +
+            `${k.discardedEmptySlug} slug(s) vide(s) - ${k.absorbed} absorbee(s) != ${k.resulting}`,
+        ),
+      "",
+      "Des valeurs disparaissent sans etre comptees. Ne pas relacher le controle :",
+      "c'est le comptage ou la normalisation qu'il faut corriger.",
+    ]);
+  }
+
+  if (ledger.totals.resulting !== resolved.tags.length) {
+    fail("Les deux comptages de tags divergent.", [
+      `journal      : ${ledger.totals.resulting} tags`,
+      `resolveTags  : ${resolved.tags.length} tags`,
+      "",
+      "Les deux chemins partent des memes rooms et du meme mapping. Une divergence",
+      "signifie qu'ils ne traitent pas les memes valeurs de la meme facon.",
+    ]);
+  }
+
+  if (ledger.totals.discardedEmptySlug > 0) {
+    report.warnings.push(
+      `${ledger.totals.discardedEmptySlug} valeur(s) de tag ecartee(s) faute de slug : ` +
+        ledger.entries
+          .filter((e) => e.fate === "ecartee-slug-vide")
+          .map((e) => JSON.stringify(e.raw))
+          .join(", "),
+    );
   }
 
   // --- 6. Etat courant -----------------------------------------------------
@@ -497,6 +556,70 @@ async function finish(
 
 // --- Affichage --------------------------------------------------------------
 
+/**
+ * Le trajet des tags, en clair.
+ *
+ * Le total seul ne dit rien : « 296 tags » ne permet a personne de verifier que
+ * les 8 valeurs manquantes sont celles qu'on croit. Chaque ligne d'ecart est
+ * donc nommee, et la reconciliation est ecrite comme une addition qu'un humain
+ * peut refaire de tete.
+ */
+function printTagLedger(ledger: TagLedger): void {
+  const { totals } = ledger;
+  console.log(
+    `\n  Tags : ${totals.incoming} valeurs brutes distinctes -> ${totals.resulting} tags`,
+  );
+  for (const kind of ledger.byKind) {
+    const ecarts: string[] = [];
+    if (kind.discardedAbsence > 0) ecarts.push(`${kind.discardedAbsence} ecartee(s) : absence`);
+    if (kind.discardedEmptySlug > 0) ecarts.push(`${kind.discardedEmptySlug} sans slug`);
+    if (kind.absorbed > 0) ecarts.push(`${kind.absorbed} absorbee(s) par fusion`);
+    console.log(
+      `    ${kind.kind.padEnd(11)} ${String(kind.incoming).padStart(4)} -> ` +
+        `${String(kind.resulting).padStart(4)}` +
+        (ecarts.length > 0 ? `   (${ecarts.join(", ")})` : ""),
+    );
+  }
+
+  const discarded = ledger.entries.filter((entry) => entry.name === null || entry.slug === null);
+  if (discarded.length > 0) {
+    console.log("\n    Ecartees (jamais un tag) :");
+    for (const entry of discarded) {
+      const raison = entry.fate === "ecartee-absence" ? "absence" : "slug vide";
+      console.log(
+        `      ${entry.kind.padEnd(11)} ${JSON.stringify(entry.raw)} ` +
+          `(${entry.occurrences} occ.) : ${raison}`,
+      );
+    }
+  }
+
+  if (ledger.fusions.length > 0) {
+    console.log("\n    Fusions (plusieurs ecritures pour un seul tag) :");
+    for (const fusion of ledger.fusions) {
+      const sources = fusion.sources
+        .map((source) => `${JSON.stringify(source.raw)} (${source.occurrences})`)
+        .join(" + ");
+      console.log(`      ${fusion.kind.padEnd(11)} ${JSON.stringify(fusion.name)} <- ${sources}`);
+    }
+  }
+
+  if (ledger.renames.length > 0) {
+    console.log("\n    Renommages sans fusion (le libelle change, le compte ne bouge pas) :");
+    for (const rename of ledger.renames) {
+      console.log(
+        `      ${rename.kind.padEnd(11)} ${JSON.stringify(rename.from)} -> ` +
+          `${JSON.stringify(rename.to)} (${rename.occurrences} occ.)`,
+      );
+    }
+  }
+
+  console.log(
+    `\n    Reconciliation : ${totals.incoming} - ${totals.discardedAbsence} absence(s) - ` +
+      `${totals.discardedEmptySlug} sans slug - ${totals.absorbed} absorbee(s) = ` +
+      `${totals.resulting}  ${ledger.reconciled ? "OK" : "INCOHERENT"}`,
+  );
+}
+
 function printReport(report: Report, options: Args): void {
   const updatedCodes = new Set(report.updated.map((change) => change.code));
   console.log(`\nDataset v${report.datasetVersion}  |  ${report.roomsSeen} rooms lues`);
@@ -521,6 +644,8 @@ function printReport(report: Report, options: Args): void {
           .join(", ")})`,
     );
   }
+
+  if (report.tagLedger !== null) printTagLedger(report.tagLedger);
 
   if (report.collisions.length > 0) {
     console.log(`\n  Collisions de slug resolues par \`canonical:\` :`);
@@ -567,6 +692,91 @@ function printReport(report: Report, options: Args): void {
   console.log(`Rapport : ${reportPath}`);
 }
 
+/** Le meme journal que la console, en markdown : le rapport date fait foi. */
+function renderTagLedger(ledger: TagLedger): string[] {
+  const { totals } = ledger;
+  const lines: string[] = [
+    "## Tags",
+    "",
+    `${totals.incoming} valeurs brutes distinctes produisent **${totals.resulting} tags**.`,
+    "",
+    "| facette | entrantes | ecartees | absorbees | tags |",
+    "|---|---:|---:|---:|---:|",
+    ...ledger.byKind.map(
+      (k) =>
+        `| ${k.kind} | ${k.incoming} | ${k.discardedAbsence + k.discardedEmptySlug} | ` +
+        `${k.absorbed} | ${k.resulting} |`,
+    ),
+    `| **total** | **${totals.incoming}** | ` +
+      `**${totals.discardedAbsence + totals.discardedEmptySlug}** | ` +
+      `**${totals.absorbed}** | **${totals.resulting}** |`,
+    "",
+  ];
+
+  const discarded = ledger.entries.filter((entry) => entry.slug === null);
+  if (discarded.length > 0) {
+    lines.push(
+      "### Ecartees",
+      "",
+      "| facette | valeur | occurrences | raison |",
+      "|---|---|---:|---|",
+      ...discarded.map(
+        (entry) =>
+          `| ${entry.kind} | \`${entry.raw}\` | ${entry.occurrences} | ` +
+          `${entry.fate === "ecartee-absence" ? "absence" : "slug vide"} |`,
+      ),
+      "",
+    );
+  }
+
+  if (ledger.fusions.length > 0) {
+    lines.push(
+      "### Fusions",
+      "",
+      "| facette | tag | ecritures source |",
+      "|---|---|---|",
+      ...ledger.fusions.map(
+        (fusion) =>
+          `| ${fusion.kind} | \`${fusion.name}\` | ` +
+          `${fusion.sources.map((s) => `\`${s.raw}\` (${s.occurrences})`).join(" + ")} |`,
+      ),
+      "",
+    );
+  }
+
+  if (ledger.renames.length > 0) {
+    lines.push(
+      "### Renommages sans fusion",
+      "",
+      "| facette | de | vers | occurrences |",
+      "|---|---|---|---:|",
+      ...ledger.renames.map(
+        (r) => `| ${r.kind} | \`${r.from}\` | \`${r.to}\` | ${r.occurrences} |`,
+      ),
+      "",
+    );
+  }
+
+  lines.push(
+    "### Reconciliation",
+    "",
+    "```",
+    `${totals.incoming} entrantes` +
+      ` - ${totals.discardedAbsence} absence(s)` +
+      ` - ${totals.discardedEmptySlug} sans slug` +
+      ` - ${totals.absorbed} absorbee(s)` +
+      ` = ${totals.resulting} tags`,
+    "```",
+    "",
+    ledger.reconciled
+      ? "L'ecart est entierement explique. L'import bloque si ce n'est pas le cas."
+      : "**INCOHERENT.** Des valeurs disparaissent sans etre comptees.",
+    "",
+  );
+
+  return lines;
+}
+
 function renderMarkdown(report: Report, options: Args): string {
   const updatedCodes = new Set(report.updated.map((change) => change.code));
   const lines = [
@@ -594,6 +804,8 @@ function renderMarkdown(report: Report, options: Args): string {
     `| champs trimmes | ${report.trimmed.length} |`,
     "",
   ];
+
+  if (report.tagLedger !== null) lines.push(...renderTagLedger(report.tagLedger));
 
   if (report.collisions.length > 0) {
     lines.push(

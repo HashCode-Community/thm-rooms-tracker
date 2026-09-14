@@ -1,6 +1,7 @@
 import type {
   CategoryListResponse,
-  RoomDetail,
+  RoomBatchResponse,
+  RoomBrief,
   TagListResponse,
   TrackDetailResponse,
   TrackListResponse,
@@ -103,7 +104,9 @@ export function loadCategories(): Promise<CategoryListResponse> {
 }
 
 export type ProgressionResources = Readonly<{
-  rooms: readonly RoomDetail[];
+  rooms: readonly RoomBrief[];
+  /** Codes presents dans le navigateur mais absents du catalogue. */
+  missing: readonly string[];
   tracks: readonly TrackDetailResponse[];
 }>;
 
@@ -111,20 +114,36 @@ export type ProgressionResources = Readonly<{
  * Les codes sont la seule donnee catalogue conservee dans le navigateur. Les
  * titres, durees et statuts actifs restent donc lus depuis leur source de
  * verite, y compris pour une room retiree du catalogue.
+ *
+ * UNE requete pour toutes les rooms, pas une par room.
+ *
+ * La version precedente faisait `Promise.all` sur un appel par code. Mesure au
+ * navigateur avec les 61 rooms des trois parcours : 65 requetes HTTP par
+ * affichage, et lineaire ensuite — 300 rooms terminees auraient donne 304
+ * requetes. Deux consequences, la seconde pire que la premiere :
+ *
+ *   1. le navigateur plafonne a six connexions par origine, donc onze vagues ;
+ *   2. `Promise.all` rejette au premier echec. Un seul code inconnu, ou un seul
+ *      429 rendu par la limite de debit que la phase 9 va poser, faisait tomber
+ *      la page entiere — l'utilisateur perdait l'acces a une progression
+ *      parfaitement valide a cause d'une seule entree.
+ *
+ * `/api/rooms/batch` rend les deux impossibles : les codes inconnus reviennent
+ * dans `missing` avec un statut 200, et le total tient en 5 requetes.
  */
 export async function loadProgressionResources(
   completedRoomCodes: readonly string[],
   signal: AbortSignal,
 ): Promise<ProgressionResources> {
-  const [rooms, trackList] = await Promise.all([
-    Promise.all(completedRoomCodes.map((code) => request<RoomDetail>(urls.room(code), signal))),
+  const [batch, trackList] = await Promise.all([
+    request<RoomBatchResponse>(urls.roomBatch(completedRoomCodes), signal),
     request<TrackListResponse>(urls.tracks(), signal),
   ]);
   const tracks = await Promise.all(
     trackList.data.map((track) => request<TrackDetailResponse>(urls.track(track.slug), signal)),
   );
 
-  return { rooms, tracks };
+  return { rooms: batch.rooms, missing: batch.missing, tracks };
 }
 
 // --- Hook de chargement ----------------------------------------------------

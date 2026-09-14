@@ -1,5 +1,5 @@
 import { createRoute, Link } from "@tanstack/react-router";
-import { computeTrackProgress, type RoomDetail } from "@thm/shared";
+import { computeTrackProgress, type RoomBrief } from "@thm/shared";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { type Async, loadProgressionResources, type ProgressionResources } from "../api.js";
@@ -9,7 +9,7 @@ import { ProgressionDownloadLink, RoomCompletionControl, useProgression } from "
 import { summarizeCompletedRooms } from "../progression-summary.js";
 import { rootRoute } from "./root.js";
 
-const EMPTY_RESOURCES: ProgressionResources = { rooms: [], tracks: [] };
+const EMPTY_RESOURCES: ProgressionResources = { rooms: [], missing: [], tracks: [] };
 
 function useProgressionResources(codes: readonly string[]): Async<ProgressionResources> & {
   reload(): void;
@@ -61,11 +61,53 @@ function formatCompletedAt(value: string): string {
   }).format(new Date(value));
 }
 
+/**
+ * Les rooms que le navigateur connait mais que le catalogue ignore.
+ *
+ * Elles sont NOMMEES et retirables. Les tolerer en silence laisserait
+ * l'utilisateur avec une entree fantome qu'il ne peut ni voir ni supprimer, et
+ * un total qui ne correspond a rien de visible. Le retrait passe par `forget`,
+ * qui ne touche a aucune autre entree.
+ */
+function MissingRooms({
+  codes,
+  onForget,
+}: {
+  codes: readonly string[];
+  onForget(): void;
+}): ReactNode {
+  if (codes.length === 0) return null;
+  const pluriel = codes.length > 1;
+
+  return (
+    <div className="alerte-disparues" role="status">
+      <p>
+        <strong>
+          {codes.length} room{pluriel ? "s" : ""} de votre progression n
+          {pluriel ? "'existent" : "'existe"} plus dans le catalogue.
+        </strong>{" "}
+        Elle{pluriel ? "s ne sont" : " n'est"} compte{pluriel ? "es" : "e"} ni dans vos heures
+        cumulees, ni dans l'avancement des parcours.
+      </p>
+      <ul className="petit doux">
+        {codes.map((code) => (
+          <li key={code}>
+            <code>{code}</code>
+          </li>
+        ))}
+      </ul>
+      <button type="button" className="bouton" onClick={onForget}>
+        Retirer de ma progression
+      </button>
+    </div>
+  );
+}
+
 function CompletedRoomRow({
   room,
   completedAt,
 }: {
-  room: RoomDetail;
+  room: RoomBrief;
   completedAt: string;
 }): ReactNode {
   return (
@@ -135,12 +177,20 @@ function ProgressionPage(): ReactNode {
       )}
 
       {resources.data !== null && (
-        <ProgressionContent
-          resources={resources.data}
-          completedSet={completedSet}
-          completionByCode={completionByCode}
-          stale={resources.status === "loading"}
-        />
+        <>
+          <MissingRooms
+            codes={resources.data.missing}
+            onForget={() => {
+              progression.forget(resources.data?.missing ?? []);
+            }}
+          />
+          <ProgressionContent
+            resources={resources.data}
+            completedSet={completedSet}
+            completionByCode={completionByCode}
+            stale={resources.status === "loading"}
+          />
+        </>
       )}
     </>
   );

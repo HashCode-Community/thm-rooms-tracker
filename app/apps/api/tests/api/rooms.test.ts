@@ -1,4 +1,4 @@
-import { SORT_KEYS } from "@thm/shared";
+import { MAX_BATCH_CODES, SORT_KEYS } from "@thm/shared";
 import type { FastifyInstance } from "fastify";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { assertDatabaseReady, buildTestApp, closeDatabase, EXPECTED_ROOMS } from "./harness.js";
@@ -342,5 +342,143 @@ describe("/api/rooms/:code", () => {
   it("un code de forme impossible rend un 400, pas un 404", async () => {
     const response = await app.inject({ method: "GET", url: "/api/rooms/avec%20espace" });
     expect(response.statusCode).toBe(400);
+  });
+});
+
+describe("/api/rooms/batch — plusieurs codes en une requete", () => {
+  type Batch = {
+    rooms: Array<{
+      code: string;
+      title: string;
+      durationMinutes: number | null;
+      isActive: boolean;
+    }>;
+    missing: string[];
+  };
+
+  async function batch(codes: readonly string[]): Promise<{ status: number; body: Batch }> {
+    const query = codes.map((code) => `code=${encodeURIComponent(code)}`).join("&");
+    const response = await app.inject({ method: "GET", url: `/api/rooms/batch?${query}` });
+    return { status: response.statusCode, body: response.json<Batch>() };
+  }
+
+  it("le segment statique l'emporte sur `/api/rooms/:code`", async () => {
+    // Une priorite de routeur est un comportement de bibliotheque. Si Fastify
+    // changeait d'avis, `batch` serait interprete comme un code de room et
+    // rendrait un 404 : ce test le verrait.
+    const { status, body } = await batch(["picklerick"]);
+    expect(status).toBe(200);
+    expect(body.rooms).toHaveLength(1);
+  });
+
+  it("rend les rooms demandees et NOMME les codes inconnus", async () => {
+    const { status, body } = await batch(["picklerick", "nexistepas", "blue"]);
+    expect(status).toBe(200);
+    expect(body.rooms.map((room) => room.code).sort()).toEqual(["blue", "picklerick"]);
+    expect(body.missing).toEqual(["nexistepas"]);
+  });
+
+  it("un code inconnu ne fait jamais echouer la requete entiere", async () => {
+    // LE defaut que ce point d'entree existe pour supprimer : une progression de
+    // 61 rooms ne doit pas devenir illisible a cause d'une entree fantome.
+    const { status, body } = await batch(["nexistepas", "pas-davantage"]);
+    expect(status).toBe(200);
+    expect(body.rooms).toEqual([]);
+    expect(body.missing).toEqual(["nexistepas", "pas-davantage"]);
+  });
+
+  it("la casse du code n'est jamais repliee", async () => {
+    const exact = await batch(["AIforcyber-aoc2025-y9wWQ1zRgB"]);
+    expect(exact.body.rooms.map((room) => room.code)).toEqual(["AIforcyber-aoc2025-y9wWQ1zRgB"]);
+    expect(exact.body.missing).toEqual([]);
+
+    const folded = await batch(["aiforcyber-aoc2025-y9wwq1zrgb"]);
+    expect(folded.body.rooms).toEqual([]);
+    expect(folded.body.missing).toEqual(["aiforcyber-aoc2025-y9wwq1zrgb"]);
+  });
+
+  it("un code demande deux fois rend une seule room et zero manquant", async () => {
+    const { body } = await batch(["picklerick", "picklerick"]);
+    expect(body.rooms).toHaveLength(1);
+    expect(body.missing).toEqual([]);
+  });
+
+  it("un code INCONNU demande deux fois n'apparait qu'une fois dans `missing`", async () => {
+    // Le cas precedent passe meme sans deduplication : la base ne rend qu'une
+    // ligne de toute facon. C'est ici que la deduplication se voit — sans elle,
+    // l'interface afficherait deux fois la meme entree fantome a l'utilisateur.
+    const { body } = await batch(["nexistepas", "nexistepas"]);
+    expect(body.missing).toEqual(["nexistepas"]);
+  });
+
+  it("accepte un seul code, qui n'est pas un tableau apres analyse", async () => {
+    const { status, body } = await batch(["picklerick"]);
+    expect(status).toBe(200);
+    expect(body.rooms).toHaveLength(1);
+  });
+
+  it("la borne est de 200 codes, ecrite en clair", () => {
+    // Le nombre est ECRIT ici, pas derive de la constante. Un test qui construit
+    // son jeu d'essai a partir de la valeur qu'il verifie suit la constante
+    // partout ou elle va : il ne verifie rien. Mesure : en portant
+    // MAX_BATCH_CODES a 100000, la version precedente de ce test passait encore.
+    expect(MAX_BATCH_CODES).toBe(200);
+  });
+
+  it("accepte 200 codes et refuse le 201e", async () => {
+    const codes = Array.from({ length: 200 }, (_, index) => `code-inexistant-${index}`);
+    const accepte = await batch(codes);
+    expect(accepte.status).toBe(200);
+    expect(accepte.body.missing).toHaveLength(200);
+
+    const response = await app.inject({
+      method: "GET",
+      url: `/api/rooms/batch?${[...codes, "un-de-trop"].map((c) => `code=${c}`).join("&")}`,
+    });
+    expect(response.statusCode).toBe(400);
+  });
+
+  it("exige au moins un code", async () => {
+    const response = await app.inject({ method: "GET", url: "/api/rooms/batch" });
+    expect(response.statusCode).toBe(400);
+  });
+
+  it("refuse un code de forme impossible plutot que de le chercher", async () => {
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/rooms/batch?code=avec%20espace",
+    });
+    expect(response.statusCode).toBe(400);
+  });
+
+  it("n'expose ni `raw` ni les colonnes internes", async () => {
+    const { body } = await batch(["picklerick"]);
+    const room = body.rooms[0] as Record<string, unknown> | undefined;
+    expect(room).toBeDefined();
+    expect(Object.keys(room ?? {}).sort()).toEqual([
+      "code",
+      "difficulty",
+      "durationMinutes",
+      "isActive",
+      "thmUrl",
+      "title",
+      "type",
+    ]);
+  });
+
+  it("un lot de la taille d'une progression complete tient en UNE requete", async () => {
+    // Les codes viennent du CATALOGUE, pas des parcours. `tracks.test.ts` remplace
+    // les trois parcours du produit par ses fixtures le temps de sa suite, et les
+    // fichiers de test tournent en parallele : lire la roadmap ici rendrait ce
+    // test dependant de l'ordonnancement. Ce qui est verifie est la TAILLE du
+    // lot, pas son contenu.
+    const catalogue = await list("/api/rooms?limit=100&sort=az");
+    const codes = catalogue.data.map((room) => room.code).slice(0, 61);
+    expect(codes).toHaveLength(61);
+
+    const { status, body } = await batch(codes);
+    expect(status).toBe(200);
+    expect(body.rooms).toHaveLength(61);
+    expect(body.missing).toEqual([]);
   });
 });

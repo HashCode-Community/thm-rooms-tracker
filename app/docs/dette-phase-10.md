@@ -33,27 +33,28 @@ existe finit par être supprimée comme « inutile ».
 
 ## Poids du bundle front — mesuré, pas estimé
 
-**Mesure du 2026-09-12**, `pnpm --filter @thm/web build:analyse`. La méthode décode les
+**Mesure du 2026-09-14**, après les phases 8a et 8b, `pnpm --filter @thm/web build:analyse`.
+La méthode décode les
 `mappings` du source map et additionne les octets **réellement émis** par fichier source :
 c'est ce qui a survécu au secouage d'arbre et à la minification, pas la taille des paquets
 installés.
 
 ```
-brut 403,2 ko · gzip 124,0 ko (ratio 30,8 %)
+brut 415,0 ko · gzip 127,2 ko (ratio 30,7 %)
 ```
 
 | Dépendance | Brut | gzip estimé | Part |
 |---|---:|---:|---:|
-| react-dom | 202,3 ko | 62,2 ko | 50,5 % |
-| **zod** | **80,8 ko** | **24,8 ko** | **20,2 %** |
-| @tanstack/router-core | 51,5 ko | 15,8 ko | 12,8 % |
-| (notre code) apps/web | 27,7 ko | 8,5 ko | 6,9 % |
-| @tanstack/react-router | 12,1 ko | 3,7 ko | 3,0 % |
-| react | 8,0 ko | 2,5 ko | 2,0 % |
-| (notre code) @thm/shared | 5,1 ko | 1,6 ko | 1,3 % |
+| react-dom | 202,2 ko | 62,0 ko | 49,0 % |
+| **zod** | **80,8 ko** | **24,8 ko** | **19,6 %** |
+| @tanstack/router-core | 51,5 ko | 15,8 ko | 12,5 % |
+| (notre code) apps/web | 38,9 ko | 11,9 ko | 9,4 % |
+| @tanstack/react-router | 12,1 ko | 3,7 ko | 2,9 % |
+| react | 8,0 ko | 2,5 ko | 1,9 % |
+| (notre code) @thm/shared | 5,7 ko | 1,7 ko | 1,4 % |
 | @tanstack/history | 4,4 ko | 1,4 ko | 1,1 % |
 | @tanstack/store | 3,7 ko | 1,1 ko | 0,9 % |
-| scheduler | 3,5 ko | 1,1 ko | 0,9 % |
+| scheduler | 3,5 ko | 1,1 ko | 0,8 % |
 | use-sync-external-store | 1,5 ko | 0,5 ko | 0,4 % |
 
 Le gzip par dépendance est une **estimation** : le ratio global est appliqué à chaque
@@ -71,10 +72,19 @@ exploitant les redondances entre elles. Seul le total gzip est mesuré.
   assumé : sans lui, il faudrait deux définitions à garder synchronisées, ce qui est
   précisément le défaut que `packages/shared` existe pour empêcher.
 
-**Rien n'est optimisé.** 124 ko compressés pour un outil de travail, c'est acceptable. La
+**Rien n'est optimisé.** 127 ko compressés pour un outil de travail, c'est acceptable. La
 mesure est là pour que le chiffre soit connu, pas pour déclencher une action.
 
-**À refaire en phase 10**, la phase 8a ajoutant du code front.
+**Évolution.** 124,0 ko au 2026-09-12, 126,7 ko après la phase 8a, 127,2 ko après la 8b.
+La progression locale coûte donc **+3,2 ko compressés**, entièrement dans notre propre code
+(27,7 → 38,9 ko bruts) : aucune dépendance n'a été ajoutée depuis la phase 6. Le point
+d'entrée par lot a même retiré du travail au navigateur — 5 requêtes au lieu de 65 sur
+`/progression` — sans rien ajouter au poids.
+
+**Plafond posé pour la phase 8c : 160 ko gzip.** Au-delà, la passe visuelle n'est pas
+acceptée. Marge restante : 32,8 ko.
+
+**À refaire en phase 10**, et à chaque phase qui ajoute du code front.
 
 ---
 
@@ -88,3 +98,4 @@ Elles ne sont **pas** dues en phase 10. Elles sont ici pour ne pas être redéco
 | `canonical:` vide dans le mapping de normalisation | TryHackMe introduit une variante de casse, ou le mapping est réécrit. L'importer refuse alors de tourner et indique la ligne à ajouter. |
 | `MFTCmd.exe` vs `MFTECmd.exe` | Arbitrage de Nel. La question est posée dans `data/mappings/normalisation-outils.yaml`, non appliquée. |
 | Export de progression sans import JSON | Asymétrie assumée en phase 8a : l'utilisateur peut sortir ses données, pas les réinjecter. Si les comptes sont ajoutés, le chemin de reprise sera progression locale → compte, pas un import JSON. |
+| `pnpm audit` : 1 vulnérabilité modérée, `esbuild <= 0.24.2` via `drizzle-kit > @esbuild-kit/esm-loader > @esbuild-kit/core-utils` ([GHSA-67mh-4wv8-2f99](https://github.com/advisories/GHSA-67mh-4wv8-2f99)) | **Exception datée du 2026-09-14.** L'avis porte sur le serveur de développement d'esbuild ; la chaîne est une `devDependency` de `drizzle-kit`, elle n'est jamais livrée et n'existe pas en production. Aucun `override` posé : forcer une version d'esbuild sous drizzle-kit change le compilateur qui évalue `drizzle.config.ts`, pour un risque inexistant chez nous. **Déclencheur de réexamen : la prochaine montée de `drizzle-kit`** — vérifier alors si `@esbuild-kit/*` a disparu de l'arbre, et retirer cette ligne le cas échéant. Une exception sans date de réexamen est un `ignore` déguisé. |

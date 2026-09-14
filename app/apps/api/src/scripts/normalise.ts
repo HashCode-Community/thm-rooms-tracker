@@ -243,4 +243,219 @@ export function roomTagSlugs(
   return out;
 }
 
+// --- Journal des tags -------------------------------------------------------
+
+/** Ce qui arrive a une valeur brute entre le dataset et la table `tags`. */
+export type TagFate =
+  | "conservee"
+  | "renommee"
+  | "absorbee"
+  | "ecartee-absence"
+  | "ecartee-slug-vide";
+
+export type TagLedgerEntry = {
+  kind: TagKind;
+  /** La valeur telle que le dataset l'ecrit, espaces parasites compris. */
+  raw: string;
+  /** Forme d'affichage retenue, ou `null` si la valeur est ecartee. */
+  name: string | null;
+  slug: string | null;
+  fate: TagFate;
+  occurrences: number;
+};
+
+export type TagFusion = {
+  kind: TagKind;
+  slug: string;
+  name: string;
+  /** Les ecritures source qui convergent, avec leurs occurrences. */
+  sources: Array<{ raw: string; occurrences: number }>;
+};
+
+export type TagKindLedger = {
+  kind: TagKind;
+  /** Valeurs brutes DISTINCTES rencontrees dans le dataset. */
+  incoming: number;
+  /** Ecartees comme absence : chaine vide ou `N/A`. */
+  discardedAbsence: number;
+  /** Ecartees parce que leur slug serait vide. Anomalie : aucune aujourd'hui. */
+  discardedEmptySlug: number;
+  /** Valeurs absorbees par une autre : `n` ecritures pour un tag valent `n - 1`. */
+  absorbed: number;
+  /** Tags reellement produits. */
+  resulting: number;
+  /** `incoming - discarded - absorbed === resulting`. */
+  reconciled: boolean;
+};
+
+export type TagLedger = {
+  byKind: TagKindLedger[];
+  entries: TagLedgerEntry[];
+  fusions: TagFusion[];
+  /** Renommages sans fusion : le libelle change, le compte ne bouge pas. */
+  renames: Array<{ kind: TagKind; from: string; to: string; occurrences: number }>;
+  totals: Omit<TagKindLedger, "kind">;
+  /** Faux si une seule facette ne se reconcilie pas. Bloquant a l'import. */
+  reconciled: boolean;
+};
+
+const FACETS: ReadonlyArray<{ kind: TagKind; field: "technologies" | "tools" | "skills" }> = [
+  { kind: "technology", field: "technologies" },
+  { kind: "tool", field: "tools" },
+  { kind: "skill", field: "skills" },
+];
+
+/** `N/A` et la chaine vide sont des ABSENCES, jamais des tags. */
+function isAbsence(trimmed: string): boolean {
+  return trimmed === "" || trimmed.toUpperCase() === "N/A";
+}
+
+/**
+ * Compte ce que la normalisation fait aux tags, valeur par valeur.
+ *
+ * POURQUOI CE JOURNAL EXISTE. L'union brute des trois facettes contient 304
+ * valeurs distinctes et la base en contient 296. L'ecart est entierement
+ * explique — 1 technologie `N/A` ecartee comme absence, 7 outils absorbes par
+ * les `merge` du mapping — mais il n'etait ecrit nulle part, et un chiffre qui
+ * baisse sans explication est exactement ce que la regle « aucune modification
+ * silencieuse des donnees » interdit.
+ *
+ * Ce calcul est VOLONTAIREMENT independant de `resolveTags` : il repart des
+ * rooms. Deux chemins qui tombent sur le meme nombre valent mieux qu'un seul
+ * chemin qui se raconte a lui-meme qu'il a raison. L'import compare les deux et
+ * refuse de tourner s'ils divergent.
+ */
+export function buildTagLedger(rooms: readonly RoomSource[], mapping: Mapping): TagLedger {
+  const entries: TagLedgerEntry[] = [];
+  const fusions: TagFusion[] = [];
+  const renames: TagLedger["renames"] = [];
+  const byKind: TagKindLedger[] = [];
+
+  for (const { kind, field } of FACETS) {
+    // Occurrences par valeur BRUTE, sans aucune transformation prealable.
+    const occurrences = new Map<string, number>();
+    for (const room of rooms) {
+      for (const rawValue of room[field] ?? []) {
+        occurrences.set(rawValue, (occurrences.get(rawValue) ?? 0) + 1);
+      }
+    }
+
+    // Regroupement par slug d'arrivee : c'est la que se voient les fusions.
+    const groups = new Map<string, { name: string; sources: string[] }>();
+    let discardedAbsence = 0;
+    let discardedEmptySlug = 0;
+
+    for (const raw of [...occurrences.keys()].sort()) {
+      const count = occurrences.get(raw) ?? 0;
+
+      if (isAbsence(trimText(raw))) {
+        discardedAbsence += 1;
+        entries.push({
+          kind,
+          raw,
+          name: null,
+          slug: null,
+          fate: "ecartee-absence",
+          occurrences: count,
+        });
+        continue;
+      }
+
+      const name = applyMapping(raw, mapping);
+      const slug = slugify(name);
+
+      if (slug === "") {
+        discardedEmptySlug += 1;
+        entries.push({
+          kind,
+          raw,
+          name,
+          slug: null,
+          fate: "ecartee-slug-vide",
+          occurrences: count,
+        });
+        continue;
+      }
+
+      const group = groups.get(slug);
+      if (group === undefined) groups.set(slug, { name, sources: [raw] });
+      else group.sources.push(raw);
+    }
+
+    // Classement final : une valeur seule dans son groupe est conservee ou
+    // renommee ; dans un groupe de plusieurs, une seule represente le tag.
+    for (const slug of [...groups.keys()].sort()) {
+      const group = groups.get(slug);
+      if (group === undefined) continue;
+
+      if (group.sources.length > 1) {
+        fusions.push({
+          kind,
+          slug,
+          name: group.name,
+          sources: group.sources.map((raw) => ({
+            raw,
+            occurrences: occurrences.get(raw) ?? 0,
+          })),
+        });
+      }
+
+      for (const [index, raw] of group.sources.entries()) {
+        const count = occurrences.get(raw) ?? 0;
+        if (index > 0) {
+          entries.push({ kind, raw, name: group.name, slug, fate: "absorbee", occurrences: count });
+          continue;
+        }
+        const changed = raw !== group.name;
+        entries.push({
+          kind,
+          raw,
+          name: group.name,
+          slug,
+          fate: changed ? "renommee" : "conservee",
+          occurrences: count,
+        });
+        if (changed && group.sources.length === 1) {
+          renames.push({ kind, from: raw, to: group.name, occurrences: count });
+        }
+      }
+    }
+
+    const incoming = occurrences.size;
+    const resulting = groups.size;
+    const absorbed = [...groups.values()].reduce((sum, g) => sum + g.sources.length - 1, 0);
+
+    byKind.push({
+      kind,
+      incoming,
+      discardedAbsence,
+      discardedEmptySlug,
+      absorbed,
+      resulting,
+      reconciled: incoming - discardedAbsence - discardedEmptySlug - absorbed === resulting,
+    });
+  }
+
+  const totals = byKind.reduce(
+    (acc, k) => ({
+      incoming: acc.incoming + k.incoming,
+      discardedAbsence: acc.discardedAbsence + k.discardedAbsence,
+      discardedEmptySlug: acc.discardedEmptySlug + k.discardedEmptySlug,
+      absorbed: acc.absorbed + k.absorbed,
+      resulting: acc.resulting + k.resulting,
+      reconciled: acc.reconciled && k.reconciled,
+    }),
+    {
+      incoming: 0,
+      discardedAbsence: 0,
+      discardedEmptySlug: 0,
+      absorbed: 0,
+      resulting: 0,
+      reconciled: true,
+    },
+  );
+
+  return { byKind, entries, fusions, renames, totals, reconciled: totals.reconciled };
+}
+
 export { EMPTY_MAPPING };

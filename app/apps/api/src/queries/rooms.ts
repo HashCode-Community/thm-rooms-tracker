@@ -257,6 +257,96 @@ export async function findRoomByCode(code: string): Promise<RoomDetail | null> {
   };
 }
 
+export type RoomBrief = {
+  code: string;
+  title: string;
+  difficulty: { key: string; label: string; level: number };
+  type: { key: string; label: string };
+  durationMinutes: number | null;
+  thmUrl: string;
+  isActive: boolean;
+};
+
+export type RoomBatchResult = { rooms: RoomBrief[]; missing: string[] };
+
+/**
+ * Plusieurs rooms par leur code, en UNE requete.
+ *
+ * `= ANY($1)` et non `IN ($1, $2, ...)`. Mesure sur le SQL reellement genere :
+ *
+ *   inArray(rooms.code, codes)                -> "code" in ($1, $2, $3)
+ *   sql`... = ANY(${sql.param(codes)})`       -> "code" = ANY($1)
+ *
+ * La premiere forme change de TEXTE SQL a chaque taille de lot : 200 longueurs
+ * possibles, donc 200 plans differents a mettre en cache cote serveur, et 200
+ * parametres envoyes. La seconde a une seule forme quel que soit le nombre de
+ * codes, avec un unique parametre tableau.
+ *
+ * La comparaison reste SENSIBLE A LA CASSE, comme partout (ADR-0001 Q1). Aucun
+ * `lower()`, ni sur la colonne ni sur les codes recus.
+ *
+ * `is_active` n'est PAS filtre : une room retiree du catalogue doit rester
+ * visible dans la progression de qui l'a terminee. Elle est rendue avec
+ * `isActive: false`, a charge de l'interface de le dire.
+ */
+export async function findRoomBriefsByCodes(codes: readonly string[]): Promise<RoomBatchResult> {
+  // Deduplication en preservant l'ordre et la casse d'arrivee : deux fois le
+  // meme code ne doit pas produire deux lignes, ni le faire apparaitre en
+  // `missing` parce qu'il aurait deja ete consomme.
+  const requested: string[] = [];
+  const seen = new Set<string>();
+  for (const code of codes) {
+    if (seen.has(code)) continue;
+    seen.add(code);
+    requested.push(code);
+  }
+
+  if (requested.length === 0) return { rooms: [], missing: [] };
+
+  const rows = await db
+    .select({
+      code: rooms.code,
+      title: rooms.title,
+      durationMinutes: rooms.durationMinutes,
+      thmUrl: rooms.thmUrl,
+      isActive: rooms.isActive,
+      difficultyKey: difficulties.key,
+      difficultyLabel: difficulties.label,
+      difficultyLevel: difficulties.level,
+      typeKey: roomTypes.key,
+      typeLabel: roomTypes.label,
+    })
+    .from(rooms)
+    .innerJoin(difficulties, eq(difficulties.id, rooms.difficultyId))
+    .innerJoin(roomTypes, eq(roomTypes.id, rooms.roomTypeId))
+    .where(sql`${rooms.code} = ANY(${sql.param(requested)})`)
+    // Comme tout tri du catalogue, il se termine par `code ASC` : sans
+    // departage, deux titres identiques rendraient un ordre dependant du plan
+    // d'execution. Trois rooms portent des titres identiques (ADR-0001 Q1).
+    .orderBy(sql`lower(${rooms.title}) asc`, asc(rooms.code));
+
+  const found = new Set(rows.map((row) => row.code));
+
+  return {
+    rooms: rows.map((row) => ({
+      code: row.code,
+      title: row.title,
+      difficulty: {
+        key: row.difficultyKey,
+        label: row.difficultyLabel,
+        level: row.difficultyLevel,
+      },
+      type: { key: row.typeKey, label: row.typeLabel },
+      durationMinutes: row.durationMinutes,
+      thmUrl: row.thmUrl,
+      isActive: row.isActive,
+    })),
+    // L'ordre des codes demandes, pas celui de la base : l'interface les
+    // reaffiche a l'utilisateur, qui les reconnait mieux dans son propre ordre.
+    missing: requested.filter((code) => !found.has(code)),
+  };
+}
+
 export type CatalogStats = {
   rooms: { total: number; withoutTeam: number };
   durationMinutes: { total: number; min: number | null; max: number | null };

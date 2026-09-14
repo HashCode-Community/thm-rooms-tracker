@@ -23,6 +23,7 @@ export type ProgressionState = ProgressionSnapshot &
   Readonly<{
     isCompleted(code: string): boolean;
     setCompleted(code: string, completed: boolean): void;
+    forget(codes: readonly string[]): void;
   }>;
 
 export function useProgression(): ProgressionState {
@@ -33,6 +34,7 @@ export function useProgression(): ProgressionState {
     ...snapshot,
     isCompleted: store.isCompleted,
     setCompleted: store.setCompleted,
+    forget: store.forget,
   };
 }
 
@@ -75,25 +77,61 @@ export function RoomCompletionControl({
   );
 }
 
-const WARNING_TEXT: Readonly<Record<NonNullable<ProgressionSnapshot["warning"]>, string>> = {
-  "unreadable-preserved":
-    "La progression locale existante n'a pas pu etre lue. Ce changement reste utilisable " +
-    "dans cet onglet, mais la donnee existante n'a pas ete remplacee.",
-  "write-failed":
-    "Votre progression fonctionne pour cette session, mais le navigateur n'a pas pu " +
-    "l'enregistrer. Elle risque de disparaitre au rechargement.",
+/**
+ * Un message par mode de defaillance, et chacun dit la meme chose en premier :
+ * ce qui est perdu, et quand.
+ *
+ * Le titre porte la consequence, le corps porte la cause. Un utilisateur qui ne
+ * lit que la premiere ligne doit deja savoir que rien n'est enregistre.
+ */
+const WARNING_TEXT: Readonly<
+  Record<NonNullable<ProgressionSnapshot["warning"]>, { titre: string; corps: string }>
+> = {
+  "unreadable-preserved": {
+    titre: "Votre progression n'est pas enregistree",
+    corps:
+      "Une progression existe deja dans ce navigateur, mais elle est illisible. Elle n'a " +
+      "pas ete remplacee, au cas ou elle serait recuperable. Ce que vous cochez maintenant " +
+      "reste dans cet onglet et disparaitra au rechargement.",
+  },
+  "storage-unavailable": {
+    titre: "Votre progression n'est pas enregistree",
+    corps:
+      "Ce navigateur n'autorise pas le stockage local, souvent en navigation privee ou " +
+      "quand les cookies sont bloques. Rien n'est conserve : ce que vous cochez disparaitra " +
+      "au rechargement. Vous pouvez exporter votre progression en JSON avant de fermer.",
+  },
+  "write-failed": {
+    titre: "Votre progression n'est pas enregistree",
+    corps:
+      "Le stockage local de ce navigateur est plein. Ce que vous cochez reste dans cet " +
+      "onglet et disparaitra au rechargement. Liberer de l'espace, ou decocher des rooms, " +
+      "suffit a relancer l'enregistrement.",
+  },
 };
 
+/**
+ * Bandeau PERMANENT tant que l'ecriture echoue. Aucun bouton pour le fermer.
+ *
+ * La version precedente etait fermable, et ne revenait jamais ensuite. Mesure en
+ * navigateur, stockage sature : premiere case cochee, alerte correcte ;
+ * l'utilisateur ferme ; cinq cases de plus cochees ; six cases affichees a
+ * l'ecran, `localStorage` a `null`, plus aucune alerte. Tout etait perdu au
+ * rechargement, sans qu'aucun ecran ne l'ait dit.
+ *
+ * Un avertissement fermable convient a une information. Celui-ci dit « rien de
+ * ce que vous faites n'est conserve » : il disparait quand c'est redevenu faux,
+ * pas quand on le lui demande.
+ */
 export function ProgressionPersistenceWarning(): ReactNode {
   const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
   if (snapshot.warning === null) return null;
 
+  const { titre, corps } = WARNING_TEXT[snapshot.warning];
   return (
     <div className="alerte-stockage" role="alert">
-      <p>{WARNING_TEXT[snapshot.warning]}</p>
-      <button type="button" className="bouton bouton--lien" onClick={store.dismissWarning}>
-        Fermer
-      </button>
+      <p className="alerte-stockage__titre">{titre}</p>
+      <p>{corps}</p>
     </div>
   );
 }

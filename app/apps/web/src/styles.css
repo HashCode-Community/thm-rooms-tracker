@@ -949,6 +949,8 @@ label {
 
 /* --- Progression ------------------------------------------------------- */
 
+/* Bandeau permanent : il n'a pas de bouton de fermeture, donc pas de
+   rangee horizontale a repartir. Le texte occupe toute la largeur. */
 .alerte-stockage {
   border: 1px solid var(--alerte);
   border-radius: var(--rayon);
@@ -956,15 +958,33 @@ label {
   color: var(--alerte);
   padding: var(--pas) calc(var(--pas) * 1.5);
   margin-bottom: calc(var(--pas) * 2);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: calc(var(--pas) * 2);
+  display: grid;
+  gap: 4px;
 }
 
-.alerte-stockage .bouton--lien {
-  color: inherit;
-  flex-shrink: 0;
+.alerte-stockage__titre {
+  font-weight: 600;
+}
+
+.alerte-disparues {
+  border: 1px solid var(--bord-fort);
+  background: var(--fond-doux);
+  border-radius: var(--rayon);
+  padding: var(--pas) calc(var(--pas) * 1.5);
+  margin-bottom: calc(var(--pas) * 2);
+  display: grid;
+  gap: var(--pas);
+  justify-items: start;
+}
+
+.alerte-disparues ul {
+  margin: 0;
+  padding-left: calc(var(--pas) * 2);
+}
+
+.alerte-disparues code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9em;
 }
 
 .progression-case {
