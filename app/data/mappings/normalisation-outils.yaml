@@ -86,28 +86,10 @@ version: 1
 # Le comptage des facettes additionne les occurrences des variantes.
 # -----------------------------------------------------------------------------
 merge:
-  # --- issus du suffixe " NEW" (la forme nue existe deja) ---
-  "Empire":
-    # "Empire - NEW" porte en plus un tiret parasite. 2 + 1 = 3 occurrences.
-    - "Empire - NEW"
-  "MITRE ATT&CK Framework":
-    # 2 + 2 = 4 occurrences.
-    - "MITRE ATT&CK Framework NEW"
-  "enum4linux":
-    # Forme canonique TOUT EN MINUSCULES : c'est un script Perl, le binaire
-    # s'appelle `enum4linux`, comme `enum4linux-ng`. "Enum4Linux" aurait ete une
-    # TROISIEME variante inventee, pas la casse reelle.
-    # Les DEUX variantes source sont listees. 2 + 1 = 3 occurrences.
-    - "Enum4linux"
-    - "Enum4Linux NEW"
-  "Hydra":
-    # 27 + 1 = 28 occurrences. A ne pas confondre avec Ghidra, outil distinct.
-    - "Hydra NEW"
-  "Responder":
-    # 3 + 1 = 4 occurrences.
-    - "Responder NEW"
-
   # --- fautes de frappe averees ---
+  # La forme correcte existe deja dans les donnees, ce qui rend la fusion
+  # evidente et verifiable. Aucune regle ne peut les attraper : ce sont des
+  # coquilles, pas un motif.
   "Burp Suite":
     # 47 + 1 = 48 occurrences.
     - "Burpe Suite"
@@ -116,21 +98,24 @@ merge:
     - "Autospy"
 
 # -----------------------------------------------------------------------------
-# rename : l'outil n'a qu'une ecriture, on retire seulement le badge d'affichage.
-# Aucune fusion, aucun comptage n'est modifie : seul le libelle change.
+# rename : VIDE, et c'est le resultat de la correction du 2026-09-14.
 #
-# NOTE : c'est bien une modification de la donnee affichee. Elle est ici parce
-# que Nel l'a explicitement validee (reponse Q3) : " NEW" est un badge du site
-# TryHackMe, pas un element du nom de l'outil.
+# Il contenait 7 entrees, toutes de la forme "X NEW" -> "X". C'etait une LISTE
+# la ou il fallait une REGLE. Le defaut : le jour ou le scraper ramene
+# "Nmap NEW", aucune entree ne correspond, un tag nmap-new est cree a cote de
+# nmap, la reconciliation du journal tombe juste -- rien n'a ete ecarte ni
+# absorbe -- et l'import ne refuse pas de tourner. Doublon silencieux, et le
+# garde ne couvre pas le cas qu'il est cense couvrir.
+#
+# Le retrait du badge est desormais applique par le CODE, a toute valeur, par
+# `stripDisplaySuffix` dans apps/api/src/scripts/normalise.ts. Chaque valeur
+# rabattue est journalisee a l'import, absorbee ou non.
+#
+# L'importer REFUSE de tourner si une cle de ce fichier porte encore le
+# suffixe : elle ne serait jamais consultee, la regle l'ayant deja retire, et
+# resterait ici comme une intention sans effet.
 # -----------------------------------------------------------------------------
-rename:
-  "ATT&CK Navigator NEW": "ATT&CK Navigator"   # 2 occurrences
-  "Audit Policy NEW": "Audit Policy"           # 1 occurrence
-  "Event Viewer NEW": "Event Viewer"           # 3 occurrences
-  "Log Viewer NEW": "Log Viewer"               # 1 occurrence
-  "Microsoft Outlook NEW": "Microsoft Outlook" # 1 occurrence
-  "Netcat NEW": "Netcat"                       # 2 occurrences
-  "Pwntools NEW": "Pwntools"                   # 1 occurrence
+rename: {}
 
 # =============================================================================
 # canonical : forme d'affichage imposee en cas de COLLISION DE SLUG
@@ -169,7 +154,18 @@ rename:
 #
 # Le garde existe donc pour le jour ou TryHackMe introduira une variante de
 # casse, ou pour une reecriture de ce fichier. Il ne sert a rien aujourd'hui.
-canonical: {}
+canonical:
+  # Collision REELLE depuis le 2026-09-14, prevue de longue date par ADR-0003.
+  #
+  # La regle du suffixe rabat "Enum4Linux NEW" sur "Enum4Linux". La source
+  # contient par ailleurs "Enum4linux", avec un L minuscule. Deux formes
+  # d'affichage distinctes, un seul slug : il faut trancher laquelle s'affiche,
+  # sinon ce serait "la premiere rencontree", donc l'ordre de parcours des rooms.
+  #
+  # Forme retenue : TOUT EN MINUSCULES. C'est un script Perl, le binaire
+  # s'appelle enum4linux, comme enum4linux-ng. "Enum4Linux" serait une TROISIEME
+  # variante inventee, pas la casse reelle.
+  enum4linux: "enum4linux"
 
 # -----------------------------------------------------------------------------
 # trim : espaces parasites. Traite systematiquement a l'import sur TOUS les

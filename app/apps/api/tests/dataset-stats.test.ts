@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { checkDatasetVersion, DatasetSchema } from "@thm/shared";
+import { checkDatasetVersion, DatasetSchema, type RoomSource } from "@thm/shared";
 import { describe, expect, it } from "vitest";
 import {
   analyseToolNames,
@@ -10,7 +10,14 @@ import {
   EXPECTED,
   runControlChecks,
 } from "../src/scripts/dataset-analysis.js";
-import { resolveTags, slugify } from "../src/scripts/normalise.js";
+import {
+  buildTagLedger,
+  findSuffixedMappingKeys,
+  loadMapping,
+  resolveTags,
+  slugify,
+  stripDisplaySuffix,
+} from "../src/scripts/normalise.js";
 
 /**
  * Tests de NON-REGRESSION sur le dataset.
@@ -152,25 +159,32 @@ describe("normalisation des outils", () => {
 });
 
 describe("slug et collisions", () => {
-  it("aucune collision de slug sur les donnees BRUTES", () => {
-    // Le mapping est le mecanisme, le slug est le filet : sans mapping, le
-    // filet n'attrape rien. Cf. ADR-0003.
-    const { collisions } = resolveTags(parsed.rooms, {
-      version: 0,
-      merge: {},
-      rename: {},
-      canonical: {},
-    });
-    expect(collisions).toEqual([]);
+  it("aucune collision de slug sur les valeurs SOURCE, avant toute normalisation", () => {
+    // Le slug est le FILET : sur les ecritures telles que le dataset les livre,
+    // il n'attrape rien. C'est le mecanisme — regle du badge et mapping — qui
+    // fait tout le travail. Cf. ADR-0003.
+    //
+    // Mesure sur les valeurs brutes elles-memes, sans passer par
+    // `resolveTags` : depuis 2026-09-14 celui-ci applique TOUJOURS la regle du
+    // badge, meme avec un mapping vide, donc « mapping vide » ne veut plus dire
+    // « aucune normalisation ».
+    for (const champ of ["tools", "technologies", "skills"] as const) {
+      const noms = new Set<string>();
+      for (const room of parsed.rooms) for (const valeur of room[champ] ?? []) noms.add(valeur);
+      const slugs = new Set([...noms].map((nom) => slugify(nom)));
+      expect(slugs.size).toBe(noms.size);
+    }
   });
 
-  it("une collision apparait si le mapping cree une variante de casse", () => {
-    // `Enum4Linux NEW` renomme en `Enum4Linux` rejoint `Enum4linux` par la
-    // casefold du slug. C'est le seul cas, et il est cree par le mapping.
+  it("la regle du badge CREE une collision de casse, que le garde intercepte", () => {
+    // La regle rabat `Enum4Linux NEW` sur `Enum4Linux`, qui rejoint `Enum4linux`
+    // par la casefold du slug. ADR-0003 avait prevu exactement ce scenario et
+    // pose le garde pour lui : il n'etait dormant que parce que le mapping
+    // listait les deux variantes a la main.
     const { collisions, unresolved } = resolveTags(parsed.rooms, {
       version: 1,
       merge: {},
-      rename: { "Enum4Linux NEW": "Enum4Linux" },
+      rename: {},
       canonical: {},
     });
     expect(collisions).toHaveLength(1);
@@ -183,7 +197,7 @@ describe("slug et collisions", () => {
     const { unresolved, tags } = resolveTags(parsed.rooms, {
       version: 1,
       merge: {},
-      rename: { "Enum4Linux NEW": "Enum4Linux" },
+      rename: {},
       canonical: { enum4linux: "enum4linux" },
     });
     expect(unresolved).toEqual([]);
@@ -234,5 +248,109 @@ describe("casse des codes de rooms", () => {
     for (const room of parsed.rooms) {
       expect(room.url).toBe(`https://tryhackme.com/room/${room.code}`);
     }
+  });
+});
+
+/**
+ * LA REGLE DU BADGE D'AFFICHAGE, ET POURQUOI CE N'ETAIT PAS UNE LISTE.
+ *
+ * Le mapping figeait 12 entrees `"X NEW"`. Le defaut : une valeur badgee INEDITE
+ * n'y figure pas, donc rien ne la rabat, donc un tag `nmap-new` nait a cote de
+ * `nmap` — et la reconciliation du journal tombe juste, puisque rien n'a ete
+ * ecarte ni absorbe. Le garde ne voyait pas le cas qu'il etait cense couvrir.
+ *
+ * Ces tests fabriquent des rooms : ils portent sur la REGLE, pas sur le contenu
+ * du dataset livre.
+ */
+describe("badge d'affichage : une regle, pas une liste", () => {
+  const MAPPING_REEL = loadMapping(resolve(ROOT, "data/mappings/normalisation-outils.yaml"));
+
+  const room = (code: string, tools: string[]): RoomSource =>
+    ({
+      code,
+      title: code,
+      description: "",
+      difficulty: "easy",
+      type: "walkthrough",
+      durationMinutes: 30,
+      usersCount: 1,
+      publishedAt: "2026-01-01",
+      teams: [],
+      skills: [],
+      technologies: [],
+      tools,
+      url: `https://tryhackme.com/room/${code}`,
+    }) as RoomSource;
+
+  it("un `<existant> NEW` INEDIT est absorbe, pas cree a cote", () => {
+    // `Nmap NEW` n'existe nulle part dans le mapping ni dans le dataset.
+    const rooms = [room("a", ["Nmap"]), room("b", ["Nmap NEW"])];
+    const { tags } = resolveTags(rooms, MAPPING_REEL);
+
+    expect(tags.map((tag) => tag.slug)).toEqual(["nmap"]);
+    expect(tags).toHaveLength(1);
+  });
+
+  it("le journal NOMME la valeur rabattue et la dit absorbee", () => {
+    const rooms = [room("a", ["Nmap"]), room("b", ["Nmap NEW"])];
+    const ledger = buildTagLedger(rooms, MAPPING_REEL);
+
+    expect(ledger.suffixStripped).toEqual([
+      { kind: "tool", from: "Nmap NEW", to: "Nmap", occurrences: 1, absorbed: true },
+    ]);
+    expect(ledger.totals.incoming).toBe(2);
+    expect(ledger.totals.absorbed).toBe(1);
+    expect(ledger.totals.resulting).toBe(1);
+    expect(ledger.reconciled).toBe(true);
+  });
+
+  it("un badge SANS jumeau donne un tag, journalise comme tel", () => {
+    const rooms = [room("a", ["Outil Jamais Vu NEW"])];
+    const ledger = buildTagLedger(rooms, MAPPING_REEL);
+
+    expect(ledger.suffixStripped).toEqual([
+      {
+        kind: "tool",
+        from: "Outil Jamais Vu NEW",
+        to: "Outil Jamais Vu",
+        occurrences: 1,
+        absorbed: false,
+      },
+    ]);
+    expect(resolveTags(rooms, MAPPING_REEL).tags.map((t) => t.name)).toEqual(["Outil Jamais Vu"]);
+  });
+
+  it("le tiret et la casse du badge sont couverts par la meme regle", () => {
+    for (const badge of ["Nmap NEW", "Nmap - NEW", "Nmap -NEW", "Nmap new", "Nmap  -  NEW"]) {
+      expect(stripDisplaySuffix(badge)).toBe("Nmap");
+    }
+  });
+
+  it("un nom qui se TERMINE par les lettres NEW n'est pas ampute", () => {
+    // Le garde du garde. L'espace est EXIGE devant le badge, sinon la regle
+    // insensible a la casse mangerait la fin de n'importe quel mot :
+    // `Renew` deviendrait `Re`. Ecart assume avec la lettre d'ADR-0001, qui
+    // ecrit `\s*`. Mesure : 0 valeur du dataset finit par NEW sans espace.
+    expect(stripDisplaySuffix("Renew")).toBe("Renew");
+    expect(stripDisplaySuffix("NEWT")).toBe("NEWT");
+    expect(stripDisplaySuffix("NEW")).toBe("NEW");
+    expect(stripDisplaySuffix("Nmap-NEW")).toBe("Nmap-NEW");
+  });
+
+  it("une cle de mapping encore badgee est refusee, pas ignoree", () => {
+    expect(findSuffixedMappingKeys(MAPPING_REEL)).toEqual([]);
+    expect(
+      findSuffixedMappingKeys({
+        version: 1,
+        merge: { Hydra: ["Hydra NEW"] },
+        rename: {},
+        canonical: {},
+      }),
+    ).toEqual(["Hydra NEW"]);
+  });
+
+  it("le mapping reel ne garde que les vraies coquilles", () => {
+    expect(Object.keys(MAPPING_REEL.merge).sort()).toEqual(["Autopsy", "Burp Suite"]);
+    expect(Object.keys(MAPPING_REEL.rename)).toEqual([]);
   });
 });

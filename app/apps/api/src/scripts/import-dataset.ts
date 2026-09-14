@@ -17,6 +17,7 @@ import {
 import { sha256Hex } from "./dataset-analysis.js";
 import {
   buildTagLedger,
+  findSuffixedMappingKeys,
   loadMapping,
   type Mapping,
   resolveTags,
@@ -204,6 +205,20 @@ try {
       `  ${Object.keys(mapping.merge).length} merge, ${Object.keys(mapping.rename).length} rename, ` +
         `${Object.keys(mapping.canonical).length} forme(s) canonique(s)`,
     );
+
+    // Le mapping et la regle du suffixe ne doivent pas se recouvrir : une cle
+    // encore badgee ne serait JAMAIS consultee, la regle l'ayant deja retiree.
+    // Elle resterait une intention sans effet, et rien ne le signalerait.
+    const suffixed = findSuffixedMappingKeys(mapping);
+    if (suffixed.length > 0) {
+      fail(`${suffixed.length} entree(s) du mapping portent encore le badge d'affichage.`, [
+        ...suffixed.map((key) => `  ${JSON.stringify(key)}`),
+        "",
+        "Le retrait du suffixe est une REGLE appliquee par le code, plus une liste.",
+        "Ces entrees ne seront jamais consultees : la regle a deja retire le badge",
+        "avant la recherche dans le mapping. Les retirer du fichier.",
+      ]);
+    }
   } else {
     console.log("\nMapping NON applique (ajouter --apply-mappings). Donnees brutes.");
   }
@@ -593,18 +608,34 @@ function printTagLedger(ledger: TagLedger): void {
     }
   }
 
+  if (ledger.suffixStripped.length > 0) {
+    console.log("\n    Badge d'affichage retire par REGLE (toute valeur, pas une liste) :");
+    for (const strip of ledger.suffixStripped) {
+      console.log(
+        `      ${strip.kind.padEnd(11)} ${JSON.stringify(strip.from)} -> ` +
+          `${JSON.stringify(strip.to)} (${strip.occurrences} occ.)` +
+          `${strip.absorbed ? " : absorbee par un jumeau" : " : sans jumeau"}`,
+      );
+    }
+  }
+
   if (ledger.fusions.length > 0) {
     console.log("\n    Fusions (plusieurs ecritures pour un seul tag) :");
     for (const fusion of ledger.fusions) {
       const sources = fusion.sources
         .map((source) => `${JSON.stringify(source.raw)} (${source.occurrences})`)
         .join(" + ");
-      console.log(`      ${fusion.kind.padEnd(11)} ${JSON.stringify(fusion.name)} <- ${sources}`);
+      console.log(
+        `      ${fusion.kind.padEnd(11)} ${JSON.stringify(fusion.name)} <- ${sources}` +
+          `   [${fusion.causes.join(", ")}]`,
+      );
     }
   }
 
   if (ledger.renames.length > 0) {
-    console.log("\n    Renommages sans fusion (le libelle change, le compte ne bouge pas) :");
+    console.log(
+      "\n    Renommages sans fusion (mapping ou espaces parasites ; le compte ne bouge pas) :",
+    );
     for (const rename of ledger.renames) {
       console.log(
         `      ${rename.kind.padEnd(11)} ${JSON.stringify(rename.from)} -> ` +
@@ -729,16 +760,35 @@ function renderTagLedger(ledger: TagLedger): string[] {
     );
   }
 
+  if (ledger.suffixStripped.length > 0) {
+    lines.push(
+      "### Badge d'affichage retire par regle",
+      "",
+      "Applique a TOUTE valeur par `stripDisplaySuffix`, pas a une liste d'exceptions.",
+      "Une valeur badgee inedite apparait donc ici des le premier import qui la voit.",
+      "",
+      "| facette | de | vers | occurrences | jumeau |",
+      "|---|---|---|---:|---|",
+      ...ledger.suffixStripped.map(
+        (s) =>
+          `| ${s.kind} | \`${s.from}\` | \`${s.to}\` | ${s.occurrences} | ` +
+          `${s.absorbed ? "absorbee" : "aucun"} |`,
+      ),
+      "",
+    );
+  }
+
   if (ledger.fusions.length > 0) {
     lines.push(
       "### Fusions",
       "",
-      "| facette | tag | ecritures source |",
-      "|---|---|---|",
+      "| facette | tag | ecritures source | par |",
+      "|---|---|---|---|",
       ...ledger.fusions.map(
         (fusion) =>
           `| ${fusion.kind} | \`${fusion.name}\` | ` +
-          `${fusion.sources.map((s) => `\`${s.raw}\` (${s.occurrences})`).join(" + ")} |`,
+          `${fusion.sources.map((s) => `\`${s.raw}\` (${s.occurrences})`).join(" + ")} | ` +
+          `${fusion.causes.join(", ")} |`,
       ),
       "",
     );
@@ -747,6 +797,8 @@ function renderTagLedger(ledger: TagLedger): string[] {
   if (ledger.renames.length > 0) {
     lines.push(
       "### Renommages sans fusion",
+      "",
+      "Mapping ou retrait d'espaces parasites. Le libelle change, le compte ne bouge pas.",
       "",
       "| facette | de | vers | occurrences |",
       "|---|---|---|---:|",

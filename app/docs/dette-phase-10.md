@@ -18,10 +18,11 @@ existe finit par être supprimée comme « inutile ».
 | 3 | **Clone neuf + vérification du sidecar SHA-256** | Le mode de défaillance des fins de ligne se déclenche **au checkout**, pas au commit. Un `.gitattributes` cassé ne se voit que sur un clone neuf. [ADR-0001](adr/0001-arbitrages-initiaux.md) |
 | 4 | **`pnpm data:audit` en dry-run** | Un dataset remplacé sans que ses chiffres de contrôle soient revérifiés. |
 
-## Déploiement
+## Sécurité (échéance phase 9) et déploiement
 
 | # | À faire | Sans ça |
 |---|---|---|
+| S1 | **Trancher `pnpm audit` : 1 vulnérabilité modérée, `esbuild <= 0.24.2` via `drizzle-kit > @esbuild-kit/esm-loader`** ([GHSA-67mh-4wv8-2f99](https://github.com/advisories/GHSA-67mh-4wv8-2f99)) | **Échéance remontée en phase 9 le 2026-09-14 : c'est de la sécurité, pas de la dette de CI.** Exception datée du 2026-09-14 : l'avis porte sur le serveur de développement d'esbuild ; la chaîne est une `devDependency` de `drizzle-kit`, jamais livrée, absente de la production. Aucun `override` posé — forcer une version d'esbuild sous drizzle-kit change le compilateur qui évalue `drizzle.config.ts`, pour un risque inexistant chez nous. **Déclencheur de réexamen : la prochaine montée de `drizzle-kit`** — vérifier alors si `@esbuild-kit/*` a disparu de l'arbre, et retirer cette ligne le cas échéant. Une exception sans date de réexamen est un `ignore` déguisé. |
 | 5 | **`NODE_ENV=production` réellement posé** | `/docs` publierait la surface d'API complète. Le test prouve que la garde fonctionne quand la configuration dit `exposeDocs: false` ; il ne prouve pas que la production la dit. |
 | 6 | **Vérifier `/docs` → 404 sur l'environnement déployé** | Voir ci-dessus. Un `curl` suffit, mais il faut le faire. |
 
@@ -95,7 +96,6 @@ Elles ne sont **pas** dues en phase 10. Elles sont ici pour ne pas être redéco
 | Dette | Déclencheur de bascule |
 |---|---|
 | `ORDER BY lower(title)` au lieu de `COLLATE "und-x-icu"` | Un titre à initiale accentuée ou non-ASCII apparaît dans le dataset. Exposition mesurée le 2026-09-11 : 1 titre non-ASCII sur 714, sans impact sur l'ordre. [ADR-0003](adr/0003-schema-postgres.md) |
-| `canonical:` vide dans le mapping de normalisation | TryHackMe introduit une variante de casse, ou le mapping est réécrit. L'importer refuse alors de tourner et indique la ligne à ajouter. |
+| ~~`canonical:` vide dans le mapping de normalisation~~ **ÉCHUE le 2026-09-14** | Le déclencheur annoncé était « le mapping est réécrit » : c'est arrivé. Le retrait du badge d'affichage est devenu une règle du code, la collision de casse `enum4linux` est donc réelle, et `canonical:` porte une entrée. Le garde n'est plus dormant. [ADR-0004](adr/0004-badge-affichage-regle.md) |
 | `MFTCmd.exe` vs `MFTECmd.exe` | Arbitrage de Nel. La question est posée dans `data/mappings/normalisation-outils.yaml`, non appliquée. |
 | Export de progression sans import JSON | Asymétrie assumée en phase 8a : l'utilisateur peut sortir ses données, pas les réinjecter. Si les comptes sont ajoutés, le chemin de reprise sera progression locale → compte, pas un import JSON. |
-| `pnpm audit` : 1 vulnérabilité modérée, `esbuild <= 0.24.2` via `drizzle-kit > @esbuild-kit/esm-loader > @esbuild-kit/core-utils` ([GHSA-67mh-4wv8-2f99](https://github.com/advisories/GHSA-67mh-4wv8-2f99)) | **Exception datée du 2026-09-14.** L'avis porte sur le serveur de développement d'esbuild ; la chaîne est une `devDependency` de `drizzle-kit`, elle n'est jamais livrée et n'existe pas en production. Aucun `override` posé : forcer une version d'esbuild sous drizzle-kit change le compilateur qui évalue `drizzle.config.ts`, pour un risque inexistant chez nous. **Déclencheur de réexamen : la prochaine montée de `drizzle-kit`** — vérifier alors si `@esbuild-kit/*` a disparu de l'arbre, et retirer cette ligne le cas échéant. Une exception sans date de réexamen est un `ignore` déguisé. |

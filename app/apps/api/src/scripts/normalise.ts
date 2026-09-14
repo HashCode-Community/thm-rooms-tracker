@@ -104,11 +104,50 @@ export function slugify(value: string): string {
   );
 }
 
-/** Applique `rename` puis `merge`. Retourne la forme d'affichage retenue. */
-export function applyMapping(rawValue: string, mapping: Mapping): string {
-  const trimmed = trimText(rawValue);
+/**
+ * Le suffixe `" NEW"` est un badge d'affichage de TryHackMe, pas un element du
+ * nom de l'outil. C'est une REGLE, pas une liste.
+ *
+ * Elle etait jusqu'ici appliquee a la main pour FABRIQUER le mapping, puis figee
+ * en 12 entrees. Le defaut saute aux yeux des qu'on le nomme : le jour ou le
+ * scraper ramene `"Nmap NEW"`, aucune entree ne correspond, le tag
+ * `nmap-new` est cree a cote de `nmap`, la reconciliation tombe juste — rien
+ * n'a ete ecarte ni absorbe — et l'import ne refuse pas de tourner. Un doublon
+ * silencieux, exactement ce que le garde etait cense empecher.
+ *
+ * Le tiret optionnel est indispensable : sans lui `"Empire - NEW"` donne
+ * `"Empire -"` et son jumeau `"Empire"` n'est jamais trouve. ADR-0001 Q3/Q4/Q9.
+ *
+ * ECART ASSUME AVEC ADR-0001, 2026-09-14 : l'ADR ecrit `/\s*-?\s*NEW$/i`, avec
+ * `\s*`. Cette forme est dangereuse des qu'on l'implemente vraiment, parce que
+ * tout y est optionnel : en insensible a la casse, `"Renew"` devient `"Re"` et
+ * `"NEWT"` reste intact par chance seulement. L'espace est donc EXIGE — le badge
+ * est un jeton separe, pas une terminaison.
+ *
+ * Verifie sur le dataset 1.0.0, 304 valeurs distinctes :
+ *   badge avec espace exige, casse exacte  : 12
+ *   badge avec espace exige, casse libre   : 12
+ *   valeurs finissant par NEW sans espace  : 0
+ *   valeurs contenant `new` ailleurs       : 0
+ * Le resserrement ne change donc rien sur les donnees livrees, et retire un mode
+ * de defaillance sur celles a venir.
+ */
+const DISPLAY_SUFFIX = /\s+-?\s*NEW$/i;
 
-  const renamed = mapping.rename[trimmed] ?? trimmed;
+export function stripDisplaySuffix(value: string): string {
+  return trimText(trimText(value).replace(DISPLAY_SUFFIX, ""));
+}
+
+/**
+ * Regle du suffixe, puis `rename`, puis `merge`. Dans cet ordre exact.
+ *
+ * Le mapping ne garde que ce qu'aucune regle ne peut attraper : les vraies
+ * coquilles. Une variante de casse, elle, converge au niveau du slug.
+ */
+export function applyMapping(rawValue: string, mapping: Mapping): string {
+  const stripped = stripDisplaySuffix(rawValue);
+
+  const renamed = mapping.rename[stripped] ?? stripped;
 
   for (const [canonicalForm, variants] of Object.entries(mapping.merge)) {
     if (canonicalForm === renamed || variants.includes(renamed)) {
@@ -116,6 +155,23 @@ export function applyMapping(rawValue: string, mapping: Mapping): string {
     }
   }
   return renamed;
+}
+
+/**
+ * Le mapping et la regle ne doivent pas se recouvrir.
+ *
+ * Une entree dont la cle porte encore le badge ne serait JAMAIS consultee : la
+ * regle l'a deja retire avant la recherche. Elle resterait dans le fichier comme
+ * une intention sans effet, et personne ne verrait qu'elle ne sert plus. On
+ * refuse plutot que de l'ignorer.
+ */
+export function findSuffixedMappingKeys(mapping: Mapping): string[] {
+  const suspects = [
+    ...Object.keys(mapping.rename),
+    ...Object.keys(mapping.merge),
+    ...Object.values(mapping.merge).flat(),
+  ];
+  return [...new Set(suspects.filter((key) => DISPLAY_SUFFIX.test(trimText(key))))].sort();
 }
 
 // --- Resolution des tags ---------------------------------------------------
@@ -261,6 +317,8 @@ export type TagLedgerEntry = {
   name: string | null;
   slug: string | null;
   fate: TagFate;
+  /** La regle du suffixe d'affichage a retire un badge sur cette valeur. */
+  suffixStripped: boolean;
   occurrences: number;
 };
 
@@ -269,7 +327,13 @@ export type TagFusion = {
   slug: string;
   name: string;
   /** Les ecritures source qui convergent, avec leurs occurrences. */
-  sources: Array<{ raw: string; occurrences: number }>;
+  sources: Array<{ raw: string; occurrences: number; suffixStripped: boolean }>;
+  /**
+   * Par quoi elles convergent. `regle` = le badge d'affichage a ete retire,
+   * `mapping` = une coquille listee a la main, `slug` = une variante de casse.
+   * Un melange est possible, d'ou une liste.
+   */
+  causes: Array<"regle" | "mapping" | "slug">;
 };
 
 export type TagKindLedger = {
@@ -294,6 +358,20 @@ export type TagLedger = {
   fusions: TagFusion[];
   /** Renommages sans fusion : le libelle change, le compte ne bouge pas. */
   renames: Array<{ kind: TagKind; from: string; to: string; occurrences: number }>;
+  /**
+   * Tout ce que la REGLE du suffixe a rabattu, absorbe ou non.
+   *
+   * C'est le journal que reclamait la correction : une nouvelle valeur badgee
+   * apparait ici des le premier import qui la voit, qu'elle ait un jumeau ou
+   * non. Le mapping n'a plus rien a declarer pour elle.
+   */
+  suffixStripped: Array<{
+    kind: TagKind;
+    from: string;
+    to: string;
+    occurrences: number;
+    absorbed: boolean;
+  }>;
   totals: Omit<TagKindLedger, "kind">;
   /** Faux si une seule facette ne se reconcilie pas. Bloquant a l'import. */
   reconciled: boolean;
@@ -329,7 +407,25 @@ export function buildTagLedger(rooms: readonly RoomSource[], mapping: Mapping): 
   const entries: TagLedgerEntry[] = [];
   const fusions: TagFusion[] = [];
   const renames: TagLedger["renames"] = [];
+  const suffixStripped: TagLedger["suffixStripped"] = [];
   const byKind: TagKindLedger[] = [];
+
+  /** Par quel mecanisme deux ecritures source se sont-elles rejointes ? */
+  const causesFor = (sources: readonly string[]): TagFusion["causes"] => {
+    const causes = new Set<"regle" | "mapping" | "slug">();
+    const noms = new Set<string>();
+    for (const raw of sources) {
+      if (stripDisplaySuffix(raw) !== trimText(raw)) causes.add("regle");
+      const apresRegle = stripDisplaySuffix(raw);
+      const apresMapping = applyMapping(raw, mapping);
+      if (apresMapping !== apresRegle) causes.add("mapping");
+      noms.add(apresMapping);
+    }
+    // Plusieurs noms d'affichage distincts pour un seul slug : ce sont les
+    // variantes de casse ou de ponctuation, que seule la slugification rejoint.
+    if (noms.size > 1) causes.add("slug");
+    return [...causes].sort();
+  };
 
   for (const { kind, field } of FACETS) {
     // Occurrences par valeur BRUTE, sans aucune transformation prealable.
@@ -341,7 +437,7 @@ export function buildTagLedger(rooms: readonly RoomSource[], mapping: Mapping): 
     }
 
     // Regroupement par slug d'arrivee : c'est la que se voient les fusions.
-    const groups = new Map<string, { name: string; sources: string[] }>();
+    const groups = new Map<string, { names: Set<string>; sources: string[] }>();
     let discardedAbsence = 0;
     let discardedEmptySlug = 0;
 
@@ -356,6 +452,7 @@ export function buildTagLedger(rooms: readonly RoomSource[], mapping: Mapping): 
           name: null,
           slug: null,
           fate: "ecartee-absence",
+          suffixStripped: false,
           occurrences: count,
         });
         continue;
@@ -372,21 +469,34 @@ export function buildTagLedger(rooms: readonly RoomSource[], mapping: Mapping): 
           name,
           slug: null,
           fate: "ecartee-slug-vide",
+          suffixStripped: stripDisplaySuffix(raw) !== trimText(raw),
           occurrences: count,
         });
         continue;
       }
 
       const group = groups.get(slug);
-      if (group === undefined) groups.set(slug, { name, sources: [raw] });
-      else group.sources.push(raw);
+      if (group === undefined) groups.set(slug, { names: new Set([name]), sources: [raw] });
+      else {
+        group.names.add(name);
+        group.sources.push(raw);
+      }
     }
 
     // Classement final : une valeur seule dans son groupe est conservee ou
     // renommee ; dans un groupe de plusieurs, une seule represente le tag.
     for (const slug of [...groups.keys()].sort()) {
-      const group = groups.get(slug);
-      if (group === undefined) continue;
+      const groupe = groups.get(slug);
+      if (groupe === undefined) continue;
+
+      // MEME regle de choix du libelle que `resolveTags` : la forme declaree
+      // dans `canonical:` l'emporte, sinon le premier nom dans l'ordre. Sans
+      // ca, le journal annoncerait un libelle que la base ne contient pas.
+      const noms = [...groupe.names].sort();
+      const group = {
+        sources: groupe.sources,
+        name: mapping.canonical[slug] ?? noms[0] ?? slug,
+      };
 
       if (group.sources.length > 1) {
         fusions.push({
@@ -396,14 +506,35 @@ export function buildTagLedger(rooms: readonly RoomSource[], mapping: Mapping): 
           sources: group.sources.map((raw) => ({
             raw,
             occurrences: occurrences.get(raw) ?? 0,
+            suffixStripped: stripDisplaySuffix(raw) !== trimText(raw),
           })),
+          causes: causesFor(group.sources),
         });
       }
 
       for (const [index, raw] of group.sources.entries()) {
         const count = occurrences.get(raw) ?? 0;
+        const parLaRegle = stripDisplaySuffix(raw) !== trimText(raw);
+        if (parLaRegle) {
+          suffixStripped.push({
+            kind,
+            from: raw,
+            to: group.name,
+            occurrences: count,
+            absorbed: group.sources.length > 1,
+          });
+        }
+
         if (index > 0) {
-          entries.push({ kind, raw, name: group.name, slug, fate: "absorbee", occurrences: count });
+          entries.push({
+            kind,
+            raw,
+            name: group.name,
+            slug,
+            fate: "absorbee",
+            suffixStripped: parLaRegle,
+            occurrences: count,
+          });
           continue;
         }
         const changed = raw !== group.name;
@@ -413,9 +544,12 @@ export function buildTagLedger(rooms: readonly RoomSource[], mapping: Mapping): 
           name: group.name,
           slug,
           fate: changed ? "renommee" : "conservee",
+          suffixStripped: parLaRegle,
           occurrences: count,
         });
-        if (changed && group.sources.length === 1) {
+        // Un renommage porte par la REGLE n'a rien a faire dans la liste des
+        // renommages du mapping : il est deja journalise dans `suffixStripped`.
+        if (changed && !parLaRegle && group.sources.length === 1) {
           renames.push({ kind, from: raw, to: group.name, occurrences: count });
         }
       }
@@ -455,7 +589,15 @@ export function buildTagLedger(rooms: readonly RoomSource[], mapping: Mapping): 
     },
   );
 
-  return { byKind, entries, fusions, renames, totals, reconciled: totals.reconciled };
+  return {
+    byKind,
+    entries,
+    fusions,
+    renames,
+    suffixStripped,
+    totals,
+    reconciled: totals.reconciled,
+  };
 }
 
 export { EMPTY_MAPPING };
