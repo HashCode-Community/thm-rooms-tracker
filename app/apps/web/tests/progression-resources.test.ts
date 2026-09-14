@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 import { MAX_BATCH_CODES } from "@thm/shared";
-import { chunkCodes, loadProgressionResources } from "../src/api.js";
+import {
+  BATCH_CHUNK_BYTES,
+  BATCH_CHUNK_CODES,
+  chunkCodes,
+  loadProgressionResources,
+} from "../src/api.js";
+import { urls } from "../src/urls.js";
 
 /**
  * Le decoupage du lot, verifie par le comportement : ce qui part sur le reseau
@@ -18,8 +24,8 @@ import { chunkCodes, loadProgressionResources } from "../src/api.js";
 
 const TOTAL_CATALOGUE = 714;
 
-/** Tranches attendues pour 714 codes : 200 + 200 + 200 + 114. */
-const TRANCHES_ATTENDUES = 4;
+/** Tranches attendues pour 714 codes de 9 caracteres : 7 x 100 + 14. */
+const TRANCHES_ATTENDUES = 8;
 
 type Appel = Readonly<{ url: string; codes: readonly string[] }>;
 
@@ -103,13 +109,13 @@ describe("decoupage du lot", () => {
     assert.equal(lots.length, TRANCHES_ATTENDUES);
     for (const lot of lots) {
       assert.ok(
-        lot.codes.length <= MAX_BATCH_CODES,
-        `tranche de ${lot.codes.length} codes, au-dela de ${MAX_BATCH_CODES}`,
+        lot.codes.length <= BATCH_CHUNK_CODES,
+        `tranche de ${lot.codes.length} codes, au-dela de ${BATCH_CHUNK_CODES}`,
       );
     }
     assert.deepEqual(
       lots.map((lot) => lot.codes.length),
-      [200, 200, 200, 114],
+      [100, 100, 100, 100, 100, 100, 100, 14],
     );
   });
 
@@ -154,7 +160,7 @@ describe("decoupage du lot", () => {
   it("n'envoie qu'une requete quand la progression tient dans une tranche", async () => {
     const appels = installerServeur();
 
-    await loadProgressionResources(codesFactices(MAX_BATCH_CODES), new AbortController().signal);
+    await loadProgressionResources(codesFactices(BATCH_CHUNK_CODES), new AbortController().signal);
 
     assert.equal(appels.filter((appel) => appel.url.startsWith("/api/rooms/batch")).length, 1);
   });
@@ -179,6 +185,66 @@ describe("decoupage du lot", () => {
     assert.equal(ressources.rooms.length, TOTAL_CATALOGUE);
     const uniques = new Set(ressources.rooms.map((room) => room.code));
     assert.equal(uniques.size, TOTAL_CATALOGUE);
+  });
+});
+
+describe("les deux bornes de la tranche", () => {
+  /**
+   * Le compte SEUL ne borne pas l'URL.
+   *
+   * Mesure sur le dataset 1.0.0 : une tranche des 100 codes les plus longs fait
+   * 3325 octets, et seuls 56 d'entre eux tiennent dans 2048. Un decoupage qui ne
+   * compterait que les codes produirait donc des URL qui depassent le budget des
+   * qu'un code long apparait — et ca ne casse qu'en production, derriere un proxy,
+   * jamais dans ces tests.
+   */
+  it("aucune URL de tranche ne depasse le budget, quelle que soit la longueur des codes", () => {
+    for (const longueur of [4, 13, 44, 120, 300]) {
+      const codes = Array.from(
+        { length: TOTAL_CATALOGUE },
+        (_, index) => `${String(index).padStart(4, "0")}${"X".repeat(Math.max(0, longueur - 4))}`,
+      );
+      const tranches = chunkCodes(codes);
+      for (const tranche of tranches) {
+        const url = urls.roomBatch(tranche);
+        // Une tranche d'UN SEUL code peut depasser : rien ne peut la reduire.
+        if (tranche.length === 1) continue;
+        assert.ok(
+          url.length <= BATCH_CHUNK_BYTES,
+          `URL de ${url.length} octets pour ${tranche.length} codes de ${longueur} ` +
+            `caracteres, au-dela du budget de ${BATCH_CHUNK_BYTES}`,
+        );
+      }
+    }
+  });
+
+  it("la borne CLIENT reste sous la borne SERVEUR", () => {
+    // Deux plafonds distincts, et le client ne doit jamais viser celui de l'autre.
+    assert.ok(BATCH_CHUNK_CODES < MAX_BATCH_CODES);
+    assert.equal(BATCH_CHUNK_CODES, 100);
+    assert.equal(MAX_BATCH_CODES, 200);
+    assert.equal(BATCH_CHUNK_BYTES, 2048);
+  });
+
+  it("un code plus long que le budget forme sa propre tranche, sans boucler", () => {
+    const enorme = "Z".repeat(BATCH_CHUNK_BYTES * 2);
+    const tranches = chunkCodes([enorme, "court-a", "court-b"]);
+
+    assert.deepEqual(
+      tranches.map((tranche) => [...tranche]),
+      [[enorme], ["court-a", "court-b"]],
+    );
+  });
+
+  it("le budget d'octets mord AVANT le compte quand les codes sont longs", () => {
+    const longs = Array.from({ length: BATCH_CHUNK_CODES }, (_, i) => `${i}-${"Y".repeat(60)}`);
+    const tranches = chunkCodes(longs);
+
+    assert.ok(
+      tranches.length > 1,
+      `${BATCH_CHUNK_CODES} codes de 60+ caracteres devraient tenir en plusieurs tranches`,
+    );
+    assert.ok((tranches[0]?.length ?? 0) < BATCH_CHUNK_CODES);
   });
 });
 

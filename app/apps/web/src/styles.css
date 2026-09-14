@@ -949,8 +949,8 @@ label {
 
 /* --- Progression ------------------------------------------------------- */
 
-/* Bandeau permanent : il n'a pas de bouton de fermeture, donc pas de
-   rangee horizontale a repartir. Le texte occupe toute la largeur. */
+/* Bandeau deplie. Il n'a pas de croix : son bouton REPLIE vers l'indicateur
+   ci-dessous, il ne fait pas taire. Le texte occupe toute la largeur. */
 .alerte-stockage {
   border: 1px solid var(--alerte);
   border-radius: var(--rayon);
@@ -964,6 +964,36 @@ label {
 
 .alerte-stockage__titre {
   font-weight: 600;
+}
+
+/* Indicateur replie. Discret, mais JAMAIS absent tant que la panne dure :
+   c'est le seul rappel qu'aura l'utilisateur que rien n'est enregistre. */
+.indicateur-stockage {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--alerte);
+  border-radius: 999px;
+  background: var(--alerte-fond);
+  color: var(--alerte);
+  padding: 4px 12px;
+  margin-bottom: calc(var(--pas) * 2);
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.indicateur-stockage:hover {
+  background: var(--alerte);
+  color: var(--alerte-fond);
+}
+
+.indicateur-stockage__point {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
 }
 
 .alerte-disparues {

@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   createProgressionExport,
   createProgressionStore,
+  PROGRESSION_PROBE_KEY,
   PROGRESSION_STORAGE_KEY,
   type ProgressionStorage,
   readProgression,
@@ -11,10 +12,20 @@ import { summarizeCompletedRooms } from "../src/progression-summary.js";
 
 const NOW = new Date("2026-09-13T12:34:56.789Z");
 
+/**
+ * Stockage simule.
+ *
+ * `writes` ne compte QUE les ecritures de la progression. La sonde de demarrage
+ * ecrit sur une cle a elle, et une assertion `writes === 0` doit continuer de
+ * vouloir dire « la progression n'a pas ete touchee » — sinon toutes les
+ * verifications de non-destruction perdraient leur sens d'un coup.
+ */
 class FakeStorage implements ProgressionStorage {
   value: string | null;
+  probe: string | null = null;
   reads = 0;
   writes = 0;
+  probeWrites = 0;
   throwOnRead = false;
   throwOnWrite = false;
 
@@ -30,10 +41,23 @@ class FakeStorage implements ProgressionStorage {
   }
 
   setItem(key: string, value: string): void {
+    if (key === PROGRESSION_PROBE_KEY) {
+      this.probeWrites += 1;
+      // Un stockage plein refuse AUSSI l'octet de la sonde : c'est exactement
+      // ce qui rend la panne detectable avant le premier clic.
+      if (this.throwOnWrite) throw new Error("quota depasse");
+      this.probe = value;
+      return;
+    }
     assert.equal(key, PROGRESSION_STORAGE_KEY);
     this.writes += 1;
     if (this.throwOnWrite) throw new Error("quota depasse");
     this.value = value;
+  }
+
+  removeItem(key: string): void {
+    assert.equal(key, PROGRESSION_PROBE_KEY);
+    this.probe = null;
   }
 }
 
@@ -225,7 +249,9 @@ describe("ecriture — etat de session sans perte silencieuse", () => {
       () => NOW,
     );
 
-    assert.equal(store.getSnapshot().warning, null);
+    // L'avertissement est la AVANT toute action : la page afficherait sinon
+    // « aucune room terminee » alors qu'une progression existe, illisible.
+    assert.equal(store.getSnapshot().warning, "unreadable-preserved");
     store.setCompleted("picklerick", true);
 
     assert.equal(storage.writes, 0);
@@ -506,6 +532,83 @@ describe("reloadFromStorage — l'autre onglet", () => {
       JSON.parse(storage.value ?? "null").completedRooms.map((r: { code: string }) => r.code),
       ["kenobi", "blue"],
     );
+  });
+});
+
+describe("sonde de demarrage — l'ecran vide ne ment pas", () => {
+  /**
+   * Le trou mesure en navigateur, reproduit ici.
+   *
+   * Stockage sature, trois rooms cochees, alerte correcte. Rechargement : la cle
+   * n'a JAMAIS pu etre ecrite, donc elle est absente. `readKind` vaut `absent`,
+   * ce qui est exact a la lettre, et la page annoncait « aucune room terminee »
+   * sans le moindre avertissement. Une lecture ne distingue pas « rien n'a ete
+   * enregistre » de « rien n'a PU l'etre ». Seule une ecriture tranche.
+   */
+  it("un stockage plein et une cle absente avertissent AVANT le premier clic", () => {
+    const storage = new FakeStorage(null);
+    storage.throwOnWrite = true;
+
+    const store = createProgressionStore(
+      () => storage,
+      () => NOW,
+    );
+
+    assert.equal(store.getSnapshot().readKind, "absent");
+    assert.deepEqual(store.getSnapshot().completedRooms, []);
+    assert.equal(store.getSnapshot().warning, "write-failed");
+  });
+
+  it("un stockage inaccessible avertit AVANT le premier clic", () => {
+    const store = createProgressionStore(inaccessibleStorage(), () => NOW);
+
+    assert.equal(store.getSnapshot().readKind, "storage-unavailable");
+    assert.equal(store.getSnapshot().warning, "storage-unavailable");
+  });
+
+  it("un stockage sain n'avertit de rien et ne laisse aucune trace", () => {
+    const storage = new FakeStorage(null);
+    const store = createProgressionStore(
+      () => storage,
+      () => NOW,
+    );
+
+    assert.equal(store.getSnapshot().warning, null);
+    assert.equal(storage.probe, null, "la sonde doit retirer sa propre cle");
+    assert.equal(storage.probeWrites, 1);
+  });
+
+  it("la sonde ne touche JAMAIS la cle de progression", () => {
+    const original = payload([{ code: "kenobi", completedAt: NOW.toISOString() }]);
+    const storage = new FakeStorage(original);
+
+    createProgressionStore(
+      () => storage,
+      () => NOW,
+    );
+
+    assert.equal(storage.writes, 0);
+    assert.equal(storage.value, original);
+  });
+
+  it("relire ne suffit pas a effacer l'avertissement : relire n'est pas ecrire", () => {
+    const storage = new FakeStorage(null);
+    storage.throwOnWrite = true;
+    const store = createProgressionStore(
+      () => storage,
+      () => NOW,
+    );
+    assert.equal(store.getSnapshot().warning, "write-failed");
+
+    // Un autre onglet ecrit une valeur saine, mais le stockage est toujours plein.
+    storage.value = payload([{ code: "blue", completedAt: NOW.toISOString() }]);
+    store.reloadFromStorage();
+
+    assert.deepEqual(
+      store.getSnapshot().completedRooms.map((room) => room.code),
+      ["blue"],
+    );
+    assert.equal(store.getSnapshot().warning, "write-failed");
   });
 });
 

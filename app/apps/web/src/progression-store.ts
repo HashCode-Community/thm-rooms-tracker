@@ -1,6 +1,14 @@
 export const PROGRESSION_STORAGE_KEY = "thm-roadmap.progression";
 export const PROGRESSION_STORAGE_VERSION = 1 as const;
 
+/**
+ * Cle de la sonde d'ecriture, distincte de celle de la progression.
+ *
+ * Elle ne doit JAMAIS toucher la vraie cle : ecrire sur `PROGRESSION_STORAGE_KEY`
+ * pour tester l'ecriture detruirait precisement la donnee qu'on protege.
+ */
+export const PROGRESSION_PROBE_KEY = `${PROGRESSION_STORAGE_KEY}.probe`;
+
 export type CompletedRoom = Readonly<{
   code: string;
   completedAt: string;
@@ -46,6 +54,7 @@ export type ProgressionSnapshot = Readonly<{
 export type ProgressionStorage = {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
+  removeItem(key: string): void;
 };
 
 type ReadResult = Readonly<{
@@ -179,6 +188,45 @@ function payloadFor(completedRooms: readonly CompletedRoom[]): ProgressionPayloa
 }
 
 /**
+ * Verifie AU DEMARRAGE que le stockage accepte reellement une ecriture.
+ *
+ * POURQUOI ELLE EXISTE. Sans elle, l'etat vide est muet quand il ment. Mesure en
+ * navigateur, stockage sature : l'utilisateur coche trois rooms, l'alerte est
+ * correcte ; il recharge ; la cle n'a jamais pu etre ecrite, donc elle est
+ * ABSENTE ; `readKind` vaut `absent`, ce qui est exact a la lettre, et la page
+ * affiche « Aucune room terminee pour l'instant » sans le moindre avertissement.
+ * Le stockage est toujours plein, rien ne sera enregistre, et l'ecran l'annonce
+ * comme une situation normale.
+ *
+ * Une lecture ne peut pas distinguer « rien n'a jamais ete enregistre » de
+ * « rien n'a PU etre enregistre » : les deux laissent la cle absente. Seule une
+ * ecriture tranche. La sonde ecrit donc un octet sur une cle a elle, puis le
+ * retire.
+ */
+function probeWrite(getStorage: () => ProgressionStorage): WriteOutcome {
+  let storage: ProgressionStorage;
+  try {
+    storage = getStorage();
+  } catch {
+    return "storage-unavailable";
+  }
+
+  try {
+    storage.setItem(PROGRESSION_PROBE_KEY, "1");
+  } catch {
+    return "write-failed";
+  }
+
+  // Le retrait est du menage, pas le resultat de la sonde : son echec ne doit
+  // pas faire croire que l'ecriture ne marche pas, puisqu'elle vient de marcher.
+  try {
+    storage.removeItem(PROGRESSION_PROBE_KEY);
+  } catch {
+    // Une cle d'un octet laissee derriere ne coute rien a personne.
+  }
+  return "ok";
+}
+/**
  * Tente l'ecriture et NOMME l'echec.
  *
  * Les deux `try` sont separes a dessein : ils distinguent « le stockage refuse
@@ -219,6 +267,27 @@ export function createProgressionStore(
   getStorage: () => ProgressionStorage,
   now: () => Date = () => new Date(),
 ): ProgressionStore {
+  /**
+   * Ce que l'utilisateur doit savoir AVANT d'avoir touche a quoi que ce soit.
+   *
+   * L'ecran vide n'est jamais muet quand il ment, et il ment de deux facons :
+   * une valeur existe mais est illisible (la page dirait « aucune room terminee »
+   * alors qu'il y en a), ou le stockage n'accepte pas l'ecriture (la page dirait
+   * la meme chose, et rien de ce qui suivra ne sera conserve). Attendre la
+   * premiere mutation pour le dire, c'est laisser l'utilisateur travailler sur
+   * une base fausse.
+   */
+  const diagnose = (readKind: ProgressionReadKind): ProgressionWarning | null => {
+    if (!WRITABLE_READS.has(readKind)) return "unreadable-preserved";
+
+    const outcome = probeWrite(getStorage);
+    if (outcome === "ok") return null;
+    if (outcome === "storage-unavailable" || readKind === "storage-unavailable") {
+      return "storage-unavailable";
+    }
+    return "write-failed";
+  };
+
   const initial = readProgression(getStorage);
   let policy: PersistencePolicy = WRITABLE_READS.has(initial.kind)
     ? "writable"
@@ -226,9 +295,7 @@ export function createProgressionStore(
   let snapshot: ProgressionSnapshot = {
     completedRooms: initial.completedRooms,
     readKind: initial.kind,
-    // Aucun avertissement tant que l'utilisateur n'a rien tente : une valeur
-    // illisible qu'il ne cherche pas a modifier ne lui coute rien.
-    warning: null,
+    warning: diagnose(initial.kind),
   };
   const listeners = new Set<() => void>();
 
@@ -292,19 +359,19 @@ export function createProgressionStore(
       snapshot = {
         completedRooms: result.completedRooms,
         readKind: result.kind,
-        // Une lecture redevenue saine efface l'avertissement : la situation qui
-        // le motivait n'existe plus.
-        warning: null,
+        // Une lecture redevenue saine n'efface l'avertissement que si l'ecriture
+        // est redevenue possible. Relire n'est pas ecrire : un stockage plein
+        // se relit parfaitement.
+        warning: diagnose(result.kind),
       };
       emit();
       return;
     }
 
     // Une valeur devenue illisible dans un autre onglet ne doit ni remplacer
-    // l'etat de cette session, ni etre reecrite automatiquement. L'avertissement
-    // n'apparait qu'a la premiere mutation, comme au chargement.
+    // l'etat de cette session, ni etre reecrite automatiquement.
     policy = "preserve-existing";
-    snapshot = { ...snapshot, readKind: result.kind };
+    snapshot = { ...snapshot, readKind: result.kind, warning: diagnose(result.kind) };
     emit();
   };
 

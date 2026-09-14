@@ -6,6 +6,7 @@ import {
   createProgressionStore,
   PROGRESSION_STORAGE_KEY,
   type ProgressionSnapshot,
+  type ProgressionWarning,
 } from "./progression-store.js";
 
 const store = createProgressionStore(() => window.localStorage);
@@ -111,31 +112,70 @@ const WARNING_TEXT: Readonly<
 };
 
 /**
- * Bandeau PERMANENT tant que l'ecriture echoue. Aucun bouton pour le fermer.
+ * L'avertissement ne se ferme pas. Il se REPLIE.
  *
- * La version precedente etait fermable, et ne revenait jamais ensuite. Mesure en
- * navigateur, stockage sature : premiere case cochee, alerte correcte ;
- * l'utilisateur ferme ; cinq cases de plus cochees ; six cases affichees a
- * l'ecran, `localStorage` a `null`, plus aucune alerte. Tout etait perdu au
- * rechargement, sans qu'aucun ecran ne l'ait dit.
+ * La version 8a offrait une croix, et l'alerte ne revenait jamais ensuite.
+ * Mesure en navigateur, stockage sature : premiere case cochee, alerte correcte ;
+ * l'utilisateur ferme ; cinq cases de plus ; six cases a l'ecran, `localStorage` a
+ * `null`, plus aucune alerte. Tout etait perdu au rechargement sans qu'aucun ecran
+ * ne l'ait dit.
  *
- * Un avertissement fermable convient a une information. Celui-ci dit « rien de
- * ce que vous faites n'est conserve » : il disparait quand c'est redevenu faux,
- * pas quand on le lui demande.
+ * La version 8b a supprime la croix. C'etait juste sur le fond et mauvais a
+ * l'usage : un pave rouge en haut de chaque page, indefiniment, qu'on finit par
+ * ne plus voir. Un avertissement qu'on ignore ne vaut pas mieux qu'un
+ * avertissement absent.
+ *
+ * Ici, le premier acquittement replie le message en un indicateur discret qui NE
+ * DISPARAIT PAS, et qui redeploie le texte au clic. L'etat d'acquittement vit en
+ * memoire, jamais dans le stockage : celui-ci est precisement ce qui est en
+ * panne, et un rechargement doit remontrer le message entier.
+ *
+ * L'acquittement porte sur UNE panne nommee. Si elle change de nature, ou si elle
+ * cesse puis revient, le message complet revient avec elle.
  */
 export function ProgressionPersistenceWarning(): ReactNode {
   const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
-  if (snapshot.warning === null) return null;
+  const [acquitte, setAcquitte] = useState<ProgressionWarning | null>(null);
 
-  const { titre, corps } = WARNING_TEXT[snapshot.warning];
+  const warning = snapshot.warning;
+  if (warning === null) return null;
+
+  const { titre, corps } = WARNING_TEXT[warning];
+
+  if (acquitte === warning) {
+    return (
+      <button
+        type="button"
+        className="indicateur-stockage"
+        aria-expanded={false}
+        onClick={() => {
+          setAcquitte(null);
+        }}
+      >
+        <span className="indicateur-stockage__point" aria-hidden="true" />
+        {titre}
+      </button>
+    );
+  }
+
   return (
     <div className="alerte-stockage" role="alert">
       <p className="alerte-stockage__titre">{titre}</p>
       <p>{corps}</p>
+      <p>
+        <button
+          type="button"
+          className="bouton"
+          onClick={() => {
+            setAcquitte(warning);
+          }}
+        >
+          J'ai compris
+        </button>
+      </p>
     </div>
   );
 }
-
 export function ProgressionDownloadLink({
   completedRooms,
 }: {

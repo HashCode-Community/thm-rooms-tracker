@@ -1,11 +1,10 @@
-import {
-  type CategoryListResponse,
-  MAX_BATCH_CODES,
-  type RoomBatchResponse,
-  type RoomBrief,
-  type TagListResponse,
-  type TrackDetailResponse,
-  type TrackListResponse,
+import type {
+  CategoryListResponse,
+  RoomBatchResponse,
+  RoomBrief,
+  TagListResponse,
+  TrackDetailResponse,
+  TrackListResponse,
 } from "@thm/shared";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { urls } from "./urls.js";
@@ -112,28 +111,79 @@ export type ProgressionResources = Readonly<{
 }>;
 
 /**
- * Decoupe les codes en tranches que l'API accepte.
+ * Plafond de codes par tranche, cote CLIENT.
  *
- * `MAX_BATCH_CODES` est IMPORTEE du contrat partage, jamais recopiee. Une borne
- * dupliquee derive, et la derive ne se voit qu'en production : c'est exactement
- * le defaut corrige ici, ou le front envoyait les 714 codes d'un coup a un point
+ * Deliberement sous `MAX_BATCH_CODES`, qui est le plafond du SERVEUR. Les deux
+ * ne mesurent pas la meme chose : le serveur borne le travail qu'il accepte, le
+ * client borne la taille de l'URL qu'il emet. Les confondre reviendrait a viser
+ * la limite de l'autre.
+ */
+export const BATCH_CHUNK_CODES = 100;
+
+/**
+ * Plafond d'octets de la requete produite.
+ *
+ * POURQUOI DEUX BORNES. `nginx` n'accorde pas 8 ko a l'URL : `large_client_header_buffers`
+ * couvre la ligne de requete ET les en-tetes. Avec un cookie et un `User-Agent`,
+ * une URL de 6 ko entre dans la zone ou ca casse en production et nulle part
+ * ailleurs. Mesure sur le dataset 1.0.0 : une tranche des 200 codes les plus longs
+ * fait 5906 octets, des 100 plus longs 3325 octets. Le compte seul ne borne donc
+ * PAS l'URL — seuls 56 des codes les plus longs tiennent dans 2048 octets.
+ *
+ * La premiere borne atteinte ferme la tranche. Sur les codes reels (19 octets
+ * medians) c'est le compte qui mord ; sur des codes longs c'est le budget. Dans
+ * les deux cas l'URL respecte le plafond, quelle que soit l'entree : c'est un
+ * invariant, pas une esperance, et un test l'exige.
+ */
+export const BATCH_CHUNK_BYTES = 2048;
+
+/** Longueur de la partie fixe de l'adresse, `?` compris. */
+const BATCH_URL_BASE = "/api/rooms/batch?".length;
+
+/**
+ * Cout exact d'un code dans l'URL, separateur compris.
+ *
+ * Mesure avec l'encodeur que `urls.roomBatch` utilise reellement, pas avec
+ * `encodeURIComponent` : `URLSearchParams` echappe davantage de caracteres, donc
+ * une estimation a l'oeil SOUS-estimerait le cout sur un code exotique.
+ */
+function codeCost(code: string): number {
+  return new URLSearchParams([["code", code]]).toString().length + 1;
+}
+
+/**
+ * Decoupe les codes en tranches que l'API accepte ET qu'un proxy laissera passer.
+ *
+ * Le defaut corrige ici : le front envoyait les 714 codes d'un coup a un point
  * d'entree qui en accepte 200. Mesure avant correction : 400 codes rendaient
  * HTTP 400, donc la page mourait a 201 rooms terminees sur 714.
- *
- * Mesure des URL produites sur le dataset 1.0.0 : 4,0 ko pour une tranche de 200
- * codes reels, 5,9 ko dans le pire cas theorique (les 200 codes les plus longs).
- * Sous les 8 ko qu'un proxy accorde par defaut a la ligne de requete, mais le
- * chiffre est note dans la dette de deploiement : un proxy regle plus bas
- * rendrait 414 sans que rien dans le code ne change.
  */
 export function chunkCodes(codes: readonly string[]): readonly (readonly string[])[] {
   const chunks: (readonly string[])[] = [];
-  for (let index = 0; index < codes.length; index += MAX_BATCH_CODES) {
-    chunks.push(codes.slice(index, index + MAX_BATCH_CODES));
+  let current: string[] = [];
+  let bytes = BATCH_URL_BASE;
+
+  for (const code of codes) {
+    const cost = codeCost(code);
+    // `current.length > 0` : un code a lui seul plus long que le budget forme sa
+    // propre tranche plutot que de boucler sans fin ou de produire une tranche
+    // vide. Le plus long du catalogue coute 50 octets, mais une regle qui depend
+    // des donnees du jour n'est pas une regle.
+    if (
+      current.length > 0 &&
+      (current.length >= BATCH_CHUNK_CODES || bytes + cost > BATCH_CHUNK_BYTES)
+    ) {
+      chunks.push(current);
+      current = [];
+      bytes = BATCH_URL_BASE;
+    }
+    current.push(code);
+    bytes += cost;
   }
+
+  if (current.length > 0) chunks.push(current);
   return chunks;
 }
-
 /**
  * Recompose les tranches dans L'ORDRE DES CODES DEMANDES.
  *
@@ -175,7 +225,7 @@ function recompose(
  * titres, durees et statuts actifs restent donc lus depuis leur source de
  * verite, y compris pour une room retiree du catalogue.
  *
- * UNE requete par tranche de 200 codes, pas une par room.
+ * UNE requete par tranche, pas une par room. Voir `BATCH_CHUNK_CODES`.
  *
  * La version 8a faisait `Promise.all` sur un appel par code. Mesure au navigateur
  * avec les 61 rooms des trois parcours : 65 requetes HTTP par affichage, et
@@ -189,7 +239,7 @@ function recompose(
  *      parfaitement valide a cause d'une seule entree.
  *
  * `/api/rooms/batch` rend les deux impossibles : les codes inconnus reviennent
- * dans `missing` avec un statut 200, et le catalogue entier tient en 4 tranches.
+ * dans `missing` avec un statut 200, et le catalogue entier tient en 8 tranches.
  */
 export async function loadProgressionResources(
   completedRoomCodes: readonly string[],
