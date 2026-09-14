@@ -78,13 +78,19 @@ Rétrograder ajoutait une manipulation d'environnement pour zéro gain.
 
 ## Q3 / Q4 / Q9 — Normalisation des noms d'outils
 
-**Décision.** Le suffixe `" NEW"` est un badge d'affichage du site, pas un élément du nom. Il est
-retiré via `data/mappings/normalisation-outils.yaml`, jamais en dur dans le code.
+**Décision.** Le suffixe `" NEW"` est un badge d'affichage du site, pas un élément du nom.
+
+> **Amendé le 2026-09-14 par [ADR-0004](0004-badge-affichage-regle.md).** La version d'origine
+> faisait retirer le badge *via* `data/mappings/normalisation-outils.yaml`. Une liste ne couvre
+> que ce qu'elle énumère : une valeur badgée inédite créait un doublon silencieux. Le retrait est
+> désormais appliqué **par le code**, à toute valeur (`stripDisplaySuffix`), avant toute
+> consultation du mapping. Le mapping ne garde que les coquilles réelles. La règle ci-dessous
+> reste la bonne règle ; c'est son lieu d'application qui a changé.
 
 **Règle, dans cet ordre exact** — c'est elle, et elle seule, qui décide `merge` ou `rename` :
 
 ```
-1.  strip  /\s*-?\s*NEW$/i
+1.  strip  /\s+-?\s*NEW$/i
 2.  trim()
 3.  comparaison casefold()  →  jumeau trouvé ? merge : rename
 ```
@@ -92,6 +98,17 @@ retiré via `data/mappings/normalisation-outils.yaml`, jamais en dur dans le cod
 Le tiret de l'étape 1 est indispensable : sans lui, `Empire - NEW` donne `Empire -` et son jumeau
 `Empire` n'est jamais trouvé. La casefold de l'étape 3 l'est tout autant : `Enum4Linux NEW` donne
 `Enum4Linux`, dont le jumeau réel s'écrit `Enum4linux`, avec un `l` minuscule.
+
+**L'espace de l'étape 1 est exigé** — `\s+`, pas `\s*`. Corrigé le 2026-09-14 : la
+forme d'origine rend tout optionnel, donc en insensible à la casse elle ampute n'importe quel mot
+finissant par ces trois lettres. `Renew` devient `Re`. Le badge est un **jeton séparé**, pas une
+terminaison. Mesure sur les 304 valeurs distinctes du dataset 1.0.0 : 12 badges, tous précédés
+d'un espace ; **0** valeur finit par `NEW` sans espace ; **0** contient `new` ailleurs. Le
+resserrement ne change donc rien sur les données livrées.
+
+Ce que l'espace exigé laisse passer en échange — `Nmap-NEW`, `NmapNEW` — n'est pas ignoré : un
+filet plus large que la règle **avertit** à l'import, nomme le jumeau probable, et ne transforme
+rien. Deviner serait la faute d'origine en plus dangereuse.
 
 **Résultat sur le dataset 1.0.0** : 12 valeurs distinctes portant `" NEW"`, 17 occurrences, 14 rooms.
 → **5 `merge`** (`Empire`, `Enum4Linux`, `Hydra`, `MITRE ATT&CK Framework`, `Responder`) et

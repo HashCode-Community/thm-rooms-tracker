@@ -134,6 +134,28 @@ export function slugify(value: string): string {
  */
 const DISPLAY_SUFFIX = /\s+-?\s*NEW$/i;
 
+/**
+ * Filet pose AU-DESSUS de la regle, volontairement plus large qu'elle.
+ *
+ * La mesure « 0 valeur finissant par NEW sans espace » est vraie sur le dataset
+ * 1.0.0. Elle ne dit rien du prochain. Le jour ou la source ecrit `Nmap-NEW` ou
+ * `NmapNEW`, la regle ne mord pas, le tag `nmap-new` nait a cote de `nmap`, et
+ * tout le reste du journal tombe juste : c'est exactement le doublon silencieux
+ * qu'ADR-0004 existe pour empecher, revenu par une orthographe voisine.
+ *
+ * Ce filet ne transforme RIEN — deviner ou couper serait la faute d'origine, en
+ * plus dangereuse. Il signale, nomme le jumeau probable quand il en trouve un,
+ * et laisse l'arbitrage a un humain.
+ *
+ * Il remonte aussi les mots qui finissent legitimement par « new », `Renew` par
+ * exemple. C'est voulu : un avertissement lisible qu'on ecarte en une seconde
+ * coute moins cher qu'un doublon que personne ne voit jamais.
+ */
+const BADGE_RESSEMBLANT = /new$/i;
+
+/** Retire une terminaison `new` et sa ponctuation, pour deviner le jumeau. */
+const BADGE_RESSEMBLANT_COUPE = /[\s._-]*new$/i;
+
 export function stripDisplaySuffix(value: string): string {
   return trimText(trimText(value).replace(DISPLAY_SUFFIX, ""));
 }
@@ -352,6 +374,21 @@ export type TagKindLedger = {
   reconciled: boolean;
 };
 
+/**
+ * Valeur qui ressemble a un badge et que la REGLE n'a pas rabattue.
+ *
+ * Avertissement, jamais blocage : la ressemblance n'est pas une preuve, et un
+ * import qui s'arrete sur un `Renew` legitime serait un garde qu'on finirait
+ * par desactiver.
+ */
+export type TagSuffixSuspect = {
+  kind: TagKind;
+  raw: string;
+  occurrences: number;
+  /** Slug d'un tag REELLEMENT present que cette valeur doublonnerait. */
+  twinSlug: string | null;
+};
+
 export type TagLedger = {
   byKind: TagKindLedger[];
   entries: TagLedgerEntry[];
@@ -372,6 +409,8 @@ export type TagLedger = {
     occurrences: number;
     absorbed: boolean;
   }>;
+  /** Ce que le filet large a vu passer et que la regle n'a pas attrape. */
+  suffixSuspects: TagSuffixSuspect[];
   totals: Omit<TagKindLedger, "kind">;
   /** Faux si une seule facette ne se reconcilie pas. Bloquant a l'import. */
   reconciled: boolean;
@@ -408,6 +447,7 @@ export function buildTagLedger(rooms: readonly RoomSource[], mapping: Mapping): 
   const fusions: TagFusion[] = [];
   const renames: TagLedger["renames"] = [];
   const suffixStripped: TagLedger["suffixStripped"] = [];
+  const suffixSuspects: TagSuffixSuspect[] = [];
   const byKind: TagKindLedger[] = [];
 
   /** Par quel mecanisme deux ecritures source se sont-elles rejointes ? */
@@ -481,6 +521,27 @@ export function buildTagLedger(rooms: readonly RoomSource[], mapping: Mapping): 
         group.names.add(name);
         group.sources.push(raw);
       }
+    }
+
+    // Le filet large, maintenant que les slugs d'arrivee de la facette sont
+    // connus : c'est ce qui permet de NOMMER le jumeau au lieu de dire « suspect ».
+    for (const raw of [...occurrences.keys()].sort()) {
+      const trimmed = trimText(raw);
+      if (!BADGE_RESSEMBLANT.test(trimmed)) continue;
+      if (stripDisplaySuffix(raw) !== trimmed) continue; // la regle a fait son travail
+
+      const jumeau = trimText(trimmed.replace(BADGE_RESSEMBLANT_COUPE, ""));
+      const jumeauSlug = jumeau === "" ? "" : slugify(jumeau);
+      const propreSlug = slugify(applyMapping(raw, mapping));
+      suffixSuspects.push({
+        kind,
+        raw,
+        occurrences: occurrences.get(raw) ?? 0,
+        twinSlug:
+          jumeauSlug !== "" && jumeauSlug !== propreSlug && groups.has(jumeauSlug)
+            ? jumeauSlug
+            : null,
+      });
     }
 
     // Classement final : une valeur seule dans son groupe est conservee ou
@@ -595,6 +656,7 @@ export function buildTagLedger(rooms: readonly RoomSource[], mapping: Mapping): 
     fusions,
     renames,
     suffixStripped,
+    suffixSuspects,
     totals,
     reconciled: totals.reconciled,
   };

@@ -349,6 +349,52 @@ describe("badge d'affichage : une regle, pas une liste", () => {
     ).toEqual(["Hydra NEW"]);
   });
 
+  it("une ressemblance de badge que la regle RATE est signalee, avec son jumeau", () => {
+    // Le cas que la mesure d'aujourd'hui ne couvre pas : la source ecrit le
+    // badge sans espace. La regle ne mord pas — et c'est voulu, sinon `Renew`
+    // serait ampute — donc `nmap-new` naitrait a cote de `nmap`. Le filet large
+    // est la seule chose qui rende ce cas visible.
+    const rooms = [room("a", ["Nmap"]), room("b", ["Nmap-NEW"]), room("c", ["NmapNEW"])];
+    const ledger = buildTagLedger(rooms, MAPPING_REEL);
+
+    expect(ledger.suffixSuspects).toEqual([
+      { kind: "tool", raw: "Nmap-NEW", occurrences: 1, twinSlug: "nmap" },
+      { kind: "tool", raw: "NmapNEW", occurrences: 1, twinSlug: "nmap" },
+    ]);
+    // Et le doublon EXISTE bel et bien : c'est ce que l'avertissement annonce.
+    expect(
+      resolveTags(rooms, MAPPING_REEL)
+        .tags.map((t) => t.slug)
+        .sort(),
+    ).toEqual(["nmap", "nmap-new", "nmapnew"]);
+  });
+
+  it("un mot qui finit legitimement par new est signale sans jumeau", () => {
+    // Faux positif assume. L'avertissement nomme la valeur et dit qu'aucun
+    // jumeau n'existe : on l'ecarte en une seconde. L'inverse — se taire — est
+    // ce qui a produit le defaut d'origine.
+    const ledger = buildTagLedger([room("a", ["Renew"])], MAPPING_REEL);
+
+    expect(ledger.suffixSuspects).toEqual([
+      { kind: "tool", raw: "Renew", occurrences: 1, twinSlug: null },
+    ]);
+    expect(ledger.reconciled).toBe(true); // avertissement, jamais blocage
+  });
+
+  it("une valeur que la regle a RABATTUE n'est pas signalee deux fois", () => {
+    const rooms = [room("a", ["Nmap"]), room("b", ["Nmap NEW"])];
+    const ledger = buildTagLedger(rooms, MAPPING_REEL);
+
+    expect(ledger.suffixSuspects).toEqual([]);
+    expect(ledger.suffixStripped).toHaveLength(1);
+  });
+
+  it("le dataset livre ne contient aucune ressemblance non rabattue", () => {
+    // La mesure qui justifie l'ecart avec ADR-0001, rendue executable : si une
+    // livraison future du scraper introduit `Outil-NEW`, ce test tombe.
+    const ledger = buildTagLedger(parsed.rooms, MAPPING_REEL);
+    expect(ledger.suffixSuspects).toEqual([]);
+  });
   it("le mapping reel ne garde que les vraies coquilles", () => {
     expect(Object.keys(MAPPING_REEL.merge).sort()).toEqual(["Autopsy", "Burp Suite"]);
     expect(Object.keys(MAPPING_REEL.rename)).toEqual([]);

@@ -76,6 +76,9 @@ function parseArgs(argv: readonly string[]): Args {
   };
 }
 
+/** Accent grave, isole pour que les gabarits Markdown restent lisibles. */
+const BT = "`";
+
 // --- Rapport ---------------------------------------------------------------
 
 type FieldChange = { code: string; field: string; before: unknown; after: unknown };
@@ -619,6 +622,19 @@ function printTagLedger(ledger: TagLedger): void {
     }
   }
 
+  if (ledger.suffixSuspects.length > 0) {
+    console.log("\n    ATTENTION — ressemble a un badge, NON rabattu par la regle :");
+    for (const suspect of ledger.suffixSuspects) {
+      const jumeau =
+        suspect.twinSlug === null
+          ? "aucun jumeau dans les donnees, probablement un mot legitime"
+          : "DOUBLON PROBABLE de " + BT + suspect.twinSlug + BT;
+      console.log(
+        `      ${suspect.kind.padEnd(11)} ${JSON.stringify(suspect.raw)} ` +
+          `(${suspect.occurrences} occ.) : ${jumeau}`,
+      );
+    }
+  }
   if (ledger.fusions.length > 0) {
     console.log("\n    Fusions (plusieurs ecritures pour un seul tag) :");
     for (const fusion of ledger.fusions) {
@@ -778,6 +794,42 @@ function renderTagLedger(ledger: TagLedger): string[] {
     );
   }
 
+  if (ledger.suffixSuspects.length > 0) {
+    lines.push(
+      "### Ressemblances non rabattues — a verifier",
+      "",
+      "La regle exige un espace devant le badge. Ces valeurs finissent par " +
+        BT +
+        "new" +
+        BT +
+        " sans",
+      "que la regle les ait touchees. Une ligne DOUBLON PROBABLE est un tag sur le point",
+      "de naitre a cote d'un tag existant.",
+      "",
+      "| facette | valeur | occurrences | jumeau |",
+      "|---|---|---:|---|",
+      ...ledger.suffixSuspects.map((suspect) => {
+        const jumeau =
+          suspect.twinSlug === null
+            ? "aucun"
+            : "**DOUBLON PROBABLE** de " + BT + suspect.twinSlug + BT;
+        return (
+          "| " +
+          suspect.kind +
+          " | " +
+          BT +
+          suspect.raw +
+          BT +
+          " | " +
+          suspect.occurrences +
+          " | " +
+          jumeau +
+          " |"
+        );
+      }),
+      "",
+    );
+  }
   if (ledger.fusions.length > 0) {
     lines.push(
       "### Fusions",
