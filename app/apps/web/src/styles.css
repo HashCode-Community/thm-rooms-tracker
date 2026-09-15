@@ -5,39 +5,74 @@
  * hierarchie par la taille et le poids du texte, bordures plutot qu'ombres.
  * Pas de degrade, pas de grande banniere, pas d'ombre portee sur chaque carte.
  *
- * Contrastes verifies au ratio WCAG (texte principal 16:1, texte secondaire
- * 7,2:1, badges d'equipe 6,5:1 minimum en blanc sur fond colore). La couleur
- * n'est JAMAIS le seul porteur d'information : chaque badge porte son libelle.
+ * THEME SOMBRE UNIQUE, sans selecteur. `prefers-color-scheme: light` n'est PAS
+ * gere, et c'est une decision, pas un oubli : un theme clair a moitie fait est
+ * pire que pas de theme clair. Voir ADR-0005 et la dette de la phase 10.
+ *
+ * Les contrastes ne sont pas affirmes ici, ils sont MESURES : `pnpm contrast`
+ * calcule le ratio WCAG de chaque paire employee et sort en code 1 sous le seuil.
+ * La couleur n'est jamais le seul porteur d'information — chaque badge porte son
+ * libelle, et les cinq difficultes restent distinctes en niveaux de gris, ce que
+ * le meme script verifie.
  */
 
 :root {
-  --fond: #ffffff;
-  --fond-doux: #f8fafc;
-  --fond-appuye: #f1f5f9;
-  --bord: #d8dee6;
-  --bord-fort: #94a3b8;
-  --texte: #111827;
-  /* Gris NEUTRE et non ardoise : #4b5563 tire sur le bleu et se confond
-     visuellement avec un lien. Contraste 7,73 sur blanc. */
-  --texte-doux: #52525b;
-  --lien: #1d4ed8;
-  --lien-visite: #6b21a8;
-  --focus: #1d4ed8;
-  --alerte: #9f1239;
-  --alerte-fond: #fff1f2;
+  /* --- Fonds (3) : page, surface, surface elevee ----------------------
+     Ni noir pur ni blanc pur. `#000` sous `#fff` provoque du halo sur les
+     ecrans OLED et fatigue a la lecture longue ; le contraste maximal n'est
+     pas le plus lisible. */
+  --fond: #0f1115;
+  --fond-doux: #16181d;
+  --fond-appuye: #1e2128;
 
-  --diff-info: #e0f2fe;
-  --diff-easy: #dcfce7;
-  --diff-medium: #fef3c7;
-  --diff-hard: #ffe4e6;
-  --diff-insane: #ede9fe;
+  /* --- Bordures (2) : discrete, marquee ------------------------------- */
+  --bord: #2b303a;
+  --bord-fort: #626c80;
+
+  /* --- Textes (3) : principal, secondaire, desactive ------------------- */
+  --texte: #e6e8eb;
+  --texte-doux: #a7b0bd;
+  --texte-eteint: #79828f;
+
+  /* --- Accent (3) : base, survol, visite -------------------------------
+     ECART ASSUME avec le decoupage a deux accents : « visite » n'est pas un
+     survol, c'est un etat persistant du lien, et le catalogue s'explore. Le
+     retirer forcerait l'utilisateur a se souvenir de ce qu'il a deja ouvert. */
+  --lien: #79b0ff;
+  --lien-survol: #a8caff;
+  --lien-visite: #c9a6f5;
+
+  /* --- Difficulte (5) --------------------------------------------------
+     Employees en TEXTE ET BORDURE sur `--fond-appuye`, jamais en aplat : en
+     sombre, cinq pastilles pleines saturees deviennent cinq taches. Le libelle
+     reste present en toutes circonstances, et les cinq clartes sont espacees
+     pour rester separables en niveaux de gris. */
+  --diff-info: #dbf2f9;
+  --diff-easy: #93e6b1;
+  --diff-medium: #f0b01b;
+  --diff-hard: #fb7f71;
+  --diff-insane: #b46be7;
+
+  /* --- Etats (4) : succes, alerte, erreur, focus ----------------------- */
+  --succes: #57d68b;
+  --alerte: #f0b429;
+  --erreur: #ff8f85;
+  --focus: #79b0ff;
+
+  /* --- Surfaces d'etat (3) ---------------------------------------------
+     ECART ASSUME avec le decoupage a quatre etats secs : un bandeau a besoin
+     d'un fond ET d'une couleur. Les deriver a l'execution par `color-mix` les
+     rendrait invisibles au controleur de contraste, qui lit des tokens. Le
+     focus n'a pas de fond : c'est un anneau. */
+  --succes-fond: #10241a;
+  --alerte-fond: #2b1f06;
+  --erreur-fond: #2c1517;
 
   --rayon: 4px;
   --pas: 8px;
 
-  color-scheme: light;
+  color-scheme: dark;
 }
-
 *,
 *::before,
 *::after {
@@ -113,8 +148,9 @@ kbd {
   position: absolute;
   left: -9999px;
   top: 0;
-  background: var(--texte);
-  color: #fff;
+  background: var(--fond-appuye);
+  color: var(--texte);
+  outline: 2px solid var(--focus);
   padding: var(--pas) calc(var(--pas) * 2);
   z-index: 10;
 }
@@ -265,20 +301,38 @@ kbd {
   font-weight: 500;
 }
 
+/* La difficulte est portee par la COULEUR DU TEXTE et la bordure, sur un fond
+   commun. Cinq aplats satures cote a cote deviennent cinq taches en theme
+   sombre, et le libelle y perd en lisibilite exactement la ou il compte. Les
+   cinq clartes sont espacees d'au moins 8 en L*, verifie par `pnpm contrast` :
+   un lecteur qui ne distingue pas les teintes lit quand meme cinq gris. */
+.badge--info,
+.badge--easy,
+.badge--medium,
+.badge--hard,
+.badge--insane {
+  background: var(--fond-appuye);
+}
+
 .badge--info {
-  background: var(--diff-info);
+  color: var(--diff-info);
+  border-color: var(--diff-info);
 }
 .badge--easy {
-  background: var(--diff-easy);
+  color: var(--diff-easy);
+  border-color: var(--diff-easy);
 }
 .badge--medium {
-  background: var(--diff-medium);
+  color: var(--diff-medium);
+  border-color: var(--diff-medium);
 }
 .badge--hard {
-  background: var(--diff-hard);
+  color: var(--diff-hard);
+  border-color: var(--diff-hard);
 }
 .badge--insane {
-  background: var(--diff-insane);
+  color: var(--diff-insane);
+  border-color: var(--diff-insane);
 }
 
 .bouton {
@@ -302,8 +356,9 @@ kbd {
 }
 
 .bouton--actif {
-  border-color: #15803d;
-  background: var(--diff-easy);
+  border-color: var(--succes);
+  background: var(--succes-fond);
+  color: var(--texte);
 }
 
 .bouton--lien {
@@ -340,9 +395,9 @@ label {
 }
 
 .etat--erreur {
-  border-color: var(--alerte);
-  background: var(--alerte-fond);
-  color: var(--alerte);
+  border-color: var(--erreur);
+  background: var(--erreur-fond);
+  color: var(--erreur);
 }
 
 .etat__titre {
@@ -734,7 +789,7 @@ label {
 
 .lien-sortant:hover {
   background: var(--lien);
-  color: #fff;
+  color: var(--fond);
 }
 
 .lien-sortant:visited {
@@ -742,7 +797,34 @@ label {
 }
 
 .lien-sortant:visited:hover {
-  color: #fff;
+  color: var(--fond);
+}
+
+/* Cible tactile minimale : 24x24 px CSS, WCAG 2.2 AA (critere 2.5.8).
+   Mesure au navigateur a 360 px de large AVANT correction : 6 cibles sous le
+   seuil, dont les liens de tags a 20 px et le fil d'Ariane a 17. Les liens
+   places en pleine phrase sont exemptes par la norme, et le restent.
+   Le minimum RECOMMANDE reste 44 px ; y aller demande de revoir la densite
+   entiere, ce qui appartient aux cartes de room. Note dans la dette. */
+.fil a,
+.groupe-tags a,
+.etape-room__titre,
+.parcours-carte__titre a,
+.progression-case,
+.progression-room__titre,
+.etat a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+}
+
+/* La case elle-meme, pas seulement son etiquette : sur un ecran tactile, c'est
+   le carre que le doigt vise. 18 px par defaut du navigateur, porte a 20 avec
+   l'etiquette a 24. */
+.progression-case input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--succes);
 }
 
 .groupe-tags {
@@ -846,7 +928,7 @@ label {
   top: 34px;
   bottom: 0;
   width: 2px;
-  background: var(--bord);
+  background: var(--bord-fort);
 }
 
 .etape__puce {
@@ -916,7 +998,9 @@ label {
 }
 
 .badge--core {
-  background: var(--diff-easy);
+  background: var(--fond-appuye);
+  color: var(--succes);
+  border-color: var(--succes);
 }
 
 /* La note est destinee a l'utilisateur final : plusieurs signalent que la suite
@@ -952,10 +1036,10 @@ label {
 /* Bandeau deplie. Il n'a pas de croix : son bouton REPLIE vers l'indicateur
    ci-dessous, il ne fait pas taire. Le texte occupe toute la largeur. */
 .alerte-stockage {
-  border: 1px solid var(--alerte);
+  border: 1px solid var(--erreur);
   border-radius: var(--rayon);
-  background: var(--alerte-fond);
-  color: var(--alerte);
+  background: var(--erreur-fond);
+  color: var(--erreur);
   padding: var(--pas) calc(var(--pas) * 1.5);
   margin-bottom: calc(var(--pas) * 2);
   display: grid;
@@ -972,10 +1056,10 @@ label {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  border: 1px solid var(--alerte);
+  border: 1px solid var(--erreur);
   border-radius: 999px;
-  background: var(--alerte-fond);
-  color: var(--alerte);
+  background: var(--erreur-fond);
+  color: var(--erreur);
   padding: 4px 12px;
   margin-bottom: calc(var(--pas) * 2);
   font: inherit;
@@ -984,8 +1068,8 @@ label {
 }
 
 .indicateur-stockage:hover {
-  background: var(--alerte);
-  color: var(--alerte-fond);
+  background: var(--erreur);
+  color: var(--erreur-fond);
 }
 
 .indicateur-stockage__point {
@@ -1109,7 +1193,7 @@ label {
   width: 100%;
   height: 10px;
   margin: var(--pas) 0 2px;
-  accent-color: #15803d;
+  accent-color: var(--succes);
 }
 
 .progression-rooms {

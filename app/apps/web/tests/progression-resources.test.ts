@@ -4,6 +4,7 @@ import { MAX_BATCH_CODES } from "@thm/shared";
 import {
   BATCH_CHUNK_BYTES,
   BATCH_CHUNK_CODES,
+  BATCH_URL_BASE,
   chunkCodes,
   loadProgressionResources,
 } from "../src/api.js";
@@ -218,12 +219,41 @@ describe("les deux bornes de la tranche", () => {
     }
   });
 
+  /**
+   * La deuxieme facon de depasser le budget : un prefixe long.
+   *
+   * Le decoupage ne voit pas l'URL finale, il voit ce que `roomBatch` produit.
+   * Un prefixe de deploiement, ou une base d'API, s'ajoute devant sans que le
+   * front en sache rien. Le budget doit donc compter le prefixe, et le garde
+   * doit couvrir ce cas comme il couvre celui des codes longs.
+   */
+  it("un prefixe long reduit les tranches au lieu de faire deborder l'URL", () => {
+    const codes = codesFactices(TOTAL_CATALOGUE);
+    const PREFIXE = 1500;
+    const tranches = chunkCodes(codes, PREFIXE);
+
+    for (const tranche of tranches) {
+      if (tranche.length === 1) continue;
+      const octets = PREFIXE + (urls.roomBatch(tranche).length - BATCH_URL_BASE);
+      assert.ok(
+        octets <= BATCH_CHUNK_BYTES,
+        `URL resolue de ${octets} octets avec un prefixe de ${PREFIXE}`,
+      );
+    }
+    // Et le prefixe COUTE : il y a plus de tranches qu'avec la base par defaut.
+    assert.ok(tranches.length > chunkCodes(codes).length);
+  });
+
+  it("la base est derivee du constructeur d'URL, jamais recopiee", () => {
+    assert.equal(BATCH_URL_BASE, urls.roomBatch([]).length);
+  });
+
   it("la borne CLIENT reste sous la borne SERVEUR", () => {
     // Deux plafonds distincts, et le client ne doit jamais viser celui de l'autre.
     assert.ok(BATCH_CHUNK_CODES < MAX_BATCH_CODES);
     assert.equal(BATCH_CHUNK_CODES, 100);
     assert.equal(MAX_BATCH_CODES, 200);
-    assert.equal(BATCH_CHUNK_BYTES, 2048);
+    assert.equal(BATCH_CHUNK_BYTES, 1900);
   });
 
   it("un code plus long que le budget forme sa propre tranche, sans boucler", () => {

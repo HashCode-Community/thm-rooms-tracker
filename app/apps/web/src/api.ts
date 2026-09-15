@@ -121,7 +121,7 @@ export type ProgressionResources = Readonly<{
 export const BATCH_CHUNK_CODES = 100;
 
 /**
- * Plafond d'octets de la requete produite.
+ * Plafond d'octets de l'URL RESOLUE, prefixe compris.
  *
  * POURQUOI DEUX BORNES. `nginx` n'accorde pas 8 ko a l'URL : `large_client_header_buffers`
  * couvre la ligne de requete ET les en-tetes. Avec un cookie et un `User-Agent`,
@@ -134,11 +134,27 @@ export const BATCH_CHUNK_CODES = 100;
  * medians) c'est le compte qui mord ; sur des codes longs c'est le budget. Dans
  * les deux cas l'URL respecte le plafond, quelle que soit l'entree : c'est un
  * invariant, pas une esperance, et un test l'exige.
+ *
+ * POURQUOI 1900 ET PAS 2048. Un empaqueteur glouton remplit jusqu'a sa borne :
+ * mesure au navigateur sur les 714 rooms, l'URL la plus longue faisait 2046
+ * octets pour un plafond de 2048. Deux octets de marge, ce qui ne tient que
+ * tant que le front mesure EXACTEMENT ce que le serveur recevra. Un prefixe de
+ * chemin pose au deploiement, un proxy qui reecrit, et la ligne de requete recue
+ * depasse la chaine mesuree ici. A 1900, la meme progression tient toujours en 8
+ * tranches — l'URL la plus longue fait 1895 octets — et il reste 148 octets de
+ * marge. La prudence ne coute donc aucune requete.
  */
-export const BATCH_CHUNK_BYTES = 2048;
+export const BATCH_CHUNK_BYTES = 1900;
 
-/** Longueur de la partie fixe de l'adresse, `?` compris. */
-const BATCH_URL_BASE = "/api/rooms/batch?".length;
+/**
+ * Longueur de la partie fixe de l'adresse, DERIVEE du constructeur d'URL.
+ *
+ * Jamais ecrite en dur : si une base d'API est posee un jour (`VITE_API_BASE_URL`,
+ * un prefixe de deploiement), elle apparait dans ce que `roomBatch` produit, donc
+ * elle entre dans le budget sans que personne ait a y penser. Une constante
+ * recopiee, elle, resterait a 17 et le budget deviendrait faux en silence.
+ */
+export const BATCH_URL_BASE = urls.roomBatch([]).length;
 
 /**
  * Cout exact d'un code dans l'URL, separateur compris.
@@ -158,10 +174,14 @@ function codeCost(code: string): number {
  * d'entree qui en accepte 200. Mesure avant correction : 400 codes rendaient
  * HTTP 400, donc la page mourait a 201 rooms terminees sur 714.
  */
-export function chunkCodes(codes: readonly string[]): readonly (readonly string[])[] {
+export function chunkCodes(
+  codes: readonly string[],
+  /** Longueur du prefixe. Parametrable pour que le test couvre une base longue. */
+  urlBaseBytes: number = BATCH_URL_BASE,
+): readonly (readonly string[])[] {
   const chunks: (readonly string[])[] = [];
   let current: string[] = [];
-  let bytes = BATCH_URL_BASE;
+  let bytes = urlBaseBytes;
 
   for (const code of codes) {
     const cost = codeCost(code);
@@ -175,7 +195,7 @@ export function chunkCodes(codes: readonly string[]): readonly (readonly string[
     ) {
       chunks.push(current);
       current = [];
-      bytes = BATCH_URL_BASE;
+      bytes = urlBaseBytes;
     }
     current.push(code);
     bytes += cost;

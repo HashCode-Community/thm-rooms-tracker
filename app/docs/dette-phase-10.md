@@ -35,15 +35,23 @@ existe finit par être supprimée comme « inutile ».
 
 ## Poids du bundle front — mesuré, pas estimé
 
-**Mesure du 2026-09-14**, après les phases 8a et 8b, `pnpm --filter @thm/web build:analyse`.
+**Mesure du 2026-09-15**, après le commit 2 de la phase 8c, `pnpm --filter @thm/web build:analyse`.
 La méthode décode les
 `mappings` du source map et additionne les octets **réellement émis** par fichier source :
 c'est ce qui a survécu au secouage d'arbre et à la minification, pas la taille des paquets
 installés.
 
 ```
-brut 415,0 ko · gzip 127,2 ko (ratio 30,7 %)
+JS   brut 416,2 ko · gzip 127,5 ko (ratio 30,6 %)
+CSS  brut  15,6 ko · gzip   3,6 ko
+                     -------------
+             total  gzip 131,1 ko
 ```
+
+**La feuille de style est comptée à partir d'ici.** Les mesures précédentes ne portaient que
+sur le paquet JavaScript : un commit qui ne touche que le CSS n'aurait donc rien fait bouger
+au chiffre suivi, ce qui est exactement le genre de mesure qui rassure sans rien mesurer.
+Aucun delta CSS n'est disponible pour les phases antérieures, faute d'avoir été relevé.
 
 | Dépendance | Brut | gzip estimé | Part |
 |---|---:|---:|---:|
@@ -77,18 +85,25 @@ exploitant les redondances entre elles. Seul le total gzip est mesuré.
 **Rien n'est optimisé.** 127 ko compressés pour un outil de travail, c'est acceptable. La
 mesure est là pour que le chiffre soit connu, pas pour déclencher une action.
 
-**Évolution.** 124,0 ko au 2026-09-12, 126,7 ko après la phase 8a, 127,2 ko après la 8b.
+**Évolution du seul JS**, à périmètre comparable : 124,0 ko au 2026-09-12, 126,7 ko après la phase 8a, 127,2 ko après la 8b, **127,5 ko après le commit 2 de la 8c**.
 La progression locale coûte donc **+3,2 ko compressés**, entièrement dans notre propre code
 (27,7 → 38,9 ko bruts) : aucune dépendance n'a été ajoutée depuis la phase 6. Le point
 d'entrée par lot a même retiré du travail au navigateur — 5 requêtes au lieu de 65 sur
 `/progression` — sans rien ajouter au poids.
 
 **Plafond posé pour la phase 8c : 160 ko gzip.** Au-delà, la passe visuelle n'est pas
-acceptée. Marge restante : 32,8 ko.
+acceptée. Marge restante : **28,9 ko**, CSS compris. Le socle visuel sombre a coûté
+**+0,3 ko** de JS — l'indicateur replié et le découpage du lot — et aucune dépendance.
 
 **À refaire en phase 10**, et à chaque phase qui ajoute du code front.
 
 ---
+
+## Interface
+
+| # | À faire | Sans ça |
+|---|---|---|
+| 8 | **Contrôler le contraste sur le RENDU, pas sur les tokens** | `pnpm contrast` lit les valeurs déclarées dans `styles.css`. Une couleur écrite en dur dans un composant, ou une superposition d'opacités, lui échappe. Le contrôle de complétude réduit la faille sans la fermer. Un contrôle réel demande un navigateur, donc la CI. [ADR-0005](adr/0005-theme-sombre-et-contraste.md) |
 
 ## Dettes à échéance conditionnelle
 
@@ -98,5 +113,6 @@ Elles ne sont **pas** dues en phase 10. Elles sont ici pour ne pas être redéco
 |---|---|
 | `ORDER BY lower(title)` au lieu de `COLLATE "und-x-icu"` | Un titre à initiale accentuée ou non-ASCII apparaît dans le dataset. Exposition mesurée le 2026-09-11 : 1 titre non-ASCII sur 714, sans impact sur l'ordre. [ADR-0003](adr/0003-schema-postgres.md) |
 | ~~`canonical:` vide dans le mapping de normalisation~~ **ÉCHUE le 2026-09-14** | Le déclencheur annoncé était « le mapping est réécrit » : c'est arrivé. Le retrait du badge d'affichage est devenu une règle du code, la collision de casse `enum4linux` est donc réelle, et `canonical:` porte une entrée. Le garde n'est plus dormant. [ADR-0004](adr/0004-badge-affichage-regle.md) |
+| `prefers-color-scheme: light` non géré | **Décidé le 2026-09-15**, pas oublié : thème sombre unique, `color-scheme: dark`. Bascule si quelqu'un demande un thème clair — et alors **entièrement**, jamais à moitié. Le coût n'est pas la palette, c'est la matrice de contraste qui double : 32 paires deviennent 64, toutes à tenir à chaque changement. [ADR-0005](adr/0005-theme-sombre-et-contraste.md) |
 | `MFTCmd.exe` vs `MFTECmd.exe` | Arbitrage de Nel. La question est posée dans `data/mappings/normalisation-outils.yaml`, non appliquée. |
 | Export de progression sans import JSON | Asymétrie assumée en phase 8a : l'utilisateur peut sortir ses données, pas les réinjecter. Si les comptes sont ajoutés, le chemin de reprise sera progression locale → compte, pas un import JSON. |
