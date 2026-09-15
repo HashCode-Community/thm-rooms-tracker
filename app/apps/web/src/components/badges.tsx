@@ -9,8 +9,13 @@ import type { ReactNode } from "react";
  * qui la percoivent ; elle ne conditionne jamais la comprehension, ni pour un
  * daltonien, ni en impression noir et blanc, ni pour un lecteur d'ecran.
  *
- * Contrastes verifies : blanc sur les trois couleurs d'equipe donne 6,54 / 6,68 /
- * 7,38 (AA exige 4,5). Texte #111827 sur les fonds de difficulte : 14,8 a 16,2.
+ * Les contrastes ne sont PAS affirmes ici. `pnpm contrast` les mesure et fait
+ * echouer la construction sous le seuil : recopier des chiffres dans un
+ * commentaire, c'est produire une affirmation qui vieillit sans prevenir, et
+ * celle qui occupait ces deux lignes decrivait encore le theme clair.
+ *
+ * `info` n'est pas un cran de difficulte, c'est une autre nature : contour
+ * tirete, hors de la rampe de clarte. Voir ADR-0005.
  */
 
 export function DifficultyBadge({

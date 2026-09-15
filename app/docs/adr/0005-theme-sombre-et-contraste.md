@@ -53,13 +53,19 @@ n'entre pas.
 | Difficulté | 5 | `--diff-info` … `--diff-insane` |
 | États | 4 | `--succes`, `--alerte`, `--erreur`, `--focus` |
 | Surfaces d'état | 3 | `--succes-fond`, `--alerte-fond`, `--erreur-fond` |
-| **Total** | **23** | |
+| Hors palette | 1 | `--sur-couleur-imposee` |
+| **Total** | **24** | |
 
 **Deux écarts avec le découpage proposé (19 tokens), assumés :**
 
 - **Accent à 3 et non 2.** « Visité » n'est pas un survol : c'est un état persistant du lien.
   Le produit est un catalogue de 714 rooms qu'on explore sur plusieurs sessions ; sans cet état,
   l'utilisateur doit se souvenir de ce qu'il a déjà ouvert.
+- **Un token hors palette.** Les couleurs d'équipe viennent de l'API, la feuille ne les règle
+  pas ; le texte posé dessus est blanc. Il devient un **token** plutôt qu'un `#fff` écrit en
+  clair, pour que la règle « aucune couleur littérale » reste absolue et sans exception à
+  retenir. Sa mesure ne se fait pas contre un fond de la feuille mais contre les quatre
+  couleurs d'équipe réelles.
 - **Trois surfaces d'état en plus.** Un bandeau a besoin d'un fond **et** d'une couleur. Les
   dériver à l'exécution avec `color-mix()` supprimerait trois tokens et les rendrait **invisibles
   au contrôleur de contraste**, qui lit des valeurs déclarées. Un garde qu'on contourne pour
@@ -76,10 +82,17 @@ les deux dernières sont vérifiées par machine :
 
 1. **Le libellé textuel est toujours présent.** `badges.tsx` rend `difficulty.label`, jamais une
    pastille nue.
-2. **Les cinq couleurs sont séparées d'au moins 8 en clarté perçue** (L\* de CIELAB), qui est la
-   grandeur que préserve un rendu en niveaux de gris. Mesure : 94,1 / 85,0 / 75,9 / 67,2 / 58,0,
-   écart minimal 8,7. L'échelle est **monotone** — du plus clair au plus sombre suit l'ordre de
-   difficulté — donc en niveaux de gris elle reste une échelle, pas cinq taches.
+2. **La rampe compte QUATRE crans, pas cinq.** Corrigé le 2026-09-15 : `info` n'est pas un
+   niveau. Mesure sur le dataset — `info` 18 rooms (2,5 %), `easy` 364, `medium` 262, `hard` 62,
+   `insane` 8. Placer `info` à une extrémité de la rampe de clarté affirmait visuellement qu'une
+   room d'information est **plus facile** qu'une `easy`. Elle n'est ni plus facile ni plus dure :
+   elle est d'une autre nature, et c'est justement celle qu'un débutant doit repérer comme
+   « lecture, pas exercice ».
+
+   La rampe porte donc `easy` → `medium` → `hard` → `insane` : L\* 85,0 / 75,9 / 67,2 / 58,0,
+   **monotone**, écart minimal 8,7 pour un minimum de 8. `info` en sort — teinte neutre et
+   **contour tireté**, une autre famille — et le contrôleur de monotonie ne vérifie plus que les
+   quatre. Son contraste reste mesuré.
 3. **La couleur est portée par le texte et la bordure, sur un fond commun**, plus jamais par un
    aplat. Cinq aplats saturés côte à côte en thème sombre deviennent cinq taches, et le libellé
    y perd en lisibilité exactement là où il compte.
@@ -94,19 +107,45 @@ changeait. C'était une affirmation, pas un garde.
 code 1 sous le seuil. Seuils : **4,5:1** pour le texte, **3:1** pour le texte large et les
 bordures porteuses de sens.
 
-Il fait trois choses, et la troisième est celle qui en fait un garde :
+Il fait cinq choses, et les deux dernières sont celles qui en font un garde :
 
 1. il mesure les **32 paires déclarées**, plus les 4 couleurs d'équipe servies par l'API — une
    couleur qui vient de la base reste une couleur affichée ;
-2. il vérifie la séparation en niveaux de gris des cinq difficultés ;
-3. il vérifie que **tout token employé** comme `color:` ou comme fond dans la feuille apparaît
-   dans au moins une paire mesurée. Sans ce troisième contrôle, la liste des paires serait une
-   liste qu'on oublie de mettre à jour — exactement le défaut corrigé par [ADR-0004](0004-badge-affichage-regle.md),
-   sous une autre forme.
+2. il vérifie que la rampe de difficulté — **quatre crans**, `info` exclu — reste monotone et
+   séparée en niveaux de gris ;
+3. il vérifie que **tout token employé** comme `color:` apparaît dans une paire mesurée, et que
+   tout token **peint en fond** est déclaré comme arrière-plan d'une paire — sinon peindre
+   `--texte` en fond et poser `--fond` dessus passerait sans qu'aucune paire ne mesure quoi que
+   ce soit. Seules les **marques** échappent à cette seconde exigence, nommément : le trait du
+   parcours est un fond de deux pixels de large, c'est-à-dire une marque posée sur la page ;
+4. il interdit **toute couleur écrite en clair** hors du bloc de tokens, dans la feuille comme
+   dans les composants.
 
-**Prouvé en le faisant échouer**, trois fois : un texte secondaire assombri d'un cran (3 paires
-tombent), deux difficultés ramenées à la même clarté (écart 0,2), un token neuf employé sans être
-déclaré. Un garde dont on n'a pas prouvé qu'il peut échouer n'est pas un garde.
+Sans les contrôles 3 et 4, la liste des paires serait une liste qu'on oublie de mettre à jour —
+exactement le défaut corrigé par [ADR-0004](0004-badge-affichage-regle.md), sous une autre forme.
+
+### Pourquoi la règle sur les littéraux existe
+
+Le passage au thème sombre a révélé deux règles qui peignaient `#fff` sur une couleur devenue
+claire : le **lien d'évitement**, premier élément focalisable de chaque page, et le lien sortant
+survolé. Les deux ont été trouvés **en regardant**, pas en cherchant. Personne ne pouvait dire
+s'il y en avait deux ou onze.
+
+Une couleur littérale échappe **par construction** au contrôleur, qui lit des tokens. Elle est
+donc interdite, pas surveillée. Recherche exhaustive au 2026-09-15 sur `src/` et `scripts/` —
+`#hex`, `white`, `black`, `rgb(`, `rgba(`, `hsl(`, `hsla(` — il ne restait que `#fff` sur
+`.badge--equipe`, devenu `--sur-couleur-imposee`, quatre occurrences de `white-space` (le mot,
+pas la couleur) et de la prose de commentaire. Zéro aujourd'hui.
+
+Si quelqu'un recasse le lien d'évitement demain, **deux contrôles indépendants** tombent : la
+règle des littéraux si la faute s'écrit `#fff`, et la règle des fonds si elle s'écrit en tokens.
+Mesuré. Et `tests/contrastes.test.ts` exerce les deux écritures sur des feuilles fabriquées, pour
+que le garde soit éprouvé à chaque exécution des tests et non le seul jour où on l'a écrit.
+
+**Prouvé en le faisant échouer**, cinq fois : un texte secondaire assombri d'un cran (3 paires
+tombent), deux difficultés ramenées à la même clarté, un token neuf employé sans être déclaré,
+le lien d'évitement recassé en littéral, et une couleur `rgb()` posée en style dans un composant.
+Un garde dont on n'a pas prouvé qu'il peut échouer n'est pas un garde.
 
 ### Ce que ce contrôleur ne couvre pas
 

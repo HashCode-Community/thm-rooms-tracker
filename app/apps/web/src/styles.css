@@ -47,7 +47,11 @@
      sombre, cinq pastilles pleines saturees deviennent cinq taches. Le libelle
      reste present en toutes circonstances, et les cinq clartes sont espacees
      pour rester separables en niveaux de gris. */
-  --diff-info: #dbf2f9;
+  /* HORS RAMPE. `info` n'est pas un cran de difficulte : 18 rooms sur 714, et
+     une room d'information n'est ni plus facile ni plus dure qu'une `easy`,
+     elle est d'une autre nature. Teinte neutre, contour tirete : une autre
+     famille, pas une extremite de l'echelle. Voir ADR-0005. */
+  --diff-info: #a9b6c6;
   --diff-easy: #93e6b1;
   --diff-medium: #f0b01b;
   --diff-hard: #fb7f71;
@@ -67,6 +71,12 @@
   --succes-fond: #10241a;
   --alerte-fond: #2b1f06;
   --erreur-fond: #2c1517;
+
+  /* --- Hors palette (1) : impose par les donnees ------------------------
+     Les couleurs d'equipe viennent de l'API, la feuille ne les regle pas. Le
+     texte pose dessus est blanc, et c'est un TOKEN pour que le controleur le
+     mesure et que la regle « aucune couleur en clair » reste absolue. */
+  --sur-couleur-imposee: #ffffff;
 
   --rayon: 4px;
   --pas: 8px;
@@ -291,7 +301,7 @@ kbd {
 }
 
 .badge--equipe {
-  color: #fff;
+  color: var(--sur-couleur-imposee);
   border-color: transparent;
 }
 
@@ -317,6 +327,7 @@ kbd {
 .badge--info {
   color: var(--diff-info);
   border-color: var(--diff-info);
+  border-style: dashed;
 }
 .badge--easy {
   color: var(--diff-easy);

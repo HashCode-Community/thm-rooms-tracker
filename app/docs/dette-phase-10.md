@@ -103,6 +103,7 @@ acceptée. Marge restante : **28,9 ko**, CSS compris. Le socle visuel sombre a c
 
 | # | À faire | Sans ça |
 |---|---|---|
+| 8 bis | **L'API s'est arrêtée seule le 2026-09-15, cause INCONNUE** | Constaté pendant la vérification du commit 2 : `/api/*` rendait 502, le processus Node n'existait plus. **Aucun diagnostic possible** — le serveur avait été lancé par une session de travail antérieure, et sa sortie standard est partie avec elle. Ni trace de mémoire saturée, ni rejet non capturé, ni signal : rien n'a été conservé. Un processus qui meurt seul pendant une vérification de routine se rediagnostique très mal en production. À traiter en même temps que le déploiement : journal persistant côté serveur, et redémarrage supervisé. Cette ligne existe pour que l'incident ne soit pas oublié faute d'avoir été expliqué. |
 | 8 | **Contrôler le contraste sur le RENDU, pas sur les tokens** | `pnpm contrast` lit les valeurs déclarées dans `styles.css`. Une couleur écrite en dur dans un composant, ou une superposition d'opacités, lui échappe. Le contrôle de complétude réduit la faille sans la fermer. Un contrôle réel demande un navigateur, donc la CI. [ADR-0005](adr/0005-theme-sombre-et-contraste.md) |
 
 ## Dettes à échéance conditionnelle
