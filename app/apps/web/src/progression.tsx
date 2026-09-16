@@ -51,8 +51,17 @@ export function RoomCompletionControl({
   const completed = progression.isCompleted(code);
 
   if (presentation === "checkbox") {
+    // C'EST L'ACTION PRINCIPALE DE LA PAGE DU PARCOURS, pas une case de
+    // formulaire. Le dessin est a nous, la mecanique reste celle du navigateur :
+    // l'`<input>` est toujours la, focalisable, annonce « case a cocher », et
+    // pilotable a la barre d'espace. Une case redessinee en `<div>` perd tout
+    // cela pour gagner un coin arrondi.
+    //
+    // Le libelle ne change pas entre les deux etats : « Terminee » cochee ou
+    // non, c'est la case qui porte l'etat. Un libelle qui change pousserait la
+    // ligne a chaque clic.
     return (
-      <label className="progression-case">
+      <label className="case-terminee">
         <input
           type="checkbox"
           checked={completed}
@@ -60,7 +69,18 @@ export function RoomCompletionControl({
             progression.setCompleted(code, event.target.checked);
           }}
         />
-        <span>Terminée</span>
+        <span className="case-terminee__boite" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+            <title>Coche</title>
+            <path
+              d="m5 12.5 4.5 4.5L19 7"
+              pathLength={1}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </span>
+        <span className="case-terminee__texte">Terminée</span>
       </label>
     );
   }

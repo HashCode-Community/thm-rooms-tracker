@@ -3,6 +3,7 @@ import type { StepProgress, TrackRoom, TrackStep } from "@thm/shared";
 import type { ReactNode } from "react";
 import { RoomCompletionControl } from "../progression.js";
 import { DifficultyBadge, formatDuration, TypeBadge } from "./badges.js";
+import { Callout } from "./ui/index.js";
 
 /**
  * Le parcours rendu comme un CHEMIN.
@@ -33,8 +34,15 @@ export function etatDeLEtape(
   return "a-venir";
 }
 
-const REQUIREMENT_LABELS: Readonly<Record<TrackRoom["requirement"], string>> = {
-  core: "Recommandée",
+/**
+ * Seules les rooms QUI NE SONT PAS le coeur portent un libelle.
+ *
+ * « Recommandee » s'affichait sur 17 rooms sur 17 : un badge que tout le monde
+ * porte n'informe personne, il occupe la premiere place de chaque ligne et
+ * repousse la difficulte. Le defaut est d'etre recommandee ; ce qui merite d'etre
+ * dit, c'est l'ecart.
+ */
+const LIBELLE_HORS_SOCLE: Readonly<Record<string, string>> = {
   optional: "Optionnelle",
   bonus: "Bonus",
 };
@@ -58,10 +66,8 @@ function RoomDuChemin({ room, terminee }: { room: TrackRoom; terminee: boolean }
       </div>
 
       <div className="chemin-room__meta">
-        {room.requirement === "core" ? (
-          <span className="badge badge--core">{REQUIREMENT_LABELS.core}</span>
-        ) : (
-          <span className="badge badge--neutre">{REQUIREMENT_LABELS[room.requirement]}</span>
+        {room.requirement !== "core" && (
+          <span className="badge badge--neutre">{LIBELLE_HORS_SOCLE[room.requirement]}</span>
         )}
         <DifficultyBadge difficulty={room.difficulty} />
         <TypeBadge type={room.type} />
@@ -70,8 +76,28 @@ function RoomDuChemin({ room, terminee }: { room: TrackRoom; terminee: boolean }
 
       {/* Jamais repliee : plusieurs notes signalent que la suite d'une serie est
           payante, et c'est souvent l'information la plus utile de l'etape. */}
-      {room.note !== null && <p className="chemin-room__note">{room.note}</p>}
+      {room.note !== null && <NoteDeRoom note={room.note} />}
     </li>
+  );
+}
+
+/**
+ * La note d'une room, et son avertissement s'il y en a un.
+ *
+ * Certaines notes commencent par « ATTENTION : » — la seule facon qu'avait le
+ * contenu editorial de crier dans du texte brut. Ce cri devient un encart : le
+ * ton porte l'alerte, le titre la nomme, et les capitales disparaissent. Ecrire
+ * en majuscules est le dernier recours de qui n'a pas de composant.
+ */
+function NoteDeRoom({ note }: { note: string }): ReactNode {
+  const alerte = /attention\s*:/i.test(note);
+  if (!alerte) return <p className="chemin-room__note">{note}</p>;
+
+  const texte = note.replace(/attention\s*:\s*/i, "").trim();
+  return (
+    <Callout ton="alerte" titre="À savoir avant de commencer">
+      <p className="petit">{texte}</p>
+    </Callout>
   );
 }
 
@@ -96,7 +122,7 @@ export function EtapeDuChemin({
   const total = progress?.coreTotal ?? 0;
 
   return (
-    <li className={`chemin__etape chemin__etape--${etat}`}>
+    <li className={`chemin__etape chemin__etape--${etat}`} id={`etape-${step.position}`}>
       {/*
         La marque porte l'etat par sa FORME autant que par sa couleur : pleine
         et cochee quand c'est fait, cerclee quand c'est la suite, vide sinon.
@@ -106,8 +132,13 @@ export function EtapeDuChemin({
         {etat === "faite" ? "✓" : step.position}
       </div>
 
-      <div className="chemin__corps">
-        <div className="chemin__entete">
+      {/* UNE ETAPE TERMINEE SE REPLIE. Sur un parcours de huit etapes, celles
+          qui sont faites poussent la suivante hors de l'ecran — or c'est la
+          suivante qu'on vient voir. Repliee, l'etape garde son resume et se
+          rouvre d'un clic. `<details>` natif : clavier, annonce et recherche de
+          page fonctionnent sans qu'on ait rien a ecrire. */}
+      <details className="chemin__corps" open={etat !== "faite"}>
+        <summary className="chemin__entete">
           <h2 className="chemin__titre">
             <span className="visuellement-cache">
               Étape {step.position}, {ETAT_LIBELLE[etat]} :{" "}
@@ -115,7 +146,10 @@ export function EtapeDuChemin({
             {step.title}
           </h2>
           {etat === "prochaine" && <span className="chemin__marqueur">Prochaine étape</span>}
-        </div>
+          {etat === "faite" && (
+            <span className="chemin__marqueur chemin__marqueur--faite">Terminée</span>
+          )}
+        </summary>
 
         {step.objective !== null && <p className="doux">{step.objective}</p>}
 
@@ -131,7 +165,7 @@ export function EtapeDuChemin({
             <RoomDuChemin key={room.code} room={room} terminee={completedCodes.has(room.code)} />
           ))}
         </ul>
-      </div>
+      </details>
     </li>
   );
 }

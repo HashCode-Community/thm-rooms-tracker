@@ -114,7 +114,7 @@ function Mentions(): ReactNode {
 
       <Section titre="Journaux du serveur">
         <p>
-          Le serveur enregistre les requêtes qu'il reçoit — methode, chemin, code de réponse, durée
+          Le serveur enregistre les requêtes qu'il reçoit — méthode, chemin, code de réponse, durée
           — pour diagnostiquer les pannes.
         </p>
         <p>

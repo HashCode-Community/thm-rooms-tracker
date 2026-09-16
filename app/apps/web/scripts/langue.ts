@@ -121,6 +121,14 @@ export const FORMES_SANS_ACCENT: readonly string[] = [
   "defensive",
   "detaille",
   "detail",
+  // Trouve a la main dans « Enregistree dans ce navigateur » : le controle
+  // etait muet dessus, la liste ne connaissait pas le mot. « enregistre » n'y
+  // est PAS : « le serveur enregistre » est un present de l'indicatif
+  // parfaitement accentue, et un controle qui crie dessus finit desactive.
+  "enregistree",
+  "enregistrees",
+  "methode",
+  "methodes",
 ];
 
 /**

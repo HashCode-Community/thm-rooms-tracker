@@ -2517,6 +2517,273 @@ label {
   }
 }
 
+/* --- Case « Terminee » ---------------------------------------------------
+
+   L'ACTION PRINCIPALE DE LA PAGE DU PARCOURS. L'`<input>` natif est toujours la,
+   focalisable et annonce ; il est rendu transparent et etale sur toute
+   l'etiquette, de sorte que la cible reelle fait 44 px sans que le dessin
+   grossisse. */
+
+.case-terminee {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 8px 0 4px;
+  border-radius: var(--rayon);
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--texte-doux);
+}
+
+.case-terminee input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.case-terminee__boite {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  border: 2px solid var(--bord-fort);
+  border-radius: 6px;
+  color: var(--sur-accent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background-color 160ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    border-color 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.case-terminee__boite svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* La coche se TRACE, elle n'apparait pas : `pathLength="1"` rend la longueur du
+   trait independante de sa forme. */
+.case-terminee__boite path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  transition: stroke-dashoffset 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.case-terminee input:checked + .case-terminee__boite {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.case-terminee input:checked + .case-terminee__boite path {
+  stroke-dashoffset: 0;
+}
+
+.case-terminee input:focus-visible + .case-terminee__boite {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.case-terminee:hover .case-terminee__boite {
+  border-color: var(--accent);
+}
+
+.case-terminee input:checked ~ .case-terminee__texte {
+  color: var(--texte);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .case-terminee__boite,
+  .case-terminee__boite path {
+    transition: none;
+  }
+}
+
+/* --- Suivi du parcours, colonne de droite -------------------------------- */
+
+.suivi {
+  display: grid;
+  gap: calc(var(--pas) * 1.5);
+}
+
+.anneau {
+  position: relative;
+  width: 132px;
+  justify-self: center;
+  aspect-ratio: 1;
+}
+
+.anneau__dessin {
+  width: 100%;
+  height: 100%;
+  /* Le depart de l'arc est en haut, pas a trois heures. */
+  transform: rotate(-90deg);
+}
+
+.anneau__piste,
+.anneau__arc {
+  fill: none;
+  stroke-width: 8;
+}
+
+.anneau__piste {
+  stroke: var(--fond-appuye);
+}
+
+.anneau__arc {
+  stroke: var(--accent);
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: calc(1 - var(--fraction));
+  transition: stroke-dashoffset 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.anneau__centre {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  gap: 2px;
+}
+
+.anneau__chiffre {
+  font-family: var(--police-display);
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.suivi__reste {
+  text-align: center;
+  color: var(--texte-doux);
+  font-size: 0.875rem;
+}
+
+.suivi__suite {
+  min-height: 44px;
+  padding: 8px 14px;
+  display: inline-flex;
+  align-items: center;
+  text-align: left;
+  text-decoration: none;
+  font-size: 0.875rem;
+  line-height: 1.25;
+}
+
+.sommaire {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+  border-top: 1px solid var(--bord);
+  padding-top: var(--pas);
+}
+
+.sommaire__ligne a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 32px;
+  padding: 2px 6px;
+  border-radius: var(--rayon);
+  text-decoration: none;
+  color: var(--texte-doux);
+  font-size: 0.8125rem;
+}
+
+.sommaire__ligne a:hover {
+  background: var(--fond-appuye);
+  color: var(--texte);
+  text-decoration: none;
+}
+
+.sommaire__marque {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--bord-fort);
+  border-radius: 50%;
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.sommaire__ligne--faite .sommaire__marque {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--sur-accent);
+}
+
+.sommaire__ligne--prochaine a {
+  color: var(--texte);
+  font-weight: 650;
+}
+
+.sommaire__ligne--prochaine .sommaire__marque {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.sommaire__titre {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anneau__arc {
+    transition: none;
+  }
+}
+
+/* --- Etat vide de la progression, et zone secondaire ------------------- */
+
+.progression-vide {
+  padding: calc(var(--pas) * 5) calc(var(--pas) * 3);
+}
+
+.chemin-pointilles {
+  width: 200px;
+  max-width: 100%;
+  height: auto;
+  color: var(--texte-eteint);
+}
+
+.progression-vide__texte {
+  max-width: 52ch;
+}
+
+.progression-vide__actions {
+  margin-top: calc(var(--pas) * 2);
+  justify-content: center;
+}
+
+.progression-vide__actions .bouton {
+  min-height: 44px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+/* Ce qu on ne vient pas faire ici : separe par un trait, jamais mis en avant. */
+.zone-secondaire {
+  border-top: 1px solid var(--bord);
+  padding-top: var(--pas);
+  margin-top: var(--pas);
+  display: grid;
+  gap: var(--pas);
+  justify-items: start;
+}
+
 /* --- Panneau lateral ---------------------------------------------------- */
 
 .panneau {

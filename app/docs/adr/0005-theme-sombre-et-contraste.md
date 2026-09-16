@@ -268,3 +268,25 @@ sont désormais indistinguables en niveaux de gris. Ce qui garantit la lisibilit
 reste le **libellé écrit en toutes lettres** sur chaque badge, ce que WCAG 1.4.1 exige ; l'écart de
 gris était un supplément. Le contrôleur continue de mesurer et d'afficher ces clartés, sans
 condition de réussite : la perte doit se voir, pas disparaître avec le contrôle qui la mesurait.
+
+## Amendement du 2026-09-17 — décisions des pages intérieures
+
+Quatre décisions prises pendant la refonte des pages intérieures, dont trois remplacent une
+décision antérieure. Elles sont ici parce qu'elles vivaient dans des commentaires de code, où une
+dérive ne se détecte pas.
+
+1. **La mention obligatoire est repliée par défaut**, et la page d'un parcours la masque une fois
+   qu'elle a été ouverte. Elle s'ouvrait par défaut, au motif qu'« une obligation cachée d'emblée
+   n'en est plus une ». Ce qui a été mesuré depuis : la même phrase, lue sur la liste puis relue en
+   tête de chacun des trois parcours, cesse d'être lue du tout. Elle reste dans le document sur la
+   liste, annoncée et dépliable ; l'état « lue » vit dans le navigateur, pas sur un serveur.
+2. **Le badge « Recommandée » disparaît.** Il s'affichait sur 17 rooms sur 17 des Fondamentaux : un
+   badge que tout le monde porte n'informe personne et repousse la difficulté hors du regard. Seul
+   l'écart est signalé — « Optionnelle », « Bonus ».
+3. **Le badge d'équipe « Mixte » perd sa teinte.** Le violet servi par la base est celui que la
+   charte a retiré des liens visités, et c'est la seule couleur d'équipe sans équivalent dans la
+   palette : au milieu de badges cyan, ambre et orange, il se lisait comme un cran de difficulté de
+   plus. Le libellé porte l'information, comme pour le type.
+4. **Le produit vouvoie, partout**, y compris dans le contenu éditorial des parcours. Douze
+   tutoiements y subsistaient. Le contrôle de langue (`pnpm langue`) lit désormais les fichiers
+   YAML de `data/roadmap` et signale pronoms et possessifs de la deuxième personne du singulier.
