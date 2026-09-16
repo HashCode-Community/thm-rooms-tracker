@@ -134,6 +134,49 @@ jobs:
       - name: Tests
         run: pnpm test
 
+      # DETTES 5 et 6 — la PRODUCTION demarre vraiment, et `/docs` y est ferme.
+      #
+      # Trouve le 2026-09-16 en essayant : le build de production ne DEMARRAIT
+      # PAS. `@thm/shared` exportait son source TypeScript, que `tsx` transpile a
+      # la volee en developpement et que rien ne transpile en production. Rien ne
+      # l'attrapait parce que la CI ne construisait jamais et ne lancait jamais
+      # l'artefact construit — `lint`, `typecheck` et `test` passent tous les
+      # trois sur un depot dont la production est cassee.
+      #
+      # Les deux dettes qui suivaient depuis la phase 5 se fermaient sur
+      # « verifier a la main apres deploiement ». Elles sont verifiees ici, a
+      # chaque commit : `NODE_ENV=production` reellement pose, et `/docs` a 404.
+      - name: La production demarre, et /docs y est ferme
+        env:
+          NODE_ENV: production
+          API_PORT: "3099"
+          LOG_LEVEL: warn
+        run: |
+          pnpm build
+          node --env-file-if-exists=.env apps/api/dist/server.js &
+          serveur=$!
+          trap 'kill $serveur 2>/dev/null || true' EXIT
+
+          for tentative in $(seq 1 30); do
+            if curl -sf -o /dev/null http://127.0.0.1:3099/health; then break; fi
+            sleep 1
+          done
+
+          sante=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3099/health)
+          docs=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3099/docs)
+          json=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3099/docs/json)
+          hsts=$(curl -s -D - -o /dev/null http://127.0.0.1:3099/api/stats | grep -ci strict-transport-security || true)
+
+          echo "  /health           $sante   (attendu 200)"
+          echo "  /docs             $docs   (attendu 404)"
+          echo "  /docs/json        $json   (attendu 404)"
+          echo "  HSTS present      $hsts     (attendu 1)"
+
+          test "$sante" = "200" || { echo "ECHEC : la production ne repond pas"; exit 1; }
+          test "$docs" = "404" || { echo "ECHEC : /docs est expose en production"; exit 1; }
+          test "$json" = "404" || { echo "ECHEC : /docs/json est expose en production"; exit 1; }
+          test "$hsts" = "1" || { echo "ECHEC : HSTS absent en production"; exit 1; }
+
       # DETTE 4 — `data:audit` en simulation.
       #
       # Sans elle, un dataset remplace sans que ses chiffres de controle soient

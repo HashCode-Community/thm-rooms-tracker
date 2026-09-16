@@ -1,0 +1,15 @@
+{
+  "//": "Config de BUILD. `src/index.ts` reste la source consultee en developpement ; ce build produit l'artefact que la PRODUCTION charge, ou rien ne transpile a la volee.",
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": ["node"],
+    "outDir": "dist",
+    "rootDir": "src",
+    "declaration": true,
+    "noEmit": false
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["dist", "node_modules"]
+}

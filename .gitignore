@@ -21,3 +21,6 @@ node_modules/
 
 # Logs
 *.log
+
+# Artefacts de build du paquet partage.
+app/packages/shared/dist/
