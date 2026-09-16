@@ -190,6 +190,27 @@ export type Rapport = Readonly<{
   echecs: readonly string[];
 }>;
 
+/**
+ * `theme-color` doit dire la meme chose que `--fond`.
+ *
+ * La balise colore la barre d'adresse du navigateur mobile, AVANT que la
+ * feuille de style arrive : elle ne peut donc pas employer `var(--fond)`, elle
+ * porte la valeur en clair. Deux ecritures de la meme couleur derivent, et
+ * celle-ci deriverait en silence — personne ne relit un `<head>`. On les
+ * compare.
+ */
+export function verifierThemeColor(html: string, fond: string): string | null {
+  const trouve = /<meta\s+name="theme-color"\s+content="(#[0-9a-fA-F]{3,8})"/.exec(html);
+  if (trouve?.[1] === undefined) {
+    return "index.html ne declare pas de `theme-color` : la barre d'adresse mobile restera claire";
+  }
+  const declare = trouve[1].toLowerCase();
+  if (declare !== fond.toLowerCase()) {
+    return `theme-color vaut ${declare} alors que --fond vaut ${fond} : la barre d'adresse ne sera pas de la couleur de la page`;
+  }
+  return null;
+}
+
 export function analyser(
   css: string,
   reglages: Reglages,

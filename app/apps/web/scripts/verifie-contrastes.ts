@@ -18,7 +18,13 @@
 
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
-import { analyser, type Paire, type Reglages } from "./contrastes.js";
+import {
+  analyser,
+  lireTokens,
+  type Paire,
+  type Reglages,
+  verifierThemeColor,
+} from "./contrastes.js";
 
 const RACINE = resolve(import.meta.dirname, "..");
 const FEUILLE = resolve(RACINE, "src/styles.css");
@@ -167,6 +173,13 @@ function fichiersSources(dossier: string): Array<{ chemin: string; contenu: stri
 const css = readFileSync(FEUILLE, "utf8");
 const rapport = analyser(css, REGLAGES, fichiersSources(SOURCES));
 
+// La couleur de la barre d'adresse mobile vit dans le `<head>`, pas dans la
+// feuille : elle s'applique AVANT que le CSS arrive. Elle est donc ecrite en
+// clair, et doit etre comparee a `--fond`.
+const fond = lireTokens(css).get("--fond") ?? "";
+const derive = verifierThemeColor(readFileSync(resolve(RACINE, "index.html"), "utf8"), fond);
+const echecs = derive === null ? rapport.echecs : [...rapport.echecs, derive];
+
 console.log("\nContrastes — apps/web/src/styles.css");
 console.log(`${PAIRES.length} paires declarees\n`);
 
@@ -199,9 +212,13 @@ console.log("\n  4. Aucun token n'echappe a la mesure");
 console.log("  5. Aucune couleur ecrite en clair hors du bloc de tokens");
 console.log(`     ${rapport.litteraux.length} litteral(aux) trouve(s)`);
 
-if (rapport.echecs.length > 0) {
-  console.error(`\nECHEC — ${rapport.echecs.length} probleme(s) :\n`);
-  for (const echec of rapport.echecs) console.error(`  - ${echec}`);
+console.log("  6. `theme-color` du <head> dit la meme chose que `--fond`");
+
+if (echecs.length > 0) {
+  console.error(`
+ECHEC — ${echecs.length} probleme(s) :
+`);
+  for (const echec of echecs) console.error(`  - ${echec}`);
   console.error("");
   process.exit(1);
 }
