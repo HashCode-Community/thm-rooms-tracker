@@ -20,6 +20,8 @@ type Props = {
   /** slug -> nom d'affichage, venu de `/api/tags`. */
   tagNames: Map<string, string>;
   categories: CategoryListResponse["data"];
+  /** Vrai tant que la reponse des facettes n'est jamais arrivee. */
+  chargement: boolean;
   onChange: (change: FilterChange) => void;
   onReset: () => void;
 };
@@ -45,6 +47,22 @@ type TagFacetKey = "tech" | "tool" | "skill";
  * monde tape « nmap ».
  */
 const SEUIL_RECHERCHE_FACETTE = 20;
+
+/**
+ * Quelles facettes sont DEPLIEES a l'arrivee.
+ *
+ * Pas de regle sur le nombre de valeurs : a la premiere peinture les facettes
+ * sont vides, et « moins de six valeurs » y serait vrai pour les 375
+ * technologies. Le critere porte donc sur la NATURE de la facette, qui elle ne
+ * depend pas du chargement : difficulte, type et equipe sont bornees par le
+ * modele de donnees (5, 2 et 3 valeurs) ; technologies, outils, competences et
+ * categories croissent avec le catalogue.
+ *
+ * Mesure du defaut corrige, a 1440x900 : toutes deployees, la colonne demande
+ * 1 649 px pour 816 disponibles, donc un ascenseur propre a la colonne EN PLUS
+ * de celui de la page et de ceux des listes longues. Trois ascenseurs pour une
+ * seule liste. Par defaut, elle demande maintenant 786 px et n'en a plus.
+ */
 
 export function FilterPanel(props: Props): ReactNode {
   const compact = useIsCompact();
@@ -92,7 +110,15 @@ function useIsCompact(): boolean {
   return compact;
 }
 
-function Panel({ search, facets, tagNames, categories, onChange, onReset }: Props): ReactNode {
+function Panel({
+  search,
+  facets,
+  tagNames,
+  categories,
+  chargement,
+  onChange,
+  onReset,
+}: Props): ReactNode {
   const sortId = useId();
   const hasFilters = countActiveFilters(search) > 0;
 
@@ -114,6 +140,8 @@ function Panel({ search, facets, tagNames, categories, onChange, onReset }: Prop
 
       <CheckboxFacet
         title="Difficulté"
+        deplie
+        chargement={chargement}
         options={(facets?.difficulty ?? []).map((entry) => ({
           value: entry.key,
           label: entry.label,
@@ -127,6 +155,7 @@ function Panel({ search, facets, tagNames, categories, onChange, onReset }: Prop
 
       <CheckboxFacet
         title="Type"
+        chargement={chargement}
         options={(facets?.type ?? []).map((entry) => ({
           value: entry.key,
           label: entry.label,
@@ -140,6 +169,8 @@ function Panel({ search, facets, tagNames, categories, onChange, onReset }: Prop
 
       <CheckboxFacet
         title="Équipe"
+        deplie
+        chargement={chargement}
         options={(facets?.team ?? []).map((entry) => ({
           value: entry.key,
           label: entry.label,
@@ -157,6 +188,7 @@ function Panel({ search, facets, tagNames, categories, onChange, onReset }: Prop
           facetKey={key}
           title={FACET_TITLES[key]}
           entries={facets?.[key] ?? []}
+          chargement={chargement}
           tagNames={tagNames}
           selected={search[key] ?? []}
           onToggle={(values) => {
@@ -206,12 +238,16 @@ function CheckboxFacet({
   selected,
   onToggle,
   searchable = false,
+  deplie = false,
+  chargement = false,
 }: {
   title: string;
   options: Option[];
   selected: readonly string[];
   onToggle: (values: string[]) => void;
   searchable?: boolean;
+  deplie?: boolean;
+  chargement?: boolean;
 }): ReactNode {
   const [needle, setNeedle] = useState("");
   const searchId = useId();
@@ -242,53 +278,76 @@ function CheckboxFacet({
   };
 
   return (
-    <fieldset className="facette">
-      <legend className="facette__titre">
+    <details className="facette" open={deplie}>
+      {/* `<details>` natif : ouverture au clavier, etat annonce, et aucun
+          JavaScript a ecrire pour le replier. Le nombre de valeurs choisies
+          reste lisible une fois replie — c'est tout l'interet. */}
+      <summary className="facette__titre">
         {title}
-        {selected.length > 0 && ` (${selected.length})`}
-      </legend>
+        {selected.length > 0 && <span className="facette__compte">{selected.length}</span>}
+      </summary>
+      <fieldset className="facette__corps">
+        {/* La legende double le resume pour les lecteurs d'ecran : le resume
+            ouvre, la legende groupe les cases. Les deux roles sont distincts. */}
+        <legend className="visuellement-cache">{title}</legend>
 
-      {searchable && (
-        <>
-          <label htmlFor={searchId} className="visuellement-cache">
-            Filtrer la liste {title.toLowerCase()}
-          </label>
-          <input
-            id={searchId}
-            type="search"
-            className="champ"
-            placeholder={`Filtrer (${options.length})`}
-            value={needle}
-            onChange={(event) => {
-              setNeedle(event.target.value);
-            }}
-            style={{ marginBottom: 6 }}
-          />
-        </>
-      )}
-
-      <div className="facette__liste">
-        {ordered.length === 0 && <p className="petit doux">Aucune valeur ne correspond.</p>}
-        {ordered.map((option) => (
-          <label
-            key={option.value}
-            className={`option${option.count === 0 ? " option--vide" : ""}`}
-          >
+        {searchable && (
+          <>
+            <label htmlFor={searchId} className="visuellement-cache">
+              Filtrer la liste {title.toLowerCase()}
+            </label>
             <input
-              type="checkbox"
-              checked={selectedSet.has(option.value)}
-              onChange={() => {
-                toggle(option.value);
+              id={searchId}
+              type="search"
+              className="champ"
+              placeholder={`Filtrer (${options.length})`}
+              value={needle}
+              onChange={(event) => {
+                setNeedle(event.target.value);
               }}
+              style={{ marginBottom: 6 }}
             />
-            <span className="option__nom" title={option.label}>
-              {option.label}
-            </span>
-            <span className="option__compte">{option.count}</span>
-          </label>
-        ))}
-      </div>
-    </fieldset>
+          </>
+        )}
+
+        <div className="facette__liste">
+          {/* PENDANT LE CHARGEMENT, PAS « AUCUNE VALEUR ». Les facettes arrivent
+            apres la premiere peinture : annoncer qu'aucune valeur ne correspond
+            alors qu'aucune n'a encore ete demandee, c'est affirmer un resultat
+            faux. Des lignes fantomes disent la meme chose que la verite : on
+            attend. */}
+          {chargement && options.length === 0 && (
+            <>
+              <span className="visuellement-cache">Chargement des valeurs</span>
+              {[1, 2, 3, 4].map((rang) => (
+                <span key={rang} className="squelette squelette--option" aria-hidden="true" />
+              ))}
+            </>
+          )}
+          {!chargement && ordered.length === 0 && (
+            <p className="petit doux">Aucune valeur ne correspond.</p>
+          )}
+          {ordered.map((option) => (
+            <label
+              key={option.value}
+              className={`option${option.count === 0 ? " option--vide" : ""}`}
+            >
+              <input
+                type="checkbox"
+                checked={selectedSet.has(option.value)}
+                onChange={() => {
+                  toggle(option.value);
+                }}
+              />
+              <span className="option__nom" title={option.label}>
+                {option.label}
+              </span>
+              <span className="option__compte">{option.count}</span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+    </details>
   );
 }
 
@@ -298,6 +357,7 @@ function TagFacet({
   entries,
   tagNames,
   selected,
+  chargement,
   onToggle,
 }: {
   facetKey: TagFacetKey;
@@ -305,6 +365,7 @@ function TagFacet({
   entries: FacetsResponse[TagFacetKey];
   tagNames: Map<string, string>;
   selected: readonly string[];
+  chargement: boolean;
   onToggle: (values: string[]) => void;
 }): ReactNode {
   void facetKey;
@@ -324,6 +385,7 @@ function TagFacet({
       options={options}
       selected={selected}
       onToggle={onToggle}
+      chargement={chargement}
       searchable={options.length > SEUIL_RECHERCHE_FACETTE}
     />
   );
@@ -351,66 +413,72 @@ function DurationFilter({
   }, [search.durationMin, search.durationMax]);
 
   const invalid = min !== "" && max !== "" && Number(min) > Number(max);
+  const actifs =
+    (search.durationMin === undefined ? 0 : 1) + (search.durationMax === undefined ? 0 : 1);
 
   return (
-    <form
-      className="facette"
-      onSubmit={(event) => {
-        event.preventDefault();
-        if (invalid) return;
-        onChange({
-          durationMin: min === "" ? undefined : Number(min),
-          durationMax: max === "" ? undefined : Number(max),
-        });
-      }}
-    >
-      <div className="facette__titre">Durée (minutes)</div>
-      <div className="rang" style={{ gap: 6, flexWrap: "nowrap" }}>
-        <label htmlFor={minId} className="visuellement-cache">
-          Durée minimale en minutes
-        </label>
-        <input
-          id={minId}
-          type="number"
-          inputMode="numeric"
-          min={0}
-          className="champ"
-          placeholder="min"
-          value={min}
-          aria-invalid={invalid}
-          onChange={(event) => {
-            setMin(event.target.value);
-          }}
-        />
-        <span aria-hidden="true" className="doux">
-          -
-        </span>
-        <label htmlFor={maxId} className="visuellement-cache">
-          Durée maximale en minutes
-        </label>
-        <input
-          id={maxId}
-          type="number"
-          inputMode="numeric"
-          min={0}
-          className="champ"
-          placeholder="max"
-          value={max}
-          aria-invalid={invalid}
-          onChange={(event) => {
-            setMax(event.target.value);
-          }}
-        />
-        <button type="submit" className="bouton" disabled={invalid}>
-          OK
-        </button>
-      </div>
-      {invalid && (
-        <p className="petit" role="alert" style={{ color: "var(--alerte)", marginTop: 4 }}>
-          Le minimum doit etre inferieur au maximum.
-        </p>
-      )}
-    </form>
+    <details className="facette" open={actifs > 0}>
+      <summary className="facette__titre">
+        Durée (minutes)
+        {actifs > 0 && <span className="facette__compte">{actifs}</span>}
+      </summary>
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (invalid) return;
+          onChange({
+            durationMin: min === "" ? undefined : Number(min),
+            durationMax: max === "" ? undefined : Number(max),
+          });
+        }}
+      >
+        <div className="rang" style={{ gap: 6, flexWrap: "nowrap" }}>
+          <label htmlFor={minId} className="visuellement-cache">
+            Durée minimale en minutes
+          </label>
+          <input
+            id={minId}
+            type="number"
+            inputMode="numeric"
+            min={0}
+            className="champ"
+            placeholder="min"
+            value={min}
+            aria-invalid={invalid}
+            onChange={(event) => {
+              setMin(event.target.value);
+            }}
+          />
+          <span aria-hidden="true" className="doux">
+            -
+          </span>
+          <label htmlFor={maxId} className="visuellement-cache">
+            Durée maximale en minutes
+          </label>
+          <input
+            id={maxId}
+            type="number"
+            inputMode="numeric"
+            min={0}
+            className="champ"
+            placeholder="max"
+            value={max}
+            aria-invalid={invalid}
+            onChange={(event) => {
+              setMax(event.target.value);
+            }}
+          />
+          <button type="submit" className="bouton" disabled={invalid}>
+            OK
+          </button>
+        </div>
+        {invalid && (
+          <p className="petit" role="alert" style={{ color: "var(--alerte)", marginTop: 4 }}>
+            Le minimum doit être inférieur au maximum.
+          </p>
+        )}
+      </form>
+    </details>
   );
 }
 

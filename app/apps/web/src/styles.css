@@ -859,11 +859,25 @@ label {
 }
 
 @media (min-width: 861px) {
+  /* Collante, et SANS ascenseur propre dans le cas normal. Le `max-height` ne
+     disparait pas — il reste le filet pour une fenetre courte ou des facettes
+     deployees a la main — mais avec les facettes longues repliees, la colonne
+     mesure moins que la fenetre et ne l'atteint plus. Mesure a 1440x900, meme
+     page, memes filtres : 1 649 px si tout est deploye, 786 par defaut, pour
+     816 disponibles. */
   .filtres {
     position: sticky;
     top: 68px;
-    max-height: calc(100vh - 84px);
+    max-height: calc(100dvh - 84px);
     overflow-y: auto;
+    gap: 12px;
+  }
+
+  /* 44 px est la cible du doigt. A la souris, sept resumes a 44 px coutent
+     308 px de colonne pour rien : 32 px restent tres au-dessus du minimum
+     exigible, et c'est ce qui fait tenir la colonne. */
+  .facette__titre {
+    min-height: 32px;
   }
 }
 
@@ -874,6 +888,8 @@ label {
   min-width: 0;
 }
 
+/* Le resume est la cible tactile de la facette : 44 px, pas la hauteur d'un
+   texte de 12 px. */
 .facette__titre {
   font-size: 0.75rem;
   font-weight: 700;
@@ -882,6 +898,58 @@ label {
   color: var(--texte-doux);
   padding: 0;
   margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.facette__titre::-webkit-details-marker {
+  display: none;
+}
+
+/* Le chevron est dessine, pas ecrit : le triangle du systeme change de forme
+   d'un navigateur a l'autre et ne suit pas la couleur du texte. */
+.facette__titre::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  margin-left: 2px;
+  margin-right: 2px;
+  flex: none;
+  transition: transform 120ms ease;
+}
+
+.facette[open] > .facette__titre::before {
+  transform: rotate(45deg);
+}
+
+.facette__compte {
+  margin-left: auto;
+  background: var(--fond-appuye);
+  color: var(--texte);
+  border-radius: 999px;
+  min-width: 20px;
+  padding: 0 6px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.facette__corps {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .facette__titre::before {
+    transition: none;
+  }
 }
 
 .facette__liste {
@@ -890,6 +958,11 @@ label {
   gap: 2px;
   max-height: 230px;
   overflow-y: auto;
+}
+
+.squelette--option {
+  height: 22px;
+  margin-bottom: 2px;
 }
 
 .option {
@@ -942,6 +1015,75 @@ label {
   font-weight: 650;
 }
 
+/* --- Puces de filtres actifs ---------------------------------------------
+
+   Chaque puce est une cible de 36 px, pas 44 : separees de 8 px, elles
+   satisfont l'exception d'espacement du critere « taille de cible » — et une
+   rangee de dix puces a 44 px pousserait les resultats hors de l'ecran, ce qui
+   coute plus qu'elle ne rapporte. */
+
+.puces {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: calc(var(--pas) * 2);
+}
+
+.puces__liste {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.puce {
+  font: inherit;
+  font-size: 0.8125rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--bord-fort);
+  border-radius: 999px;
+  background: var(--fond-doux);
+  color: var(--texte);
+  cursor: pointer;
+  max-width: 100%;
+}
+
+.puce:hover {
+  background: var(--fond-appuye);
+}
+
+.puce__groupe {
+  color: var(--texte-doux);
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex: none;
+}
+
+.puce__libelle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.puce__croix {
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--texte-doux);
+  flex: none;
+}
+
+.puce:hover .puce__croix {
+  color: var(--texte);
+}
+
 .grille-rooms {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -952,6 +1094,7 @@ label {
 }
 
 .carte {
+  position: relative;
   border: 1px solid var(--bord);
   border-radius: var(--rayon);
   padding: calc(var(--pas) * 1.5);
@@ -982,8 +1125,9 @@ label {
 }
 
 .carte__titre {
-  font-size: 0.9375rem;
+  font-size: 1rem;
   font-weight: 650;
+  line-height: 1.3;
 }
 
 .carte__titre a {
@@ -992,6 +1136,21 @@ label {
 
 .carte__titre a:hover {
   text-decoration: underline;
+}
+
+/* Le titre seul mesure 22 px de haut ; la carte en mesure 180. Le lien s'etend
+   a la carte, ce qui laisse UN SEUL lien dans l'arbre d'accessibilite. La carte
+   ne contient aucune autre commande : c'est la condition pour que ce motif
+   reste honnete. */
+.carte__titre a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.carte:focus-within {
+  border-color: var(--bord-fort);
 }
 
 .carte__resume {

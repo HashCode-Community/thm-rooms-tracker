@@ -4,9 +4,11 @@ import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { type Async, loadCategories, loadTags, urls, useResource } from "../api.js";
 import { countActiveFilters, type FilterChange, FilterPanel } from "../components/filters.js";
 import { Pagination } from "../components/pagination.js";
+import { PucesFiltres } from "../components/puces-filtres.js";
 import { RoomCard } from "../components/room-card.js";
 import { SearchBox } from "../components/search-box.js";
-import { Empty, ErrorState } from "../components/states.js";
+import { ErrorState } from "../components/states.js";
+import { Button, EmptyState } from "../components/ui/index.js";
 import { type RoomSearch, toApiQuery, toFacetQuery, validateRoomSearch } from "../search.js";
 import { rootRoute } from "./root.js";
 
@@ -78,18 +80,30 @@ function RoomsList(): ReactNode {
         <SearchBox value={search.q ?? ""} onSearch={applySearchTerm} />
       </div>
 
+      {/* Les filtres actifs EN CLAIR, avant la grille et hors du panneau : sur
+          mobile le panneau est replie, et « Filtres (3) » ne dit pas lesquels. */}
+      <PucesFiltres
+        search={search}
+        facets={facets.data}
+        tagNames={reference.tagNames}
+        categories={reference.categories}
+        onChange={applyChange}
+        onReset={reset}
+      />
+
       <div className="catalogue">
         <FilterPanel
           search={search}
           facets={facets.data}
           tagNames={reference.tagNames}
           categories={reference.categories}
+          chargement={facets.status === "loading" && facets.data === null}
           onChange={applyChange}
           onReset={reset}
         />
 
-        <section aria-label="Resultats">
-          <ResultsHeader search={search} rooms={rooms} activeCount={activeCount} />
+        <section aria-label="Résultats">
+          <ResultsHeader search={search} rooms={rooms} />
 
           {rooms.status === "error" && rooms.data === null && (
             <ErrorState error={rooms.error} onRetry={rooms.reload} />
@@ -111,20 +125,27 @@ function RoomsList(): ReactNode {
           )}
 
           {rooms.data !== null && rooms.data.pagination.total === 0 && (
-            <Empty title="Aucune room ne correspond a ces filtres">
+            <EmptyState
+              titre="Aucune room ne correspond à ces filtres"
+              icone={
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <title>Loupe</title>
+                  <circle cx="11" cy="11" r="6.5" />
+                  <path d="m16 16 4.5 4.5" strokeLinecap="round" />
+                </svg>
+              }
+            >
               <p className="petit doux">
                 {search.q === undefined
-                  ? "Retirez un filtre pour elargir la recherche."
-                  : `Aucun resultat pour « ${search.q} », meme en tolerant les fautes de frappe.`}
+                  ? "Retirez un filtre pour élargir la recherche."
+                  : `Aucun résultat pour « ${search.q} », même en tolérant les fautes de frappe.`}
               </p>
               {activeCount > 0 && (
                 <p style={{ marginTop: 8 }}>
-                  <button type="button" className="bouton" onClick={reset}>
-                    Tout effacer
-                  </button>
+                  <Button onClick={reset}>Tout effacer</Button>
                 </p>
               )}
-            </Empty>
+            </EmptyState>
           )}
 
           {rooms.data !== null && rooms.data.pagination.total > 0 && (
@@ -154,11 +175,9 @@ function RoomsList(): ReactNode {
 function ResultsHeader({
   search,
   rooms,
-  activeCount,
 }: {
   search: RoomSearch;
   rooms: Async<RoomListResponse> & { reload: () => void };
-  activeCount: number;
 }): ReactNode {
   const total = rooms.data?.pagination.total;
   const strategy = rooms.data?.search?.strategy;
@@ -177,12 +196,6 @@ function ResultsHeader({
       <span className="barre-resultats__compte" aria-live="polite">
         {compte}
       </span>
-
-      {activeCount > 0 && (
-        <span className="petit doux">
-          {activeCount} filtre{activeCount > 1 ? "s" : ""} actif{activeCount > 1 ? "s" : ""}
-        </span>
-      )}
 
       {/* L'API dit quelle strategie de recherche a reellement servi. Le taire
           laisserait l'utilisateur croire a une recherche exacte alors qu'il lit
