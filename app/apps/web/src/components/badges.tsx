@@ -38,10 +38,19 @@ export function TeamBadge({ team }: { team: RoomSummary["teams"][number] }): Rea
   );
 }
 
-/** Duree lisible. `null` n'est pas « 0 min », c'est une absence. */
+/**
+ * Duree lisible. `null` n'est pas « 0 min », c'est une absence.
+ *
+ * BASCULE A 120 MINUTES, pas a 60. « 90 min » se compare sans effort a « 45 min »
+ * et a « 2 h » ; « 1 h 30 » oblige a reconvertir pour faire la meme comparaison.
+ * Au-dela de deux heures l'inverse devient vrai : personne ne se represente
+ * « 53 426 minutes », alors que « 890 heures » se saisit d'un coup.
+ */
+const BASCULE_EN_HEURES = 120;
+
 export function formatDuration(minutes: number | null): string {
   if (minutes === null) return "duree inconnue";
-  if (minutes < 60) return `${minutes} min`;
+  if (minutes <= BASCULE_EN_HEURES) return `${minutes} min`;
   const hours = Math.floor(minutes / 60);
   const rest = minutes % 60;
   return rest === 0 ? `${hours} h` : `${hours} h ${rest.toString().padStart(2, "0")}`;

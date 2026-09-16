@@ -1,12 +1,13 @@
 import { createRoute, Link } from "@tanstack/react-router";
-import type { StatsResponse } from "@thm/shared";
+import type { StatsResponse, TrackListResponse } from "@thm/shared";
 import type { ReactNode } from "react";
 import { urls, useResource } from "../api.js";
-import { ErrorState, Loading } from "../components/states.js";
+import { ErrorState } from "../components/states.js";
 import { rootRoute } from "./root.js";
 
 function Home(): ReactNode {
   const stats = useResource<StatsResponse>(urls.stats());
+  const tracks = useResource<TrackListResponse>(urls.tracks());
 
   return (
     <>
@@ -20,10 +21,21 @@ function Home(): ReactNode {
       </div>
 
       <h2 className="visuellement-cache">Chiffres cles</h2>
-      {stats.status === "loading" && stats.data === null && (
-        <div style={{ margin: "24px 0" }}>
-          <Loading label="Chargement des chiffres du catalogue" />
-        </div>
+      {/*
+        Squelette AUX DIMENSIONS DES VRAIS CHIFFRES : quatre cases de la taille
+        qu'occuperont les valeurs. Un chargement generique a cet endroit
+        deplacerait tout ce qui suit au moment ou les donnees arrivent.
+      */}
+      {stats.data === null && stats.status === "loading" && (
+        <ul className="chiffres" aria-busy="true">
+          <span className="visuellement-cache">Chargement des chiffres du catalogue</span>
+          {[1, 2, 3, 4].map((rang) => (
+            <li className="chiffre" key={rang}>
+              <div className="squelette squelette--chiffre" />
+              <div className="squelette squelette--libelle" />
+            </li>
+          ))}
+        </ul>
       )}
       {stats.status === "error" && stats.data === null && (
         <div style={{ margin: "24px 0" }}>
@@ -45,10 +57,20 @@ function Home(): ReactNode {
             ).toLocaleString("fr-FR")}
             label="technologies, outils et competences"
           />
-          <Figure
-            value={`${stats.data.byDifficulty.find((d) => d.key === "easy")?.count ?? 0}`}
-            label="rooms de niveau facile"
-          />
+          {/*
+            Les parcours, pas « les rooms de niveau facile ». Le titre de la page
+            dit que le parcours est le produit : le quatrieme chiffre doit le
+            soutenir, pas ramener l'attention sur le catalogue. Le compte vient
+            de l'API, jamais ecrit en dur — un parcours ajoute doit se voir ici
+            sans que personne ait a y penser, et tant qu'il n'est pas connu la
+            case reste vide plutot que de porter une valeur devinee.
+          */}
+          {tracks.data !== null && (
+            <Figure
+              value={`${tracks.data.data.length}`}
+              label={`parcours ecrit${tracks.data.data.length > 1 ? "s" : ""} a la main`}
+            />
+          )}
         </ul>
       )}
 

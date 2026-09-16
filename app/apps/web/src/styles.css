@@ -688,6 +688,22 @@ label {
   border-color: var(--bord-fort);
 }
 
+/* Une room deja faite se repere sans lire : le liseré gauche suffit au balayage,
+   le libelle « Terminee » porte l'information pour tout le monde. */
+.carte--faite {
+  border-left: 3px solid var(--succes);
+}
+
+.carte__etat {
+  align-self: flex-start;
+  border: 1px solid var(--succes);
+  border-radius: var(--rayon);
+  padding: 1px 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--succes);
+}
+
 .carte__titre {
   font-size: 0.9375rem;
   font-weight: 650;
@@ -1157,6 +1173,24 @@ label {
 .squelette--room {
   height: 74px;
   margin-top: 6px;
+}
+
+/* Dimensions des VRAIS chiffres de l'accueil : la valeur puis son libelle. */
+.squelette--chiffre {
+  height: 34px;
+  width: 4ch;
+}
+
+.squelette--libelle {
+  height: 15px;
+  width: 12ch;
+  margin-top: 6px;
+}
+
+/* Dimensions d'une VRAIE carte du catalogue : titre, rangee de badges, resume
+   sur trois lignes, pied. */
+.squelette--carte {
+  height: 172px;
 }
 
 .provenance {

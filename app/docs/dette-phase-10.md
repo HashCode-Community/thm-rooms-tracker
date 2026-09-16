@@ -35,17 +35,17 @@ existe finit par être supprimée comme « inutile ».
 
 ## Poids du bundle front — mesuré, pas estimé
 
-**Mesure du 2026-09-16**, après le commit 3 de la phase 8c, `pnpm --filter @thm/web build:analyse`.
+**Mesure du 2026-09-16**, après le commit 4 de la phase 8c, `pnpm --filter @thm/web build:analyse`.
 La méthode décode les
 `mappings` du source map et additionne les octets **réellement émis** par fichier source :
 c'est ce qui a survécu au secouage d'arbre et à la minification, pas la taille des paquets
 installés.
 
 ```
-JS   brut 420,3 ko · gzip 128,5 ko (ratio 30,6 %)
-CSS  brut  17,3 ko · gzip   3,9 ko
+JS   brut 420,8 ko · gzip 128,6 ko (ratio 30,6 %)
+CSS  brut  17,6 ko · gzip   4,0 ko
                      -------------
-             total  gzip 132,4 ko
+             total  gzip 132,6 ko
 ```
 
 **La feuille de style est comptée à partir d'ici.** Les mesures précédentes ne portaient que
@@ -85,17 +85,17 @@ exploitant les redondances entre elles. Seul le total gzip est mesuré.
 **Rien n'est optimisé.** 127 ko compressés pour un outil de travail, c'est acceptable. La
 mesure est là pour que le chiffre soit connu, pas pour déclencher une action.
 
-**Évolution du seul JS**, à périmètre comparable : 124,0 ko au 2026-09-12, 126,7 ko après la phase 8a, 127,2 ko après la 8b, 127,5 ko après le commit 2 de la 8c, **128,5 ko après le commit 3**.
+**Évolution du seul JS**, à périmètre comparable : 124,0 ko au 2026-09-12, 126,7 ko après la phase 8a, 127,2 ko après la 8b, 127,5 ko après le commit 2 de la 8c, **128,5 ko après le commit 3, **128,6 ko après le commit 4**.
 La progression locale coûte donc **+3,2 ko compressés**, entièrement dans notre propre code
 (27,7 → 38,9 ko bruts) : aucune dépendance n'a été ajoutée depuis la phase 6. Le point
 d'entrée par lot a même retiré du travail au navigateur — 5 requêtes au lieu de 65 sur
 `/progression` — sans rien ajouter au poids.
 
 **Plafond posé pour la phase 8c : 160 ko gzip.** Au-delà, la passe visuelle n'est pas
-acceptée. Marge restante : **27,6 ko**, CSS compris. Le chemin a coûté **+1,0 ko** de JS et **+0,3 ko** de
-CSS : le composant du chemin, le regroupement par parcours et la règle de l'horodatage futur.
-Aucune dépendance ajoutée depuis la phase 6 — le chemin est du CSS écrit à la main, sans SVG ni
-bibliothèque.
+acceptée. **Marge restante : 27,4 ko**, CSS compris, pour un plafond de 160. La passe visuelle entière —
+thème sombre, chemin, cartes, accueil, squelettes — a coûté **+1,9 ko gzip** de code propre et
+**aucune dépendance** : rien n'a été ajouté depuis la phase 6. Le chemin est du CSS écrit à la
+main, sans SVG ni bibliothèque.
 
 **À refaire en phase 10**, et à chaque phase qui ajoute du code front.
 

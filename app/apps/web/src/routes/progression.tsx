@@ -1,5 +1,5 @@
 import { createRoute, Link } from "@tanstack/react-router";
-import { computeTrackProgress, nextStepPosition, type RoomBrief } from "@thm/shared";
+import { computeTrackProgress, nextStepPosition } from "@thm/shared";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { type Async, loadProgressionResources, type ProgressionResources } from "../api.js";
