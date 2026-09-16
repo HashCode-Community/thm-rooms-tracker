@@ -11,12 +11,17 @@ existe finit par être supprimée comme « inutile ».
 
 ## CI
 
+> **Les quatre lignes sont fermées le 2026-09-16** par `.github/workflows/verification.yml`.
+> Elles restent écrites, barrées : une étape de CI dont on a oublié pourquoi elle existe finit
+> par être supprimée comme « lente ». Chaque étape du workflow nomme le mode de défaillance
+> qu'elle empêche, et renvoie ici.
+
 | # | À faire | Sans ça |
 |---|---|---|
-| 1 | **Service PostgreSQL dans la CI** | `pnpm test` ne lancerait que l'unitaire. Une CI verte qui ne teste pas les 71 tests d'API est pire que pas de CI : elle donne une garantie qui n'existe pas. Origine : validation phase 5. |
-| 2 | **Étape `pnpm typecheck:guard`, qui exige EXIT=1** | La sonde d'inférence peut cesser de mordre en silence — il suffit de vider ses assertions et tout reste vert. [ADR-0002](adr/0002-typescript-7.md) |
-| 3 | **Clone neuf + vérification du sidecar SHA-256** | Le mode de défaillance des fins de ligne se déclenche **au checkout**, pas au commit. Un `.gitattributes` cassé ne se voit que sur un clone neuf. [ADR-0001](adr/0001-arbitrages-initiaux.md) |
-| 4 | **`pnpm data:audit` en dry-run** | Un dataset remplacé sans que ses chiffres de contrôle soient revérifiés. |
+| 1 | ~~**Service PostgreSQL dans la CI**~~ **FAIT le 2026-09-16** | `pnpm test` ne lancerait que l'unitaire. Une CI verte qui ne teste pas les 71 tests d'API est pire que pas de CI : elle donne une garantie qui n'existe pas. Origine : validation phase 5. |
+| 2 | ~~**Étape `pnpm typecheck:guard`**~~ **FAIT le 2026-09-16** | La sonde d'inférence peut cesser de mordre en silence — il suffit de vider ses assertions et tout reste vert. [ADR-0002](adr/0002-typescript-7.md) |
+| 3 | ~~**Clone neuf + vérification du sidecar SHA-256**~~ **FAIT le 2026-09-16** | Le mode de défaillance des fins de ligne se déclenche **au checkout**, pas au commit. Un `.gitattributes` cassé ne se voit que sur un clone neuf. [ADR-0001](adr/0001-arbitrages-initiaux.md) |
+| 4 | ~~**`pnpm data:audit` en dry-run**~~ **FAIT le 2026-09-16** | Un dataset remplacé sans que ses chiffres de contrôle soient revérifiés. |
 
 ## Sécurité (échéance phase 9) et déploiement
 
