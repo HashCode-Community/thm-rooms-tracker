@@ -55,7 +55,19 @@ async function runSeed(fixtureDir: string): Promise<{ code: number; stderr: stri
   try {
     await execFileAsync(
       process.execPath,
-      ["--import", "tsx", "src/scripts/seed-roadmap.ts", "--dir", fixtureDir],
+      [
+        // MEME condition que le script `roadmap:seed` du package.json.
+        // `@thm/shared` expose son source sous `development` et son artefact
+        // construit par defaut : sans ce drapeau, le sous-processus cherche un
+        // `dist` qui n'existe pas avant un build, et le test echoue sur
+        // ERR_MODULE_NOT_FOUND au lieu du refus qu'il verifie.
+        "--conditions=development",
+        "--import",
+        "tsx",
+        "src/scripts/seed-roadmap.ts",
+        "--dir",
+        fixtureDir,
+      ],
       { cwd: API_DIR, env: process.env },
     );
     return { code: 0, stderr: "" };

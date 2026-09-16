@@ -4,6 +4,13 @@
   "compilerOptions": {
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    // `@thm/shared` expose son SOURCE sous la condition `development` et son
+    // artefact construit par defaut. Le typecheck doit voir le source : sans
+    // cette ligne il resout vers `dist/index.d.ts`, qui n'existe pas avant un
+    // build — et le typecheck echouerait sur un clone neuf tout en passant sur
+    // le poste de celui qui vient de construire. C'est exactement le mode de
+    // defaillance que ce paquet vient de produire en production.
+    "customConditions": ["development"],
     "types": ["node"],
     "noEmit": true
   },
