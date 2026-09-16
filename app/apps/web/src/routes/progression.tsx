@@ -153,7 +153,7 @@ function ProgressionPage(): ReactNode {
         <Empty title="Aucune room terminée pour l'instant">
           <p className="petit doux">
             Commencez par un parcours pour savoir dans quel ordre avancer, ou choisissez librement
-            une room dans le catalogue. Vous pourrez la marquer comme terminee depuis sa fiche.
+            une room dans le catalogue. Vous pourrez la marquer comme terminée depuis sa fiche.
           </p>
           <p className="rang" style={{ marginTop: 12 }}>
             <Link to="/roadmap">Voir les parcours</Link>

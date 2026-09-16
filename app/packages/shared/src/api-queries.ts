@@ -95,7 +95,7 @@ export type RoomFilters = z.infer<typeof RoomFiltersSchema>;
 export const FACET_KEYS = ["difficulty", "type", "team", "tech", "tool", "skill"] as const;
 export type FacetKey = (typeof FACET_KEYS)[number];
 
-const DURATION_ORDER_MESSAGE = "durationMin doit etre inferieur ou egal a durationMax.";
+const DURATION_ORDER_MESSAGE = "durationMin doit être inférieur ou égal à durationMax.";
 
 function checkDurationOrder(value: {
   durationMin?: number | undefined;

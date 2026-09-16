@@ -95,10 +95,10 @@ function RoadmapList(): ReactNode {
       )}
 
       {tracks.data !== null && tracks.data.data.length === 0 && (
-        <Empty title="Aucun parcours publie pour l'instant">
+        <Empty title="Aucun parcours publié pour l'instant">
           <p className="petit doux">
-            Les parcours sont un contenu editorial, ecrit et relu a la main. Ils ne sont pas generes
-            a partir des donnees TryHackMe, qui ne contiennent ni ordre pedagogique ni notion de
+            Les parcours sont un contenu éditorial, écrit et relu à la main. Ils ne sont pas générés
+            à partir des données TryHackMe, qui ne contiennent ni ordre pédagogique ni notion de
             parcours.
           </p>
           <p style={{ marginTop: 8 }}>

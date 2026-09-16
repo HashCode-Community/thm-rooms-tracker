@@ -30,7 +30,7 @@ export function Pagination({
       {/* `aria-live` : au clavier, changer de page ne deplace pas le regard.
           L'annonce dit ou on se trouve maintenant. */}
       <span className="pagination__position" aria-live="polite">
-        Rooms {first} a {last} sur {total} — page {page} sur {totalPages}
+        Rooms {first} à {last} sur {total} — page {page} sur {totalPages}
       </span>
 
       <button

@@ -26,7 +26,7 @@ function RoadmapDetail(): ReactNode {
   if (track.status === "error" && track.data === null) {
     if (track.error instanceof ApiError && track.error.status === 404) {
       return (
-        <Empty title={`Aucun parcours publie sous « ${slug} »`}>
+        <Empty title={`Aucun parcours publié sous « ${slug} »`}>
           <p style={{ marginTop: 8 }}>
             <Link to="/roadmap">Retour aux parcours</Link>
           </p>

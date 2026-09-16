@@ -69,7 +69,7 @@ async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
       // Corps illisible : on garde le code HTTP. Ne jamais masquer l'erreur initiale.
     }
     if (PASSERELLE.has(response.status)) {
-      message = `L'API ne repond pas (HTTP ${response.status}). Elle est peut-etre arretee.`;
+      message = `L'API ne répond pas (HTTP ${response.status}). Elle est peut-être arrêtée.`;
     }
     throw new ApiError(response.status, message);
   }

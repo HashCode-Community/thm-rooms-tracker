@@ -57,7 +57,7 @@ export function formatDuration(minutes: number | null): string {
 }
 
 export function formatUsers(count: number | null): string {
-  if (count === null) return "frequentation inconnue";
+  if (count === null) return "fréquentation inconnue";
   return `${count.toLocaleString("fr-FR")} participants`;
 }
 

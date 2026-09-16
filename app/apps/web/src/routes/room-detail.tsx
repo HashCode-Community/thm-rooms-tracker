@@ -101,8 +101,8 @@ function RoomView({ room, stale }: { room: RoomDetailPayload; stale: boolean }):
             <h2>Parcours qui contiennent cette room</h2>
             {room.trackSteps.length === 0 ? (
               <p className="petit doux" style={{ marginTop: 4 }}>
-                Aucun pour l'instant. Les parcours sont un contenu editorial : ils ne se deduisent
-                d'aucune donnee TryHackMe.
+                Aucun pour l'instant. Les parcours sont un contenu éditorial : ils ne se déduisent
+                d'aucune donnée TryHackMe.
               </p>
             ) : (
               <ul>
@@ -132,8 +132,8 @@ function RoomView({ room, stale }: { room: RoomDetailPayload; stale: boolean }):
             <dd>{formatDate(room.publishedAt)}</dd>
           </dl>
           <p className="petit doux">
-            « Republiee » est la date fournie par TryHackMe. Ce n'est pas une date de creation :
-            n'en tirez aucune conclusion sur l'anciennete du contenu.
+            « Republiée » est la date fournie par TryHackMe. Ce n'est pas une date de création :
+            n'en tirez aucune conclusion sur l'ancienneté du contenu.
           </p>
         </aside>
       </div>

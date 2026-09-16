@@ -118,7 +118,7 @@ function Mentions(): ReactNode {
         <p>
           <strong>L'adresse IP n'y figure pas.</strong> Elle est retirée avant écriture, y compris
           celle transmise par un serveur intermédiaire. Elle reste employée en mémoire, le temps
-          d'une requete, pour limiter le nombre d'appels par visiteur — jamais conservée.
+          d'une requête, pour limiter le nombre d'appels par visiteur — jamais conservée.
         </p>
       </Section>
 
