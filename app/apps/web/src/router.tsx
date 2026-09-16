@@ -1,6 +1,7 @@
 import { createRouter } from "@tanstack/react-router";
 import { ErrorState } from "./components/states.js";
 import { homeRoute } from "./routes/home.js";
+import { mentionsRoute } from "./routes/mentions.js";
 import { progressionRoute } from "./routes/progression.js";
 import { roadmapDetailRoute } from "./routes/roadmap-detail.js";
 import { roadmapListRoute } from "./routes/roadmap-list.js";
@@ -21,6 +22,7 @@ const routeTree = rootRoute.addChildren([
   roomDetailRoute,
   roadmapListRoute,
   roadmapDetailRoute,
+  mentionsRoute,
 ]);
 
 export const router = createRouter({

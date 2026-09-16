@@ -41,6 +41,13 @@ function Layout(): ReactNode {
             </a>
             .
           </p>
+          {/* Dans le pied, pas dans la navigation principale : on y va quand on
+              se pose la question, pas en decouvrant le produit. */}
+          <p className="petit">
+            <Link to="/mentions" className="pied__lien">
+              Mentions et donnees personnelles
+            </Link>
+          </p>
         </div>
       </footer>
     </>

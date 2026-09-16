@@ -835,6 +835,7 @@ label {
    `.progression-case::before`. */
 .fil a,
 .groupe-tags a,
+.pied__lien,
 .chemin-room__titre,
 .carte__titre a,
 .parcours-carte__titre a,
@@ -1191,6 +1192,30 @@ label {
    sur trois lignes, pied. */
 .squelette--carte {
   height: 172px;
+}
+
+/* --- Mentions ----------------------------------------------------------- */
+
+.mentions {
+  max-width: 68ch;
+}
+
+.mentions__section {
+  margin-top: calc(var(--pas) * 3);
+  display: grid;
+  gap: var(--pas);
+}
+
+.mentions__section h2 {
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--bord);
+}
+
+.mentions__liste {
+  margin: 0;
+  padding-left: calc(var(--pas) * 2.5);
+  display: grid;
+  gap: 6px;
 }
 
 .provenance {
