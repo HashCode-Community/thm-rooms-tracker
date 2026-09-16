@@ -9,10 +9,13 @@ import { RoomCard } from "../components/room-card.js";
 import { SearchBox } from "../components/search-box.js";
 import { ErrorState } from "../components/states.js";
 import { Button, EmptyState } from "../components/ui/index.js";
+import { nombre } from "../nombres.js";
 import { type RoomSearch, toApiQuery, toFacetQuery, validateRoomSearch } from "../search.js";
+import { useTitre } from "../titre.js";
 import { rootRoute } from "./root.js";
 
 function RoomsList(): ReactNode {
+  useTitre("Catalogue");
   const search = roomsListRoute.useSearch();
   const navigate = useNavigate({ from: roomsListRoute.fullPath });
 
@@ -186,7 +189,7 @@ function ResultsHeader({
   // en dessous : les deux messages se contrediraient.
   const compte =
     total !== undefined
-      ? `${total.toLocaleString("fr-FR")} room${total > 1 ? "s" : ""}`
+      ? `${nombre(total)} room${total > 1 ? "s" : ""}`
       : rooms.status === "error"
         ? "Résultats indisponibles"
         : "Chargement…";

@@ -9,6 +9,7 @@ import { ProgressBar } from "../components/ui/index.js";
 import { ProgressionDownloadLink, RoomCompletionControl, useProgression } from "../progression.js";
 import { grouperParParcours, type RoomTerminee } from "../progression-groupes.js";
 import { summarizeCompletedRooms } from "../progression-summary.js";
+import { useTitre } from "../titre.js";
 import { rootRoute } from "./root.js";
 
 const EMPTY_RESOURCES: ProgressionResources = { rooms: [], missing: [], tracks: [] };
@@ -134,6 +135,7 @@ function CompletedRoomRow({ room, completedAt }: RoomTerminee): ReactNode {
 }
 
 function ProgressionPage(): ReactNode {
+  useTitre("Ma progression");
   const progression = useProgression();
   const completedCodes = progression.completedRooms.map((room) => room.code);
   const resources = useProgressionResources(completedCodes);

@@ -5,6 +5,7 @@ import { Pied } from "../components/Pied.js";
 import { ErrorState } from "../components/states.js";
 import { EmptyState } from "../components/ui/index.js";
 import { ProgressionPersistenceWarning } from "../progression.js";
+import { useTitre } from "../titre.js";
 
 function Layout(): ReactNode {
   return (
@@ -37,6 +38,7 @@ function Layout(): ReactNode {
  * d'adresse ne cherche pas forcement le catalogue.
  */
 function NotFound(): ReactNode {
+  useTitre("Page introuvable");
   return (
     <EmptyState
       titre="Cette page n'existe pas"

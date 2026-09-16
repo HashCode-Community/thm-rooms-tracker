@@ -13,11 +13,15 @@ import {
 import { Empty, ErrorState, Loading } from "../components/states.js";
 import { Callout } from "../components/ui/index.js";
 import { RoomCompletionControl } from "../progression.js";
+import { useTitre } from "../titre.js";
 import { rootRoute } from "./root.js";
 
 function RoomDetail(): ReactNode {
   const { code } = roomDetailRoute.useParams();
   const room = useResource<RoomDetailPayload>(urls.room(code));
+  // Le titre vient de la reponse : tant qu'elle n'est pas la, on garde celui de
+  // la page precedente plutot que d'annoncer un gabarit vide.
+  useTitre(room.data?.title ?? null);
 
   if (room.status === "loading" && room.data === null) {
     return <Loading label="Chargement de la room" />;

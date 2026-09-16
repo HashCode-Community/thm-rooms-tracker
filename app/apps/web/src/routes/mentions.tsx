@@ -1,5 +1,6 @@
 import { createRoute, Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import { useTitre } from "../titre.js";
 import { rootRoute } from "./root.js";
 
 /**
@@ -36,6 +37,7 @@ function Section({ titre, children }: { titre: string; children: ReactNode }): R
 }
 
 function Mentions(): ReactNode {
+  useTitre("Mentions et données personnelles");
   return (
     <div className="mentions">
       <div className="intro">

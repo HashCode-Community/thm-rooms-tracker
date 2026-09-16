@@ -13,6 +13,7 @@ import { Disclaimer, Provenance } from "../components/roadmap.js";
 import { Empty, ErrorState, Loading } from "../components/states.js";
 import { ProgressBar } from "../components/ui/index.js";
 import { useProgression } from "../progression.js";
+import { useTitre } from "../titre.js";
 import { rootRoute } from "./root.js";
 
 const LEVEL_LABELS: Readonly<Record<string, string>> = {
@@ -69,6 +70,7 @@ function AvancementDeLaCarte({ slug }: { slug: string }): ReactNode {
 }
 
 function RoadmapList(): ReactNode {
+  useTitre("Parcours");
   const tracks = useResource<TrackListResponse>(urls.tracks());
 
   return (

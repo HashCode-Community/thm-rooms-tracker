@@ -9,11 +9,13 @@ import { Disclaimer, Provenance } from "../components/roadmap.js";
 import { Empty, ErrorState } from "../components/states.js";
 import { ProgressBar } from "../components/ui/index.js";
 import { useProgression } from "../progression.js";
+import { useTitre } from "../titre.js";
 import { rootRoute } from "./root.js";
 
 function RoadmapDetail(): ReactNode {
   const { slug } = roadmapDetailRoute.useParams();
   const track = useResource<TrackDetailResponse>(urls.track(slug));
+  useTitre(track.data?.data.title ?? null);
   const progression = useProgression();
 
   const completedCodes = useMemo(

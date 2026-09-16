@@ -1,5 +1,6 @@
 import type { RoomSummary } from "@thm/shared";
 import type { ReactNode } from "react";
+import { nombre } from "../nombres.js";
 
 /**
  * Badges de difficulte, de type et d'equipe.
@@ -58,7 +59,7 @@ export function formatDuration(minutes: number | null): string {
 
 export function formatUsers(count: number | null): string {
   if (count === null) return "fréquentation inconnue";
-  return `${count.toLocaleString("fr-FR")} participants`;
+  return `${nombre(count)} participants`;
 }
 
 export function formatDate(value: string | null): string {

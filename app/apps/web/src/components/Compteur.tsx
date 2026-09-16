@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
+import { nombre } from "../nombres.js";
 
 /**
  * Compteur qui monte.
@@ -55,8 +56,8 @@ export function Compteur({ valeur }: { valeur: number }): ReactNode {
 
   return (
     <>
-      <span aria-hidden="true">{affiche.toLocaleString("fr-FR")}</span>
-      <span className="visuellement-cache">{valeur.toLocaleString("fr-FR")}</span>
+      <span aria-hidden="true">{nombre(affiche)}</span>
+      <span className="visuellement-cache">{nombre(valeur)}</span>
     </>
   );
 }
