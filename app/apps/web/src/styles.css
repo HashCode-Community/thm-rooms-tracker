@@ -815,13 +815,15 @@ label {
    Mesure au navigateur a 360 px de large AVANT correction : 6 cibles sous le
    seuil, dont les liens de tags a 20 px et le fil d'Ariane a 17. Les liens
    places en pleine phrase sont exemptes par la norme, et le restent.
-   Le minimum RECOMMANDE reste 44 px ; y aller demande de revoir la densite
-   entiere, ce qui appartient aux cartes de room. Note dans la dette. */
+   La bascule de completion, elle, atteint 44 px par extension de zone : voir
+   `.progression-case::before`. */
 .fil a,
 .groupe-tags a,
-.etape-room__titre,
+.chemin-room__titre,
+.carte__titre a,
 .parcours-carte__titre a,
 .progression-case,
+.progression-parcours__ligne a,
 .progression-room__titre,
 .etat a {
   display: inline-flex;
@@ -832,6 +834,20 @@ label {
 /* La case elle-meme, pas seulement son etiquette : sur un ecran tactile, c'est
    le carre que le doigt vise. 18 px par defaut du navigateur, porte a 20 avec
    l'etiquette a 24. */
+/* CIBLE TACTILE DE 44 px, obtenue en etendant la zone et non en grossissant le
+   dessin. La zone cliquable n'a pas a avoir la taille de ce qu'on voit : c'est
+   ce qui permet de tenir le minimum recommande sans toucher a la densite. */
+.progression-case {
+  position: relative;
+}
+
+.progression-case::before {
+  content: "";
+  position: absolute;
+  inset-block: -10px;
+  inset-inline: -8px;
+}
+
 .progression-case input[type="checkbox"] {
   width: 20px;
   height: 20px;
@@ -917,110 +933,230 @@ label {
  * Etapes verticales numerotees. Ici la numerotation encode une SEQUENCE : le
  * trait vertical relie les etapes pour le dire visuellement.
  */
-.etapes {
+/* --- Le chemin ---------------------------------------------------------
+
+   MOBILE D'ABORD. Colonne verticale a TOUTES les largeurs : epine a gauche,
+   etapes empilees. Les paliers superieurs elargissent, ils ne reorganisent
+   pas — une carte horizontale casse a 360 px, et le public vise est
+   majoritairement sur mobile.
+
+   La variable visuelle principale est l'ETAT DE PROGRESSION, pas la
+   difficulte : 87,7 % du catalogue est easy ou medium, donc un chemin colore
+   par la difficulte serait quasi monochrome. */
+
+.chemin {
   list-style: none;
   margin: calc(var(--pas) * 3) 0 0;
   padding: 0;
   max-width: 80ch;
 }
 
-.etape {
+.chemin__etape {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr);
-  gap: calc(var(--pas) * 2);
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: var(--pas);
   padding-bottom: calc(var(--pas) * 3);
   position: relative;
 }
 
-.etape:not(:last-child)::before {
+/* L'EPINE. Chaque segment est colore par l'etat de SON etape, donc le trait se
+   remplit de lui-meme jusqu'au point ou l'utilisateur en est. Aucun calcul de
+   hauteur, aucune seconde barre a superposer. */
+.chemin__etape:not(:last-child)::before {
   content: "";
   position: absolute;
-  left: 16px;
-  top: 34px;
+  left: 15px;
+  top: 32px;
   bottom: 0;
   width: 2px;
   background: var(--bord-fort);
 }
 
-.etape__puce {
-  width: 34px;
-  height: 34px;
+.chemin__etape--faite:not(:last-child)::before {
+  background: var(--succes);
+}
+
+/* La marque porte l'etat par sa FORME autant que par sa couleur : pleine et
+   cochee quand c'est fait, cerclee quand c'est la suite, vide sinon. */
+.chemin__marque {
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  border: 2px solid var(--bord-fort);
-  background: var(--fond);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  z-index: 1;
+  font-size: 0.875rem;
+  border: 2px solid var(--bord-fort);
+  background: var(--fond);
+  color: var(--texte-doux);
 }
 
-.etape__corps {
+.chemin__etape--faite .chemin__marque {
+  border-color: var(--succes);
+  color: var(--succes);
+}
+
+.chemin__etape--prochaine .chemin__marque {
+  border-color: var(--focus);
+  color: var(--texte);
+  box-shadow: 0 0 0 3px var(--fond-appuye);
+}
+
+.chemin__corps {
+  min-width: 0;
+  padding-bottom: var(--pas);
+}
+
+/* LA PROCHAINE ETAPE EST L'ELEMENT LE PLUS VISIBLE DE LA PAGE. Surface elevee,
+   bordure accentuee, et elle seule porte un marqueur ecrit. */
+.chemin__etape--prochaine .chemin__corps {
+  background: var(--fond-appuye);
+  border: 1px solid var(--focus);
+  border-radius: var(--rayon);
+  padding: calc(var(--pas) * 1.5);
+  margin-top: -6px;
+}
+
+.chemin__etape--a-venir .chemin__corps {
+  opacity: 0.82;
+}
+
+.chemin__entete {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--pas);
+}
+
+.chemin__titre {
+  font-size: 1.0625rem;
+  line-height: 1.3;
+  margin: 4px 0 0;
+}
+
+.chemin__etape--prochaine .chemin__titre {
+  font-size: 1.1875rem;
+}
+
+.chemin__etape--faite .chemin__titre {
+  color: var(--texte-doux);
+}
+
+.chemin__marqueur {
+  border: 1px solid var(--focus);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--focus);
+  white-space: nowrap;
+}
+
+.chemin__compteur {
+  margin-top: 4px;
+}
+
+.chemin__rooms {
+  list-style: none;
+  margin: var(--pas) 0 0;
+  padding: 0;
+  display: grid;
   gap: 6px;
-  padding-top: 4px;
+}
+
+.chemin-room {
+  border: 1px solid var(--bord);
+  border-left: 3px solid var(--bord-fort);
+  border-radius: var(--rayon);
+  background: var(--fond-doux);
+  padding: var(--pas);
+}
+
+.chemin-room--faite {
+  border-left-color: var(--succes);
+}
+
+.chemin-room__ligne {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--pas);
+}
+
+.chemin-room__titre {
+  font-weight: 600;
   min-width: 0;
 }
 
-.etape__titre {
-  font-size: 1.0625rem;
+.chemin-room--faite .chemin-room__titre {
+  color: var(--texte-doux);
 }
 
-.etape__rooms {
-  list-style: none;
-  margin: 6px 0 0;
-  padding: 0;
+/* Difficulte, type et duree : PASTILLES SECONDAIRES, sur leur propre ligne.
+   Elles ne disputent plus la place au titre ni a la bascule. */
+.chemin-room__meta {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.etape-room {
-  border: 1px solid var(--bord);
-  border-radius: var(--rayon);
-  padding: calc(var(--pas) * 1.25);
-}
-
-/* Une room recommandee compte dans la progression ; une optionnelle non. La
-   difference se voit par le fond ET par le badge, jamais par la couleur seule. */
-.etape-room--optional,
-.etape-room--bonus {
-  background: var(--fond-doux);
-  border-style: dashed;
-}
-
-.etape-room__ligne {
-  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  flex-wrap: wrap;
+  margin-top: 6px;
 }
 
-.etape-room__titre {
-  font-weight: 600;
-  text-decoration: none;
-  margin-right: 2px;
-}
-
-.etape-room__titre:hover {
-  text-decoration: underline;
-}
-
-.badge--core {
-  background: var(--fond-appuye);
-  color: var(--succes);
-  border-color: var(--succes);
-}
-
-/* La note est destinee a l'utilisateur final : plusieurs signalent que la suite
-   d'une serie est payante. Jamais repliee, jamais en petit gris illisible. */
-.etape-room__note {
+.chemin-room__note {
   margin-top: 6px;
   padding-left: var(--pas);
   border-left: 3px solid var(--bord-fort);
   font-size: 0.8125rem;
+}
+
+/* --- Avancement -------------------------------------------------------- */
+
+.avancement {
+  margin-top: calc(var(--pas) * 2);
+  max-width: 48ch;
+}
+
+.avancement__ligne {
+  display: flex;
+  align-items: baseline;
+  gap: var(--pas);
+}
+
+.avancement__chiffre {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.avancement__barre {
+  width: 100%;
+  height: 8px;
+  margin-top: 6px;
+  accent-color: var(--succes);
+}
+
+/* --- Squelettes AUX DIMENSIONS DU CONTENU REEL ------------------------- */
+
+.squelette {
+  background: var(--fond-appuye);
+  border-radius: var(--rayon);
+}
+
+.squelette--titre {
+  height: 22px;
+  width: 60%;
+  margin-top: 4px;
+}
+
+.squelette--ligne {
+  height: 17px;
+  width: 85%;
+  margin-top: 8px;
+}
+
+.squelette--room {
+  height: 74px;
+  margin-top: 6px;
 }
 
 .provenance {

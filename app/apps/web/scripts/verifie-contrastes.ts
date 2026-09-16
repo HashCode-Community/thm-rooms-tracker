@@ -137,7 +137,13 @@ const REGLAGES: Reglages = {
   ],
   surCouleursExternes: "--sur-couleur-imposee",
   rampe: ["--diff-easy", "--diff-medium", "--diff-hard", "--diff-insane"],
-  marques: ["--bord-fort"],
+  /**
+   * Marques, pas arriere-plans : ces tokens sont peints en `background` sur des
+   * traits de deux pixels — l'epine du chemin, vide en `--bord-fort` et remplie
+   * en `--succes` jusqu'au point ou l'utilisateur en est. Rien ne s'ecrit
+   * dessus, donc aucune paire ne peut les mesurer comme des fonds.
+   */
+  marques: ["--bord-fort", "--succes"],
   seuilTexte: 4.5,
   seuilGrand: 3,
   seuilGris: 8,

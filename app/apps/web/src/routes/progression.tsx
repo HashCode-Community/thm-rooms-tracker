@@ -1,11 +1,12 @@
 import { createRoute, Link } from "@tanstack/react-router";
-import { computeTrackProgress, type RoomBrief } from "@thm/shared";
+import { computeTrackProgress, nextStepPosition, type RoomBrief } from "@thm/shared";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { type Async, loadProgressionResources, type ProgressionResources } from "../api.js";
 import { formatDuration } from "../components/badges.js";
 import { Empty, ErrorState, Loading } from "../components/states.js";
 import { ProgressionDownloadLink, RoomCompletionControl, useProgression } from "../progression.js";
+import { grouperParParcours, type RoomTerminee } from "../progression-groupes.js";
 import { summarizeCompletedRooms } from "../progression-summary.js";
 import { rootRoute } from "./root.js";
 
@@ -103,13 +104,7 @@ function MissingRooms({
   );
 }
 
-function CompletedRoomRow({
-  room,
-  completedAt,
-}: {
-  room: RoomBrief;
-  completedAt: string;
-}): ReactNode {
+function CompletedRoomRow({ room, completedAt }: RoomTerminee): ReactNode {
   return (
     <li className="progression-room">
       <div className="progression-room__corps">
@@ -120,7 +115,16 @@ function CompletedRoomRow({
           {!room.isActive && <span className="badge badge--retiree">Retiree du catalogue</span>}
         </div>
         <p className="petit doux">
-          Terminee le {formatCompletedAt(completedAt)} · {formatDuration(room.durationMinutes)}
+          {/*
+            Une date dans un futur lointain vient d'une horloge machine dereglee.
+            Elle est VALIDE au format, donc le magasin la garde — mais l'afficher
+            reviendrait a annoncer a l'utilisateur qu'il a termine une room en
+            2027. On dit ce qu'on sait, et on ne touche pas au stockage.
+          */}
+          {completedAt === null
+            ? "Date d'achevement inconnue"
+            : `Terminee le ${formatCompletedAt(completedAt)}`}{" "}
+          · {formatDuration(room.durationMinutes)}
         </p>
       </div>
       <RoomCompletionControl code={room.code} />
@@ -207,14 +211,15 @@ function ProgressionContent({
   completionByCode: ReadonlyMap<string, string>;
   stale: boolean;
 }): ReactNode {
-  const completedRooms = resources.rooms
-    .filter((room) => completedSet.has(room.code))
-    .toSorted((left, right) => {
-      const leftDate = completionByCode.get(left.code) ?? "";
-      const rightDate = completionByCode.get(right.code) ?? "";
-      return rightDate.localeCompare(leftDate);
-    });
+  const completedRooms = resources.rooms.filter((room) => completedSet.has(room.code));
+  // Les totaux comptent chaque room UNE fois, meme si elle apparait dans deux
+  // groupes plus bas : la duplication est un fait d'affichage, pas de comptage.
   const summary = summarizeCompletedRooms(completedRooms);
+  const groupes = grouperParParcours(
+    completedRooms,
+    completionByCode,
+    resources.tracks.map((track) => track.data),
+  );
 
   return (
     <div className={stale ? "perime" : undefined}>
@@ -257,6 +262,11 @@ function ProgressionContent({
                 </progress>
                 <p className="petit doux">
                   {trackProgress.coreDone} sur {trackProgress.coreTotal} rooms recommandees
+                  {(() => {
+                    const suite = nextStepPosition(trackProgress);
+                    const etape = track.steps.find((step) => step.position === suite);
+                    return etape === undefined ? " — termine" : ` — suite : ${etape.title}`;
+                  })()}
                 </p>
               </li>
             );
@@ -264,18 +274,50 @@ function ProgressionContent({
         </ul>
       </section>
 
-      <section className="progression-section">
-        <h2>Rooms terminees</h2>
-        <ul className="progression-rooms">
-          {completedRooms.map((room) => (
-            <CompletedRoomRow
-              key={room.code}
-              room={room}
-              completedAt={completionByCode.get(room.code) ?? ""}
-            />
-          ))}
-        </ul>
-      </section>
+      {/*
+        GROUPEES PAR PARCOURS, chaque groupe dans l'ordre du parcours.
+
+        Le produit vend un parcours, pas un journal. Trier la page par date
+        repond a « qu'ai-je fait recemment » ; la question du debutant est « ou
+        j'en suis, c'est quoi la suite ». Ce qui n'appartient a aucun parcours
+        garde le tri par date, parce que la il n'y a pas d'autre ordre a suivre.
+      */}
+      {groupes.parcours.map((groupe) => (
+        <section className="progression-section" key={groupe.slug}>
+          <h2>
+            <Link to="/roadmap/$slug" params={{ slug: groupe.slug }}>
+              {groupe.titre}
+            </Link>
+          </h2>
+          <ul className="progression-rooms">
+            {groupe.rooms.map((terminee) => (
+              <CompletedRoomRow
+                key={terminee.room.code}
+                room={terminee.room}
+                completedAt={terminee.completedAt}
+              />
+            ))}
+          </ul>
+        </section>
+      ))}
+
+      {groupes.horsParcours.length > 0 && (
+        <section className="progression-section">
+          <h2>Hors parcours</h2>
+          <p className="petit doux">
+            Des rooms choisies librement dans le catalogue, de la plus recente a la plus ancienne.
+          </p>
+          <ul className="progression-rooms">
+            {groupes.horsParcours.map((terminee) => (
+              <CompletedRoomRow
+                key={terminee.room.code}
+                room={terminee.room}
+                completedAt={terminee.completedAt}
+              />
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }

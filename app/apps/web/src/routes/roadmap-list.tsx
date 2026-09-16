@@ -1,10 +1,18 @@
 import { createRoute, Link } from "@tanstack/react-router";
-import type { TrackListResponse } from "@thm/shared";
+import {
+  computeTrackProgress,
+  nextStepPosition,
+  type TrackDetailResponse,
+  type TrackListResponse,
+} from "@thm/shared";
 import type { ReactNode } from "react";
+import { useMemo } from "react";
 import { urls, useResource } from "../api.js";
 import { formatDuration } from "../components/badges.js";
+import { AvancementParcours } from "../components/chemin.js";
 import { Disclaimer, Provenance } from "../components/roadmap.js";
 import { Empty, ErrorState, Loading } from "../components/states.js";
+import { useProgression } from "../progression.js";
 import { rootRoute } from "./root.js";
 
 const LEVEL_LABELS: Readonly<Record<string, string>> = {
@@ -12,6 +20,52 @@ const LEVEL_LABELS: Readonly<Record<string, string>> = {
   intermediate: "Intermediaire",
   advanced: "Avance",
 };
+
+/**
+ * Avancement d'un parcours sur sa carte.
+ *
+ * La reponse de liste ne porte pas les etapes : le detail est donc charge par
+ * carte. Trois requetes de plus sur une page qui en faisait une — c'est le prix
+ * de la seule information que l'utilisateur vient chercher ici, et elles partent
+ * en parallele. Sans elle, la page des parcours ne dit pas ou l'on en est, ce
+ * qui la ramene a un sommaire.
+ *
+ * Le chargement n'affiche RIEN plutot qu'un zero : annoncer « 0 % » a quelqu'un
+ * qui a tout termine est pire que de ne rien annoncer une demi-seconde.
+ */
+function AvancementDeLaCarte({ slug }: { slug: string }): ReactNode {
+  const detail = useResource<TrackDetailResponse>(urls.track(slug));
+  const progression = useProgression();
+  const completedCodes = useMemo(
+    () => new Set(progression.completedRooms.map((room) => room.code)),
+    [progression.completedRooms],
+  );
+
+  if (detail.data === null) return null;
+
+  const progress = computeTrackProgress(detail.data.data.steps, completedCodes);
+  const prochaine = nextStepPosition(progress);
+  const etape = detail.data.data.steps.find((step) => step.position === prochaine);
+
+  return (
+    <>
+      <AvancementParcours
+        faits={progress.coreDone}
+        total={progress.coreTotal}
+        pourcent={progress.percent}
+      />
+      <p className="petit doux parcours-carte__suite">
+        {etape === undefined ? (
+          <strong>Parcours termine.</strong>
+        ) : (
+          <>
+            <strong>Prochaine etape :</strong> {etape.position}. {etape.title}
+          </>
+        )}
+      </p>
+    </>
+  );
+}
 
 function RoadmapList(): ReactNode {
   const tracks = useResource<TrackListResponse>(urls.tracks());
@@ -61,6 +115,8 @@ function RoadmapList(): ReactNode {
                   {track.title}
                 </Link>
               </h2>
+
+              <AvancementDeLaCarte slug={track.slug} />
 
               <div className="rang">
                 <span className="badge badge--neutre">

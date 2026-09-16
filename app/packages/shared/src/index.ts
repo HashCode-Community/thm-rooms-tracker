@@ -93,6 +93,7 @@ export type {
 } from "./roadmap.js";
 export {
   computeTrackProgress,
+  nextStepPosition,
   ProvenanceSchema,
   ROADMAP_DISCLAIMER,
   STEP_ROOM_REQUIREMENTS,

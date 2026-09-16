@@ -35,17 +35,17 @@ existe finit par être supprimée comme « inutile ».
 
 ## Poids du bundle front — mesuré, pas estimé
 
-**Mesure du 2026-09-15**, après le commit 2 de la phase 8c, `pnpm --filter @thm/web build:analyse`.
+**Mesure du 2026-09-16**, après le commit 3 de la phase 8c, `pnpm --filter @thm/web build:analyse`.
 La méthode décode les
 `mappings` du source map et additionne les octets **réellement émis** par fichier source :
 c'est ce qui a survécu au secouage d'arbre et à la minification, pas la taille des paquets
 installés.
 
 ```
-JS   brut 416,2 ko · gzip 127,5 ko (ratio 30,6 %)
-CSS  brut  15,6 ko · gzip   3,6 ko
+JS   brut 420,3 ko · gzip 128,5 ko (ratio 30,6 %)
+CSS  brut  17,3 ko · gzip   3,9 ko
                      -------------
-             total  gzip 131,1 ko
+             total  gzip 132,4 ko
 ```
 
 **La feuille de style est comptée à partir d'ici.** Les mesures précédentes ne portaient que
@@ -85,25 +85,33 @@ exploitant les redondances entre elles. Seul le total gzip est mesuré.
 **Rien n'est optimisé.** 127 ko compressés pour un outil de travail, c'est acceptable. La
 mesure est là pour que le chiffre soit connu, pas pour déclencher une action.
 
-**Évolution du seul JS**, à périmètre comparable : 124,0 ko au 2026-09-12, 126,7 ko après la phase 8a, 127,2 ko après la 8b, **127,5 ko après le commit 2 de la 8c**.
+**Évolution du seul JS**, à périmètre comparable : 124,0 ko au 2026-09-12, 126,7 ko après la phase 8a, 127,2 ko après la 8b, 127,5 ko après le commit 2 de la 8c, **128,5 ko après le commit 3**.
 La progression locale coûte donc **+3,2 ko compressés**, entièrement dans notre propre code
 (27,7 → 38,9 ko bruts) : aucune dépendance n'a été ajoutée depuis la phase 6. Le point
 d'entrée par lot a même retiré du travail au navigateur — 5 requêtes au lieu de 65 sur
 `/progression` — sans rien ajouter au poids.
 
 **Plafond posé pour la phase 8c : 160 ko gzip.** Au-delà, la passe visuelle n'est pas
-acceptée. Marge restante : **28,9 ko**, CSS compris. Le socle visuel sombre a coûté
-**+0,3 ko** de JS — l'indicateur replié et le découpage du lot — et aucune dépendance.
+acceptée. Marge restante : **27,6 ko**, CSS compris. Le chemin a coûté **+1,0 ko** de JS et **+0,3 ko** de
+CSS : le composant du chemin, le regroupement par parcours et la règle de l'horodatage futur.
+Aucune dépendance ajoutée depuis la phase 6 — le chemin est du CSS écrit à la main, sans SVG ni
+bibliothèque.
 
 **À refaire en phase 10**, et à chaque phase qui ajoute du code front.
 
 ---
 
+> **Correction du 2026-09-16.** L'entrée 8 bis affirmait que « le processus Node n'existait
+> plus ». Ce n'était pas établi : ce qui avait été observé, c'était `curl` rendant `000` et un 502
+> dans le navigateur, sans qu'aucune vérification n'ait porté sur l'existence du processus. Les
+> deux symptômes sont produits à l'identique par une simple fenêtre de redémarrage. Écrire
+> « cause inconnue » était honnête ; écrire « le processus n'existait plus » ne l'était pas.
+
 ## Interface
 
 | # | À faire | Sans ça |
 |---|---|---|
-| 8 bis | **L'API s'est arrêtée seule le 2026-09-15, cause INCONNUE** | Constaté pendant la vérification du commit 2 : `/api/*` rendait 502, le processus Node n'existait plus. **Aucun diagnostic possible** — le serveur avait été lancé par une session de travail antérieure, et sa sortie standard est partie avec elle. Ni trace de mémoire saturée, ni rejet non capturé, ni signal : rien n'a été conservé. Un processus qui meurt seul pendant une vérification de routine se rediagnostique très mal en production. À traiter en même temps que le déploiement : journal persistant côté serveur, et redémarrage supervisé. Cette ligne existe pour que l'incident ne soit pas oublié faute d'avoir été expliqué. |
+| 8 bis | ~~**L'API s'est arrêtée seule le 2026-09-15, cause INCONNUE**~~ **Diagnostiqué le 2026-09-16 : `node --watch`, pas une panne.** Le script `dev` de l'API tourne sous `node --watch`, qui redémarre le serveur à chaque écriture d'un fichier surveillé. Reproduit à la demande : un `touch` sur `src/server.ts` ferme le port pendant **600 à 900 ms**, pendant lesquelles `curl` rend `000` et le proxy Vite rend **502** — exactement les deux symptômes relevés la veille. Aucune trace d'erreur parce qu'il n'y en a jamais eu. **Rien à corriger côté production** : elle exécute `node dist/server.js`, sans `--watch`. Reste utile pour le déploiement : un journal persistant, pour que le prochain incident ne se diagnostique pas par reconstitution. |
 | 8 | **Contrôler le contraste sur le RENDU, pas sur les tokens** | `pnpm contrast` lit les valeurs déclarées dans `styles.css`. Une couleur écrite en dur dans un composant, ou une superposition d'opacités, lui échappe. Le contrôle de complétude réduit la faille sans la fermer. Un contrôle réel demande un navigateur, donc la CI. [ADR-0005](adr/0005-theme-sombre-et-contraste.md) |
 
 ## Dettes à échéance conditionnelle
