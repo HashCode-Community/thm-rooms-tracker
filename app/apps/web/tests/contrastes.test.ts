@@ -37,11 +37,10 @@ const REGLAGES: Reglages = {
   paires: [{ contexte: "texte sur la page", premierPlan: "--texte", arrierePlan: "--fond" }],
   couleursExternes: [],
   surCouleursExternes: "--texte",
-  rampe: ["--facile", "--dur"],
+  teintes: ["--facile", "--dur"],
   marques: [],
   seuilTexte: 4.5,
   seuilGrand: 3,
-  seuilGris: 8,
 };
 
 describe("mesure de la couleur", () => {
@@ -111,16 +110,57 @@ describe("le controleur tombe quand il doit", () => {
     assert.ok(rapport.echecs.some((e) => e.includes("--texte") && e.includes("fond")));
   });
 
-  it("refuse une rampe qui cesse d'etre monotone", () => {
-    const inversee = FEUILLE_SAINE.replace("--facile: #93e6b1;", "--facile: #7a3f38;");
-    const rapport = analyser(inversee, REGLAGES);
-    assert.ok(rapport.echecs.some((e) => e.includes("monotone")));
+  it("mesure la couleur reellement peinte sous un fond translucide", () => {
+    // Un fond a 12 % sur une page sombre reste sombre : le texte pose dessus
+    // passe. La meme teinte en aplat plein le ferait tomber — c'est toute la
+    // difference entre mesurer la charte et mesurer l'ecran.
+    const feuille = `
+:root {
+  --fond: #0d0d0d;
+  --texte: #ffffff;
+  --teinte: #22d3ee;
+  --teinte-fond: rgb(34 211 238 / 0.12);
+}
+
+.badge {
+  color: var(--teinte);
+  background: var(--teinte-fond);
+}
+`;
+    const reglages: Reglages = {
+      ...REGLAGES,
+      paires: [
+        { contexte: "texte sur la page", premierPlan: "--texte", arrierePlan: "--fond" },
+        { contexte: "teinte sur son fond", premierPlan: "--teinte", arrierePlan: "--teinte-fond" },
+      ],
+      teintes: ["--teinte"],
+      surCouleursExternes: "--texte",
+    };
+    const rapport = analyser(feuille, reglages);
+    assert.deepEqual([...rapport.echecs], []);
+
+    const aplat = feuille.replace("rgb(34 211 238 / 0.12)", "rgb(34 211 238 / 1)");
+    assert.ok(analyser(aplat, reglages).echecs.some((e) => e.includes("teinte sur son fond")));
   });
 
-  it("refuse deux crans qui se confondent en niveaux de gris", () => {
-    const rapprochee = FEUILLE_SAINE.replace("--facile: #93e6b1;", "--facile: #ff9e90;");
-    const rapport = analyser(rapprochee, REGLAGES);
-    assert.ok(rapport.echecs.some((e) => e.includes("niveaux de gris")));
+  it("suit la chaine de var() jusqu'a la couleur, et tombe si elle est mal branchee", () => {
+    const feuille = `
+:root {
+  --charte-noir: #0d0d0d;
+  --charte-gris: #6e6e6e;
+  --fond: var(--charte-noir);
+  --texte: var(--charte-gris);
+}
+
+.titre {
+  color: var(--texte);
+  background: var(--fond);
+}
+`;
+    // #6e6e6e sur #0d0d0d ne fait pas 4.5:1 : le controle doit le voir a travers
+    // les deux renvois, sinon un role branche sur le mauvais jeton passerait.
+    const rapport = analyser(feuille, { ...REGLAGES, teintes: [], surCouleursExternes: "--texte" });
+    assert.ok(rapport.echecs.some((e) => e.includes("texte sur la page")));
   });
 
   it("refuse un token neuf que personne ne mesure", () => {

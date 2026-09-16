@@ -223,3 +223,38 @@ où qu'elle soit.
 
 **Prouvé en le cassant**, trois fois : un token divergeant d'une unité entre les deux blocs clairs,
 la rampe claire rendue non monotone, et un `theme-color` clair désaccordé de `--fond`.
+
+## Amendement du 2026-09-16 — charte HashCode, thème sombre unique
+
+**Décisions remplacées.** L'amendement du 2026-09-16 ci-dessus (« deux thèmes, clair et sombre »)
+et la partie de Q3 qui impose une rampe de clarté monotone.
+
+**Raison.** La refonte était structurelle et pas visuelle : le site ressemblait à un tableau de
+bord gris-bleu générique. Une charte a été arrêtée — lime `#A8FF00` sur noir `#0d0d0d`, difficultés
+codées par la teinte — et elle ne se tient qu'en sombre. Deux palettes à maintenir pour un produit
+qui s'affirme sombre coûtaient deux fois le travail de couleur sans rien affirmer.
+
+**Ce qui est décidé.**
+
+- **Un seul thème.** Le sélecteur, `public/theme.js`, `src/theme.ts` et les deux blocs de tokens
+  clairs disparaissent. `color-scheme: dark`, une seule balise `theme-color`.
+- **Deux étages de jetons.** `--color-hc-*` porte la charte valeur par valeur ; les jetons de rôle
+  (`--fond`, `--texte`, `--accent`) la nomment par l'usage et sont seuls employés par les règles.
+  Le contrôleur suit la chaîne de `var()` : un rôle branché sur le mauvais jeton est mesuré comme
+  tel, pas comme un nom.
+- **La transparence est mesurée.** Les fonds de difficulté sont à 12 %, les bordures à 25 %. Le
+  contrôleur aplatit une couleur translucide sur le fond réel avant de mesurer — la couleur pleine
+  donnerait un ratio qui ne s'affiche nulle part. 37 paires, dont les dix paires de difficulté sur
+  carte et sur page.
+- **Aucun lien au style du navigateur.** Ni bleu, ni violet visité. Un lien est blanc, se souligne
+  au survol, passe au lime quand il est actif. Le soulignement est un signal non coloré : il reste
+  lisible sans percevoir les teintes.
+
+**Ce que cet amendement fait perdre, écrit ici plutôt que tu.** Les cinq crans formaient une rampe
+de clarté monotone, d'écart minimal 8 en L\* : un lecteur qui ne perçoit pas les teintes lisait
+quand même cinq gris distincts. Le codage par teinte rapproche certaines clartés — mesuré :
+info 68,1, facile 77,9, intermédiaire 78,5, difficile 66,1, extrême 59,3. Facile et intermédiaire
+sont désormais indistinguables en niveaux de gris. Ce qui garantit la lisibilité sans la couleur
+reste le **libellé écrit en toutes lettres** sur chaque badge, ce que WCAG 1.4.1 exige ; l'écart de
+gris était un supplément. Le contrôleur continue de mesurer et d'afficher ces clartés, sans
+condition de réussite : la perte doit se voir, pas disparaître avec le contrôle qui la mesurait.

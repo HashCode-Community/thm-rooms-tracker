@@ -1,7 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import { useEffect, useId, useState } from "react";
-import { appliquerChoix, LIBELLE, lireChoix, suivant, type Theme } from "../theme.js";
+import { useId, useState } from "react";
 
 /**
  * En-tete.
@@ -21,40 +20,6 @@ const LIENS = [
   { to: "/roadmap", libelle: "Parcours" },
   { to: "/progression", libelle: "Progression" },
 ] as const;
-
-/**
- * Bascule de theme, a trois etats.
- *
- * Le libelle est ECRIT, pas seulement une icone : trois etats dont un
- * « systeme » ne se devinent pas d'un pictogramme, et un bouton dont on ne sait
- * pas ce qu'il fera au clic n'est pas un bouton qu'on ose cliquer.
- */
-function BasculeTheme(): ReactNode {
-  const [choix, setChoix] = useState<Theme>("systeme");
-
-  // Le theme est deja applique au document par `public/theme.js`, avant la
-  // premiere peinture. Ce composant ne fait que reprendre l'etat pour
-  // l'afficher : il ne l'applique pas au montage, sinon il ecraserait le
-  // travail deja fait par un aller-retour inutile.
-  useEffect(() => {
-    setChoix(lireChoix(() => window.localStorage));
-  }, []);
-
-  return (
-    <button
-      type="button"
-      className="bascule-theme"
-      onClick={() => {
-        const prochain = suivant(choix);
-        setChoix(prochain);
-        appliquerChoix(prochain, document.documentElement, () => window.localStorage);
-      }}
-    >
-      <span className="bascule-theme__marque" aria-hidden="true" />
-      {LIBELLE[choix]}
-    </button>
-  );
-}
 
 export function Entete(): ReactNode {
   const [ouvert, setOuvert] = useState(false);
@@ -86,7 +51,6 @@ export function Entete(): ReactNode {
               </Link>
             ))}
           </nav>
-          <BasculeTheme />
         </div>
       </div>
     </header>

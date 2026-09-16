@@ -9,18 +9,17 @@
  * peut exercer qu'en cassant le depot reel ne se verifie jamais vraiment.
  *
  * Cinq controles, et les deux derniers sont ceux qui en font un garde :
- *   1. le ratio WCAG de chaque paire declaree ;
+ *   1. le ratio WCAG de chaque paire declaree, transparence aplatie ;
  *   2. les couleurs imposees par les donnees, que la feuille ne regle pas ;
- *   3. la rampe de difficulte reste une rampe en niveaux de gris ;
+ *   3. la clarte percue des teintes de difficulte, rapportee sans condition ;
  *   4. tout token employe est mesure par une paire ;
- *   5. aucune couleur n'est ecrite en clair hors du bloc de tokens.
+ *   5. aucune couleur n'est ecrite en clair hors d'une declaration de token.
  */
 
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import {
   analyser,
-  comparerBlocs,
   lireTokensDuBloc,
   type Paire,
   type Reglages,
@@ -51,28 +50,29 @@ const PAIRES: readonly Paire[] = [
     premierPlan: "--texte-doux",
     arrierePlan: "--fond-appuye",
   },
-  // Texte desactive : WCAG exempte les commandes inactives, mais il doit rester
-  // LISIBLE, pas invisible. Seuil abaisse, jamais supprime.
+  // Petits textes : ce gris tient le seuil de texte courant sur la page. Il est
+  // mesure comme tel, pas au rabais.
+  { contexte: "petit texte sur la page", premierPlan: "--texte-eteint", arrierePlan: "--fond" },
   {
-    contexte: "texte desactive sur la page",
+    contexte: "petit texte sur surface",
     premierPlan: "--texte-eteint",
+    arrierePlan: "--fond-doux",
+  },
+  // DECORATIF, ET SEULEMENT AU-DESSUS DE 18 PX. La charte le dit, le seuil le
+  // dit aussi : 3:1, celui du grand texte. Un emploi sous 18 px serait une
+  // faute que ce seuil ne rattraperait pas — d'ou la regle ecrite dans la
+  // feuille a cote du jeton.
+  {
+    contexte: "gris decoratif (>= 18 px) sur la page",
+    premierPlan: "--texte-decoratif",
     arrierePlan: "--fond",
     grand: true,
   },
-  {
-    contexte: "texte desactive sur surface",
-    premierPlan: "--texte-eteint",
-    arrierePlan: "--fond-doux",
-    grand: true,
-  },
 
-  // --- liens ---
+  // --- liens : blancs, jamais bleus ni violets ---
   { contexte: "lien sur la page", premierPlan: "--lien", arrierePlan: "--fond" },
   { contexte: "lien sur surface", premierPlan: "--lien", arrierePlan: "--fond-doux" },
   { contexte: "lien sur surface haute", premierPlan: "--lien", arrierePlan: "--fond-appuye" },
-  { contexte: "lien survole sur la page", premierPlan: "--lien-survol", arrierePlan: "--fond" },
-  { contexte: "lien visite sur la page", premierPlan: "--lien-visite", arrierePlan: "--fond" },
-  { contexte: "lien visite sur surface", premierPlan: "--lien-visite", arrierePlan: "--fond-doux" },
 
   // --- bordures porteuses de sens ---
   {
@@ -100,17 +100,77 @@ const PAIRES: readonly Paire[] = [
     grand: true,
   },
 
-  // --- difficulte : la couleur accompagne le LIBELLE, donc seuil texte ---
+  // --- accent : action, etat actif, progression ---
+  { contexte: "accent sur la page", premierPlan: "--accent", arrierePlan: "--fond" },
+  { contexte: "accent sur surface", premierPlan: "--accent", arrierePlan: "--fond-doux" },
+  // Le texte pose sur un aplat lime est noir, jamais blanc. La paire inverse est
+  // une paire : c'est elle qu'on lit sur le bouton principal.
+  { contexte: "texte sur aplat accent", premierPlan: "--sur-accent", arrierePlan: "--accent" },
   {
-    contexte: "difficulte info (hors rampe)",
-    premierPlan: "--diff-info",
-    arrierePlan: "--fond-appuye",
+    contexte: "texte sur aplat accent survole",
+    premierPlan: "--sur-accent",
+    arrierePlan: "--accent-survol",
   },
-  { contexte: "difficulte facile", premierPlan: "--diff-easy", arrierePlan: "--fond-appuye" },
-  { contexte: "difficulte moyenne", premierPlan: "--diff-medium", arrierePlan: "--fond-appuye" },
-  { contexte: "difficulte difficile", premierPlan: "--diff-hard", arrierePlan: "--fond-appuye" },
-  { contexte: "difficulte insane", premierPlan: "--diff-insane", arrierePlan: "--fond-appuye" },
 
+  // --- difficulte : texte plein sur fond a 12 %, sur les deux surfaces ---
+  // Le fond du badge est translucide : il est aplati sur la carte, puis sur la
+  // page. Mesurer la teinte pleine a sa place donnerait un ratio qui ne
+  // s'affiche nulle part.
+  {
+    contexte: "difficulte info sur carte",
+    premierPlan: "--diff-info",
+    arrierePlan: "--diff-info-fond",
+    base: "--fond-doux",
+  },
+  {
+    contexte: "difficulte info sur la page",
+    premierPlan: "--diff-info",
+    arrierePlan: "--diff-info-fond",
+  },
+  {
+    contexte: "difficulte facile sur carte",
+    premierPlan: "--diff-easy",
+    arrierePlan: "--diff-easy-fond",
+    base: "--fond-doux",
+  },
+  {
+    contexte: "difficulte facile sur la page",
+    premierPlan: "--diff-easy",
+    arrierePlan: "--diff-easy-fond",
+  },
+  {
+    contexte: "difficulte intermediaire sur carte",
+    premierPlan: "--diff-medium",
+    arrierePlan: "--diff-medium-fond",
+    base: "--fond-doux",
+  },
+  {
+    contexte: "difficulte intermediaire sur la page",
+    premierPlan: "--diff-medium",
+    arrierePlan: "--diff-medium-fond",
+  },
+  {
+    contexte: "difficulte difficile sur carte",
+    premierPlan: "--diff-hard",
+    arrierePlan: "--diff-hard-fond",
+    base: "--fond-doux",
+  },
+  {
+    contexte: "difficulte difficile sur la page",
+    premierPlan: "--diff-hard",
+    arrierePlan: "--diff-hard-fond",
+  },
+  {
+    contexte: "difficulte extreme sur carte",
+    premierPlan: "--diff-insane",
+    arrierePlan: "--diff-insane-fond",
+    base: "--fond-doux",
+  },
+  {
+    contexte: "difficulte extreme sur la page",
+    premierPlan: "--diff-insane",
+    arrierePlan: "--diff-insane-fond",
+  },
   // --- etats ---
   { contexte: "succes sur sa surface", premierPlan: "--succes", arrierePlan: "--succes-fond" },
   { contexte: "succes sur la page", premierPlan: "--succes", arrierePlan: "--fond" },
@@ -118,18 +178,11 @@ const PAIRES: readonly Paire[] = [
   { contexte: "alerte sur la page", premierPlan: "--alerte", arrierePlan: "--fond" },
   { contexte: "erreur sur sa surface", premierPlan: "--erreur", arrierePlan: "--erreur-fond" },
   { contexte: "erreur sur la page", premierPlan: "--erreur", arrierePlan: "--fond" },
-
-  // --- inversions : la paire inverse est une paire ---
-  { contexte: "lien sortant survole", premierPlan: "--fond", arrierePlan: "--lien" },
-  // Le bouton principal porte le fond de l'accent, pas seulement sa bordure :
-  // le texte pose dessus est donc celui de la page, a l'envers.
-  { contexte: "bouton principal", premierPlan: "--fond", arrierePlan: "--lien" },
-  { contexte: "bouton principal survole", premierPlan: "--fond", arrierePlan: "--lien-survol" },
-  { contexte: "erreur inversee au survol", premierPlan: "--erreur-fond", arrierePlan: "--erreur" },
-  // Le lien d'evitement est le PREMIER element focalisable de chaque page. Il
-  // peignait `#fff` sur `var(--texte)` : invisible des que `--texte` est devenu
-  // clair. La paire est declaree pour que sa mesure existe.
-  { contexte: "lien d'evitement au focus", premierPlan: "--texte", arrierePlan: "--fond-appuye" },
+  {
+    contexte: "texte sur aplat erreur",
+    premierPlan: "--sur-erreur",
+    arrierePlan: "--erreur",
+  },
 ];
 
 const REGLAGES: Reglages = {
@@ -147,17 +200,17 @@ const REGLAGES: Reglages = {
     ["equipe inconnue (repli)", "#555555"],
   ],
   surCouleursExternes: "--sur-couleur-imposee",
-  rampe: ["--diff-easy", "--diff-medium", "--diff-hard", "--diff-insane"],
+  teintes: ["--diff-info", "--diff-easy", "--diff-medium", "--diff-hard", "--diff-insane"],
   /**
    * Marques, pas arriere-plans : ces tokens sont peints en `background` sur des
-   * traits de deux pixels — l'epine du chemin, vide en `--bord-fort` et remplie
-   * en `--succes` jusqu'au point ou l'utilisateur en est. Rien ne s'ecrit
-   * dessus, donc aucune paire ne peut les mesurer comme des fonds.
+   * traits de deux ou trois pixels — l'epine du chemin, vide en `--bord-fort` et
+   * remplie en `--succes` jusqu'au point ou l'utilisateur en est, et le fil des
+   * cartes de parcours. Rien ne s'ecrit dessus, donc aucune paire ne peut les
+   * mesurer comme des fonds.
    */
-  marques: ["--bord-fort", "--succes"],
+  marques: ["--bord-fort", "--succes", "--accent"],
   seuilTexte: 4.5,
   seuilGrand: 3,
-  seuilGris: 8,
 };
 
 function fichiersSources(dossier: string): Array<{ chemin: string; contenu: string }> {
@@ -179,88 +232,58 @@ const css = readFileSync(FEUILLE, "utf8");
 const html = readFileSync(resolve(RACINE, "index.html"), "utf8");
 const composants = fichiersSources(SOURCES);
 
-/**
- * LES TROIS BLOCS DE TOKENS.
- *
- * `:root` porte le sombre. Le clair est ecrit deux fois, CSS ne permettant pas
- * de reunir un selecteur ordinaire et un selecteur sous requete de media.
- */
-const SOMBRE = ":root";
-const CLAIR_SYSTEME = ':root:not([data-theme="dark"])';
-const CLAIR_CHOISI = ':root[data-theme="light"]';
-
-const palettes = [
-  { nom: "sombre", tokens: lireTokensDuBloc(css, SOMBRE) },
-  { nom: "clair", tokens: lireTokensDuBloc(css, CLAIR_CHOISI) },
-] as const;
+const tokens = lireTokensDuBloc(css, ":root");
 
 console.log("\nContrastes — apps/web/src/styles.css");
-console.log(
-  `${PAIRES.length} paires x ${palettes.length} themes = ${PAIRES.length * palettes.length} mesures\n`,
-);
+console.log(`${PAIRES.length} paires, theme sombre unique\n`);
 
-const echecs: string[] = [];
-let litteraux = 0;
+const rapport = analyser(css, REGLAGES, composants, tokens);
+const echecs = [...rapport.echecs];
 
-for (const palette of palettes) {
-  // Les litteraux et les emplois ne dependent pas du theme : on ne les compte
-  // qu'une fois, sur la premiere palette.
-  const premier = palette === palettes[0];
-  const rapport = analyser(css, REGLAGES, premier ? composants : [], palette.tokens, palette.nom);
-  echecs.push(...rapport.echecs);
-  if (premier) litteraux = rapport.litteraux.length;
-
-  console.log(`  THEME ${palette.nom.toUpperCase()}`);
-  for (const mesure of rapport.mesures) {
-    console.log(
-      `     ${mesure.passe ? "OK  " : "ECHEC"} ${mesure.ratio.toFixed(2).padStart(6)}:1  ` +
-        `(seuil ${mesure.seuil})  ${mesure.contexte}`,
-    );
-  }
-  console.log("     rampe :");
-  for (const { nom, clarte } of rapport.clartes) {
-    console.log(`       ${nom.padEnd(15)} L* ${clarte.toFixed(1).padStart(5)}`);
-  }
+for (const mesure of rapport.mesures) {
   console.log(
-    `       ecart minimal ${rapport.ecartMinimal.toFixed(1)} (minimum ${REGLAGES.seuilGris})`,
+    `  ${mesure.passe ? "OK  " : "ECHEC"} ${mesure.ratio.toFixed(2).padStart(6)}:1  ` +
+      `(seuil ${mesure.seuil})  ${mesure.contexte}`,
   );
-  console.log("");
 }
 
-console.log("  Couleurs imposees par les donnees, identiques dans les deux themes");
+console.log("\n  Couleurs imposees par les donnees");
+for (const externe of rapport.externes) {
+  console.log(
+    `  ${externe.passe ? "OK  " : "ECHEC"} ${externe.ratio.toFixed(2).padStart(6)}:1  ` +
+      `${externe.nom}  ${externe.couleur}`,
+  );
+}
+
+/*
+ * CE QUE LA CHARTE FAIT PERDRE, ECRIT ICI PLUTOT QUE TU.
+ *
+ * Les cinq crans formaient avant une rampe de clarte monotone : un lecteur qui
+ * ne percoit pas les teintes lisait quand meme cinq gris distincts. Le codage
+ * par teinte de la charte rapproche certaines clartes. Le libelle ecrit en
+ * toutes lettres sur chaque badge reste, lui, le porteur de l'information — ce
+ * que WCAG 1.4.1 exige ; l'ecart de gris etait un supplement que la charte ne
+ * garde pas. Les clartes sont donc affichees, sans condition de reussite.
+ */
+console.log("\n  Clarte percue des teintes de difficulte (rapportee, non bloquante)");
+for (const { nom, clarte } of rapport.clartes) {
+  console.log(`     ${nom.padEnd(16)} L* ${clarte.toFixed(1).padStart(5)}`);
+}
+
+// `theme-color` : une seule balise, egale au `--fond`.
 {
-  const rapport = analyser(css, REGLAGES, [], palettes[0].tokens, "");
-  for (const externe of rapport.externes) {
-    console.log(
-      `     ${externe.passe ? "OK  " : "ECHEC"} ${externe.ratio.toFixed(2).padStart(6)}:1  ` +
-        `${externe.nom}  ${externe.couleur}`,
-    );
-  }
-}
-
-// Les deux ecritures du theme clair doivent etre identiques : la duplication
-// est imposee par CSS, la derive ne l'est pas.
-echecs.push(
-  ...comparerBlocs(
-    lireTokensDuBloc(css, CLAIR_SYSTEME),
-    lireTokensDuBloc(css, CLAIR_CHOISI),
-    "le clair sous preference systeme",
-    "le clair choisi explicitement",
-  ),
-);
-
-// `theme-color` : une balise par theme, chacune egale au `--fond` du sien.
-for (const palette of palettes) {
-  const fond = palette.tokens.get("--fond") ?? "";
-  const derive = verifierThemeColor(html, fond, palette.nom);
+  const fond = tokens.get("--fond") ?? "";
+  const valeur = fond.startsWith("var(")
+    ? (tokens.get(/var\(\s*(--[a-z0-9-]+)\s*\)/.exec(fond)?.[1] ?? "") ?? "")
+    : fond;
+  const derive = verifierThemeColor(html, valeur);
   if (derive !== null) echecs.push(derive);
 }
 
 console.log("\n  Aucun token n'echappe a la mesure");
 console.log("  Aucune couleur ecrite en clair hors d'une declaration de token");
-console.log(`     ${litteraux} litteral(aux) trouve(s)`);
-console.log("  Les deux ecritures du theme clair sont identiques");
-console.log("  `theme-color` accorde a `--fond`, dans les deux themes");
+console.log(`     ${rapport.litteraux.length} litteral(aux) trouve(s)`);
+console.log("  `theme-color` accorde a `--fond`");
 
 if (echecs.length > 0) {
   console.error(`
@@ -271,4 +294,4 @@ ECHEC — ${echecs.length} probleme(s) :
   process.exit(1);
 }
 
-console.log("\nOK — les deux palettes tiennent, rampes monotones, rien en clair.\n");
+console.log("\nOK — la palette tient, rien en clair.\n");

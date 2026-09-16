@@ -1,211 +1,184 @@
 /*
  * Feuille de style unique.
  *
- * Parti pris : outil de travail, pas page de vente. Densite d'information,
- * hierarchie par la taille et le poids du texte, bordures plutot qu'ombres.
- * Pas de degrade, pas de grande banniere, pas d'ombre portee sur chaque carte.
+ * CHARTE HASHCODE, UN SEUL THEME. Le theme clair et son selecteur sont retires :
+ * amendement date d'ADR-0005, qui les avait introduits le 2026-09-16. Deux
+ * palettes a tenir pour un produit qui s'affirme sombre coutaient deux fois le
+ * travail de couleur sans rien affirmer.
  *
- * DEUX THEMES, clair et sombre. Le sombre est la valeur de `:root`, le clair
- * s'applique sur preference systeme ou sur choix explicite. Amendement date
- * d'ADR-0005, qui avait tranche l'inverse : « un theme clair a moitie fait est
- * pire que pas de theme clair » reste vrai, et c'est pour ca que les DEUX
- * palettes sont mesurees — 64 paires au lieu de 32.
+ * DEUX ETAGES DE JETONS, et c'est volontaire :
+ *   1. `--color-hc-*` porte la charte telle qu'elle a ete arretee, valeur par
+ *      valeur. C'est la reference, et elle se lit sans connaitre le produit.
+ *   2. les jetons de ROLE (`--fond`, `--texte`, `--accent`...) la nomment par
+ *      l'usage, et ce sont eux que les regles emploient.
+ * Une couleur ne s'ecrit donc qu'a UN endroit, et changer la charte ne touche
+ * qu'un bloc. `pnpm contrast` resout la chaine de `var()` : il mesure les
+ * couleurs reellement peintes, pas les noms.
  *
- * Les contrastes ne sont pas affirmes ici, ils sont MESURES : `pnpm contrast`
- * calcule le ratio WCAG de chaque paire employee et sort en code 1 sous le seuil.
- * La couleur n'est jamais le seul porteur d'information — chaque badge porte son
- * libelle, et les cinq difficultes restent distinctes en niveaux de gris, ce que
- * le meme script verifie.
+ * Les contrastes ne sont pas affirmes ici, ils sont MESURES : le controleur
+ * calcule le ratio WCAG de chaque paire et sort en code 1 sous le seuil. La
+ * couleur n'est jamais le seul porteur d'information — chaque badge porte son
+ * libelle en toutes lettres.
+ *
+ * LE LIME N'EST NI UNE DIFFICULTE NI UN LIEN. Il marque l'action, l'etat actif,
+ * la progression et le focus, et rien d'autre. Un seul appel a l'action lime
+ * par ecran : deux accents de meme force ne designent plus rien.
  */
 
+/* --- Polices ------------------------------------------------------------
+   AUTO-HEBERGEES, sous-ensemble latin, variables. Deux fichiers, 70 ko en
+   tout : une requete de moins qu'un appel a un CDN tiers, et aucune adresse IP
+   d'utilisateur envoyee a un tiers — ce que la page « mentions » promet.
+   `font-display: swap` : le texte s'affiche tout de suite dans la police de
+   repli et bascule ensuite. Jamais de texte invisible en attendant. */
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/fonts/inter-latin-variable.woff2") format("woff2");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+    U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Space Grotesk";
+  font-style: normal;
+  font-weight: 500 700;
+  font-display: swap;
+  src: url("/fonts/space-grotesk-latin-variable.woff2") format("woff2");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+    U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 :root {
-  /* --- Fonds (3) : page, surface, surface elevee ----------------------
-     Ni noir pur ni blanc pur. `#000` sous `#fff` provoque du halo sur les
-     ecrans OLED et fatigue a la lecture longue ; le contraste maximal n'est
-     pas le plus lisible. */
-  --fond: #0f1115;
-  --fond-doux: #16181d;
-  --fond-appuye: #1e2128;
+  /* --- La charte ------------------------------------------------------ */
 
-  /* --- Bordures (2) : discrete, marquee ------------------------------- */
-  --bord: #2b303a;
-  --bord-fort: #626c80;
+  --color-hc-lime: #a8ff00;
+  --color-hc-lime-dim: #7acc00;
+  --color-hc-lime-soft: rgb(168 255 0 / 0.12);
 
-  /* --- Textes (3) : principal, secondaire, desactive ------------------- */
-  --texte: #e6e8eb;
-  --texte-doux: #a7b0bd;
-  --texte-eteint: #79828f;
+  --color-hc-black: #0d0d0d;
+  --color-hc-surface: #161616;
+  --color-hc-elevated: #1f1f1f;
+  --color-hc-border: rgb(255 255 255 / 0.08);
 
-  /* --- Accent (3) : base, survol, visite -------------------------------
-     ECART ASSUME avec le decoupage a deux accents : « visite » n'est pas un
-     survol, c'est un etat persistant du lien, et le catalogue s'explore. Le
-     retirer forcerait l'utilisateur a se souvenir de ce qu'il a deja ouvert. */
-  --lien: #79b0ff;
-  --lien-survol: #a8caff;
-  --lien-visite: #c9a6f5;
+  --color-hc-text: #ffffff;
+  --color-hc-text-secondary: #b3b3b3;
+  --color-hc-text-subtle: #8a8a8a;
+  --color-hc-text-muted: #6e6e6e;
 
-  /* --- Difficulte (5) --------------------------------------------------
-     Employees en TEXTE ET BORDURE sur `--fond-appuye`, jamais en aplat : en
-     sombre, cinq pastilles pleines saturees deviennent cinq taches. Le libelle
-     reste present en toutes circonstances, et les cinq clartes sont espacees
-     pour rester separables en niveaux de gris. */
-  /* HORS RAMPE. `info` n'est pas un cran de difficulte : 18 rooms sur 714, et
-     une room d'information n'est ni plus facile ni plus dure qu'une `easy`,
-     elle est d'une autre nature. Teinte neutre, contour tirete : une autre
-     famille, pas une extremite de l'echelle. Voir ADR-0005. */
-  --diff-info: #a9b6c6;
-  --diff-easy: #93e6b1;
-  --diff-medium: #f0b01b;
-  --diff-hard: #fb7f71;
-  --diff-insane: #b46be7;
+  /* Difficulte : une TEINTE par cran, jamais le lime. Chaque cran s'ecrit en
+     trois temps — texte plein, fond a 12 %, bordure a 25 %. */
+  --color-hc-diff-info: #a6a6a6;
+  --color-hc-diff-info-12: rgb(166 166 166 / 0.12);
+  --color-hc-diff-info-25: rgb(166 166 166 / 0.25);
 
-  /* --- Etats (4) : succes, alerte, erreur, focus ----------------------- */
-  --succes: #57d68b;
-  --alerte: #f0b429;
-  --erreur: #ff8f85;
-  --focus: #79b0ff;
+  --color-hc-diff-facile: #22d3ee;
+  --color-hc-diff-facile-12: rgb(34 211 238 / 0.12);
+  --color-hc-diff-facile-25: rgb(34 211 238 / 0.25);
 
-  /* --- Surfaces d'etat (3) ---------------------------------------------
-     ECART ASSUME avec le decoupage a quatre etats secs : un bandeau a besoin
-     d'un fond ET d'une couleur. Les deriver a l'execution par `color-mix` les
-     rendrait invisibles au controleur de contraste, qui lit des tokens. Le
-     focus n'a pas de fond : c'est un anneau. */
-  --succes-fond: #10241a;
-  --alerte-fond: #2b1f06;
-  --erreur-fond: #2c1517;
+  --color-hc-diff-intermediaire: #f5b83d;
+  --color-hc-diff-intermediaire-12: rgb(245 184 61 / 0.12);
+  --color-hc-diff-intermediaire-25: rgb(245 184 61 / 0.25);
 
-  /* --- Hors palette (1) : impose par les donnees ------------------------
-     Les couleurs d'equipe viennent de l'API, la feuille ne les regle pas. Le
-     texte pose dessus est blanc, et c'est un TOKEN pour que le controleur le
-     mesure et que la regle « aucune couleur en clair » reste absolue. */
+  --color-hc-diff-difficile: #ff7a3d;
+  --color-hc-diff-difficile-12: rgb(255 122 61 / 0.12);
+  --color-hc-diff-difficile-25: rgb(255 122 61 / 0.25);
+
+  --color-hc-diff-extreme: #ff4d5e;
+  --color-hc-diff-extreme-12: rgb(255 77 94 / 0.12);
+  --color-hc-diff-extreme-25: rgb(255 77 94 / 0.25);
+
+  /* EXTENSION ASSUMEE. La charte donne une bordure unique a 8 %, invisible sur
+     un champ de saisie ou un bouton : une bordure qui porte le contour d'une
+     commande doit atteindre 3:1, la meme exigence que pour une icone. Celle-ci
+     est mesuree, la charte est respectee partout ailleurs. */
+  --color-hc-border-fort: rgb(255 255 255 / 0.38);
+
+  /* La grille de fond : une trame technique, assez faible pour ne jamais
+     disputer la lecture. Elle vaut 4 % de blanc, soit moins que la bordure. */
+  --color-hc-grille: rgb(255 255 255 / 0.045);
+
+  /* --- Les roles ------------------------------------------------------ */
+
+  --fond: var(--color-hc-black);
+  --fond-doux: var(--color-hc-surface);
+  --fond-appuye: var(--color-hc-elevated);
+
+  --bord: var(--color-hc-border);
+  --bord-fort: var(--color-hc-border-fort);
+
+  --texte: var(--color-hc-text);
+  --texte-doux: var(--color-hc-text-secondary);
+  --texte-eteint: var(--color-hc-text-subtle);
+  /* DECORATIF UNIQUEMENT, et jamais sous 18 px : ce gris ne tient pas le seuil
+     de texte courant, et c'est pour ca qu'il n'a qu'un seul emploi. */
+  --texte-decoratif: var(--color-hc-text-muted);
+
+  /* UN LIEN N'EST PAS BLEU, ET UN LIEN VISITE N'EST PAS VIOLET. Les couleurs du
+     navigateur portaient une convention qui n'est pas celle de ce produit, et
+     le violet du visite s'invitait jusque dans les libelles de boutons. Un lien
+     est blanc, se souligne au survol, et passe au lime quand il est actif. */
+  --lien: var(--color-hc-text);
+
+  --accent: var(--color-hc-lime);
+  --accent-survol: var(--color-hc-lime-dim);
+  --accent-fond: var(--color-hc-lime-soft);
+  /* Le texte pose sur un aplat lime est noir, jamais blanc. */
+  --sur-accent: var(--color-hc-black);
+
+  --focus: var(--color-hc-lime);
+
+  /* Progression et succes portent l'accent : c'est le meme sens. */
+  --succes: var(--color-hc-lime);
+  --succes-fond: var(--color-hc-lime-soft);
+  --alerte: var(--color-hc-diff-intermediaire);
+  --alerte-fond: var(--color-hc-diff-intermediaire-12);
+  --erreur: var(--color-hc-diff-extreme);
+  --erreur-fond: var(--color-hc-diff-extreme-12);
+  /* Le rouge de la charte est CLAIR : du blanc dessus mesure 3,24:1, sous le
+     seuil. La regle « texte noir sur aplat clair » vaut pour lui comme pour le
+     lime, et elle est mesuree comme telle. */
+  --sur-erreur: var(--color-hc-black);
+
+  --diff-info: var(--color-hc-diff-info);
+  --diff-info-fond: var(--color-hc-diff-info-12);
+  --diff-info-bord: var(--color-hc-diff-info-25);
+  --diff-easy: var(--color-hc-diff-facile);
+  --diff-easy-fond: var(--color-hc-diff-facile-12);
+  --diff-easy-bord: var(--color-hc-diff-facile-25);
+  --diff-medium: var(--color-hc-diff-intermediaire);
+  --diff-medium-fond: var(--color-hc-diff-intermediaire-12);
+  --diff-medium-bord: var(--color-hc-diff-intermediaire-25);
+  --diff-hard: var(--color-hc-diff-difficile);
+  --diff-hard-fond: var(--color-hc-diff-difficile-12);
+  --diff-hard-bord: var(--color-hc-diff-difficile-25);
+  --diff-insane: var(--color-hc-diff-extreme);
+  --diff-insane-fond: var(--color-hc-diff-extreme-12);
+  --diff-insane-bord: var(--color-hc-diff-extreme-25);
+
+  /* Hors charte : les couleurs d'equipe viennent de l'API, la feuille ne les
+     regle pas. Le texte pose dessus est blanc, et c'est un JETON pour que le
+     controleur le mesure. */
   --sur-couleur-imposee: #ffffff;
+
+  --grille: var(--color-hc-grille);
+  /* Butee de masque, pas une couleur : seul son canal alpha compte. Elle est
+     nommee parce que la regle « aucune couleur ecrite en clair » porte sur la
+     FORME, et qu'une exception au cas par cas ferait tomber la regle. */
+  --masque-plein: rgb(0 0 0 / 1);
 
   --rayon: 4px;
   --pas: 8px;
 
+  --police-texte: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --police-display: "Space Grotesk", "Inter", system-ui, sans-serif;
+
   color-scheme: dark;
-}
-
-/* ---------------------------------------------------------------------------
-   THEME CLAIR.
- *
- * Le meme bloc est ecrit DEUX FOIS : une fois pour la preference systeme, une
- * fois pour le choix explicite de l'utilisateur. CSS ne permet pas de reunir
- * les deux selecteurs, l'un vivant dans une requete de media.
- *
- * Une duplication derive. Celle-ci ne peut pas : `pnpm contrast` compare les
- * deux blocs et echoue s'ils divergent d'un seul token. C'est le meme garde que
- * celui qui tient `theme-color` egal a `--fond`.
- *
- * `:not([data-theme="dark"])` : un choix explicite l'emporte toujours sur la
- * preference du systeme, sinon le selecteur de theme ne servirait a rien pour
- * qui veut du sombre sur une machine reglee en clair.
- * ------------------------------------------------------------------------- */
-
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) {
-    /* --- Fonds ---
-     Ni blanc pur ni noir pur, dans ce sens-ci non plus : un blanc absolu sous
-     du texte tres sombre eblouit en lecture longue. */
-    --fond: #fbfcfd;
-    --fond-doux: #f4f6f8;
-    --fond-appuye: #eaeef2;
-
-    /* --- Bordures --- */
-    --bord: #d7dde5;
-    --bord-fort: #6b7685;
-
-    /* --- Textes --- */
-    --texte: #14171c;
-    --texte-doux: #4a5462;
-    --texte-eteint: #6e7887;
-
-    /* --- Accent --- */
-    --lien: #1552b8;
-    --lien-survol: #0e3c8a;
-    --lien-visite: #6b3fa0;
-
-    /* --- Difficulte ---
-     LA RAMPE EST RECALCULEE, PAS TRANSPOSEE. En sombre les couleurs sont
-     claires sur un fond sombre ; en clair elles doivent etre SOMBRES sur un
-     fond clair, donc aucune valeur ne se reutilise. Le sens, lui, ne bouge
-     pas : `easy` reste le cran le plus leger, `insane` le plus lourd.
-     L* 45,3 / 36,1 / 26,8 / 18,0 — monotone, ecart minimal 8,9. */
-    --diff-info: #55606f;
-    --diff-easy: #127b46;
-    --diff-medium: #7c4903;
-    --diff-hard: #7f140a;
-    --diff-insane: #421264;
-
-    /* --- Etats --- */
-    --succes: #186c3d;
-    --alerte: #7d5400;
-    --erreur: #a81e16;
-    --focus: #1552b8;
-
-    /* --- Surfaces d'etat --- */
-    --succes-fond: #e6f5ed;
-    --alerte-fond: #fbf1dd;
-    --erreur-fond: #fceceb;
-
-    /* Les couleurs d'equipe viennent de l'API et ne changent pas avec le theme :
-     le blanc pose dessus reste le bon choix dans les deux. */
-    --sur-couleur-imposee: #ffffff;
-
-    color-scheme: light;
-  }
-}
-
-:root[data-theme="light"] {
-  /* --- Fonds ---
-     Ni blanc pur ni noir pur, dans ce sens-ci non plus : un blanc absolu sous
-     du texte tres sombre eblouit en lecture longue. */
-  --fond: #fbfcfd;
-  --fond-doux: #f4f6f8;
-  --fond-appuye: #eaeef2;
-
-  /* --- Bordures --- */
-  --bord: #d7dde5;
-  --bord-fort: #6b7685;
-
-  /* --- Textes --- */
-  --texte: #14171c;
-  --texte-doux: #4a5462;
-  --texte-eteint: #6e7887;
-
-  /* --- Accent --- */
-  --lien: #1552b8;
-  --lien-survol: #0e3c8a;
-  --lien-visite: #6b3fa0;
-
-  /* --- Difficulte ---
-     LA RAMPE EST RECALCULEE, PAS TRANSPOSEE. En sombre les couleurs sont
-     claires sur un fond sombre ; en clair elles doivent etre SOMBRES sur un
-     fond clair, donc aucune valeur ne se reutilise. Le sens, lui, ne bouge
-     pas : `easy` reste le cran le plus leger, `insane` le plus lourd.
-     L* 45,3 / 36,1 / 26,8 / 18,0 — monotone, ecart minimal 8,9. */
-  --diff-info: #55606f;
-  --diff-easy: #127b46;
-  --diff-medium: #7c4903;
-  --diff-hard: #7f140a;
-  --diff-insane: #421264;
-
-  /* --- Etats --- */
-  --succes: #186c3d;
-  --alerte: #7d5400;
-  --erreur: #a81e16;
-  --focus: #1552b8;
-
-  /* --- Surfaces d'etat --- */
-  --succes-fond: #e6f5ed;
-  --alerte-fond: #fbf1dd;
-  --erreur-fond: #fceceb;
-
-  /* Les couleurs d'equipe viennent de l'API et ne changent pas avec le theme :
-     le blanc pose dessus reste le bon choix dans les deux. */
-  --sur-couleur-imposee: #ffffff;
-
-  color-scheme: light;
 }
 *,
 *::before,
@@ -221,17 +194,26 @@ body {
   margin: 0;
   background: var(--fond);
   color: var(--texte);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--police-texte);
   font-size: 15px;
   line-height: 1.5;
+  /* Inter porte un zero barre et des chiffres a chasse fixe par variante
+     OpenType : les colonnes de nombres du catalogue s'alignent sans etre
+     monospacees. */
+  font-variant-numeric: tabular-nums;
 }
 
+/* Les titres et les nombres passent en display technique. Le reste du texte
+   reste en Inter : une police display sur un paragraphe se lit moins bien, et
+   la hierarchie vient justement du contraste entre les deux. */
 h1,
 h2,
 h3 {
-  line-height: 1.25;
+  font-family: var(--police-display);
+  line-height: 1.2;
   margin: 0;
-  font-weight: 650;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 h1 {
@@ -248,14 +230,21 @@ p {
   margin: 0;
 }
 
+/* AUCUN LIEN AU STYLE DU NAVIGATEUR. Le bleu et le violet du visite sont une
+   convention de document, pas celle de ce produit — et le violet s'invitait
+   jusque dans les libelles de boutons, mesure a 1,34:1 sur le lime. Un lien est
+   blanc, se souligne au survol, et passe au lime quand il designe la page
+   courante. Le soulignement au survol remplace la couleur : il reste un signal
+   non colore, donc lisible sans percevoir les teintes. */
 a {
   color: var(--lien);
+  text-decoration: none;
   text-decoration-thickness: 1px;
   text-underline-offset: 2px;
 }
 
-a:visited {
-  color: var(--lien-visite);
+a:hover {
+  text-decoration: underline;
 }
 
 /* Focus visible partout, sans exception : c'est la seule facon de naviguer au
@@ -341,10 +330,6 @@ kbd {
   text-decoration: none;
 }
 
-.marque:visited {
-  color: var(--texte);
-}
-
 .nav {
   display: flex;
   gap: var(--pas);
@@ -357,10 +342,6 @@ kbd {
   text-decoration: none;
   padding: 4px var(--pas);
   border-radius: var(--rayon);
-}
-
-.nav a:visited {
-  color: var(--texte-doux);
 }
 
 .nav a:hover {
@@ -435,17 +416,38 @@ kbd {
   font-weight: 500;
 }
 
-/* La difficulte est portee par la COULEUR DU TEXTE et la bordure, sur un fond
-   commun. Cinq aplats satures cote a cote deviennent cinq taches en theme
-   sombre, et le libelle y perd en lisibilite exactement la ou il compte. Les
-   cinq clartes sont espacees d'au moins 8 en L*, verifie par `pnpm contrast` :
-   un lecteur qui ne distingue pas les teintes lit quand meme cinq gris. */
-.badge--info,
-.badge--easy,
-.badge--medium,
-.badge--hard,
+/* La difficulte est CODEE PAR LA TEINTE, en trois temps : texte plein, fond a
+   12 %, bordure a 25 %. Le lime n'y figure pas — il marque l'action, pas un cran
+   de difficulte, et une pastille lime au milieu du catalogue dirait « clique
+   ici ». Le libelle est toujours ecrit en toutes lettres : la teinte accelere la
+   lecture, elle ne la conditionne pas. */
+.badge--info {
+  color: var(--diff-info);
+  background: var(--diff-info-fond);
+  border-color: var(--diff-info-bord);
+  /* `info` n'est pas un cran : 18 rooms sur 714, ni plus facile ni plus dure
+     qu'une `easy`, d'une autre nature. Contour tirete, teinte neutre. */
+  border-style: dashed;
+}
+.badge--easy {
+  color: var(--diff-easy);
+  background: var(--diff-easy-fond);
+  border-color: var(--diff-easy-bord);
+}
+.badge--medium {
+  color: var(--diff-medium);
+  background: var(--diff-medium-fond);
+  border-color: var(--diff-medium-bord);
+}
+.badge--hard {
+  color: var(--diff-hard);
+  background: var(--diff-hard-fond);
+  border-color: var(--diff-hard-bord);
+}
 .badge--insane {
-  background: var(--fond-appuye);
+  color: var(--diff-insane);
+  background: var(--diff-insane-fond);
+  border-color: var(--diff-insane-bord);
 }
 
 .badge--info {
@@ -499,15 +501,15 @@ kbd {
 /* Le bouton PRINCIPAL. Un seul par vue : deux actions egales en importance
    veulent dire qu'aucune ne l'est. Il porte le fond, pas juste la bordure. */
 .bouton--principal {
-  background: var(--lien);
-  border-color: var(--lien);
-  color: var(--fond);
-  font-weight: 650;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--sur-accent);
+  font-weight: 700;
 }
 
 .bouton--principal:hover:not(:disabled) {
-  background: var(--lien-survol);
-  border-color: var(--lien-survol);
+  background: var(--accent-survol);
+  border-color: var(--accent-survol);
 }
 
 /* Le bouton DISCRET : une action de service, qui ne dispute pas l'attention au
@@ -626,38 +628,6 @@ kbd {
   text-underline-offset: 2px;
 }
 
-/* UN LIEN HABILLE EN BOUTON N'EST PAS UN LIEN VISITE.
-
-   `a:visited` pese (0,1,1), `.bouton` pese (0,1,0) : sans ces regles, le
-   libelle de tout bouton rendu par un `<a>` vire au violet des liens visites.
-   Mesure sur le bouton principal de l'accueil, une fois /roadmap visite :
-   #c9a6f5 sur #79b0ff, soit 1,34:1. Le controle de contraste ne pouvait pas le
-   voir : il mesure des paires de jetons, pas la cascade.
-
-   ET LA MESURE DANS LE NAVIGATEUR NE LE VOIT PAS NON PLUS.
-   `getComputedStyle` renvoie la couleur NON visitee, par protection de la vie
-   privee — une page ne doit pas pouvoir lire l'historique. Un defaut de couleur
-   sur `:visited` ne se constate donc qu'a l'oeil ou sur une capture. */
-a.bouton:visited {
-  color: var(--texte);
-}
-
-a.bouton--principal:visited {
-  color: var(--fond);
-}
-
-a.bouton--discret:visited {
-  color: var(--texte-doux);
-}
-
-a.bouton--actif:visited {
-  color: var(--texte);
-}
-
-a.bouton--lien:visited {
-  color: var(--lien);
-}
-
 .champ {
   font: inherit;
   border: 1px solid var(--bord-fort);
@@ -731,30 +701,64 @@ label {
   gap: var(--pas);
 }
 
+/* UNE BANDE, PAS QUATRE BOITES. Quatre encadres identiques alignes ne
+   hierarchisent rien : ils disent que les quatre nombres se valent, ce qui est
+   faux — le premier est l'argument, les trois autres l'etayent. La bande les
+   separe par un trait et laisse la taille faire la difference. */
 .chiffres {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: var(--pas);
-  margin: calc(var(--pas) * 3) 0;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0;
+  margin: calc(var(--pas) * 4) 0;
   padding: 0;
   list-style: none;
+  border-top: 1px solid var(--bord);
+  border-bottom: 1px solid var(--bord);
 }
 
 .chiffre {
-  border: 1px solid var(--bord);
-  border-radius: var(--rayon);
-  padding: calc(var(--pas) * 1.5);
+  padding: calc(var(--pas) * 2) calc(var(--pas) * 2) calc(var(--pas) * 2) 0;
+}
+
+.chiffre + .chiffre {
+  border-left: 1px solid var(--bord);
+  padding-left: calc(var(--pas) * 2);
 }
 
 .chiffre__valeur {
-  font-size: 1.5rem;
-  font-weight: 650;
+  font-family: var(--police-display);
+  font-size: clamp(1.75rem, 1.3rem + 1.6vw, 2.5rem);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--accent);
   font-variant-numeric: tabular-nums;
 }
 
+/* Le premier chiffre est l'argument du produit : 714 rooms. Les trois autres
+   l'etayent. */
+.chiffre:first-child .chiffre__valeur {
+  font-size: clamp(2.25rem, 1.6rem + 2.4vw, 3.25rem);
+}
+
+@media (max-width: 719px) {
+  .chiffre:nth-child(odd) {
+    border-left: 0;
+    padding-left: 0;
+  }
+
+  .chiffre:nth-child(n + 3) {
+    border-top: 1px solid var(--bord);
+  }
+}
+
 .chiffre__libelle {
-  color: var(--texte-doux);
-  font-size: 0.8125rem;
+  color: var(--texte-eteint);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 6px;
+  max-width: 22ch;
 }
 
 .portes {
@@ -773,10 +777,6 @@ label {
   text-decoration: none;
   color: var(--texte);
   height: 100%;
-}
-
-.porte:visited {
-  color: var(--texte);
 }
 
 .porte:hover {
@@ -878,6 +878,27 @@ label {
      exigible, et c'est ce qui fait tenir la colonne. */
   .facette__titre {
     min-height: 32px;
+  }
+}
+
+/* ECRANS D'ORDINATEUR PORTABLE. 900 px de haut est une fenetre de bureau ; un
+   portable courant en offre 768 ou 720, dont il faut retirer la barre du
+   navigateur. Mesure a 1366x768 avant ce bloc : la colonne demandait 786 px
+   pour 682 disponibles, donc son ascenseur revenait — exactement ce que le
+   repliement des facettes avait chasse. On resserre l'interligne plutot que de
+   cacher des filtres. */
+@media (min-width: 861px) and (max-height: 860px) {
+  .filtres {
+    gap: 6px;
+    padding: calc(var(--pas) * 1.25);
+  }
+
+  .facette__titre {
+    min-height: 26px;
+  }
+
+  .option {
+    padding: 1px 4px;
   }
 }
 
@@ -983,6 +1004,9 @@ label {
 .option input {
   margin: 0;
   flex-shrink: 0;
+  /* Une case cochee est un etat ACTIF : elle prend l'accent, pas le bleu du
+     systeme. */
+  accent-color: var(--accent);
 }
 
 .option__nom {
@@ -1388,8 +1412,35 @@ label {
    texte au-dela d'environ 70 caracteres oblige l'oeil a chercher le debut de la
    suivante, et c'est la premiere chose que quelqu'un lit du produit. */
 
+/* ELEMENT DE SIGNATURE. Une trame de 32 px, qui s'efface vers le bas : elle
+   situe le produit du cote des outils sans rien ajouter a lire. Elle est
+   decorative au sens strict — aucune information n'y est portee, et elle
+   disparait pour qui demande moins de mouvement visuel comme pour qui imprime. */
 .accroche {
-  padding: calc(var(--pas) * 4) 0 calc(var(--pas) * 3);
+  position: relative;
+  padding: calc(var(--pas) * 5) 0 calc(var(--pas) * 4);
+}
+
+.accroche::before {
+  content: "";
+  position: absolute;
+  /* Pas de debordement hors de la colonne : `-50vw` de chaque cote faisait
+     apparaitre une barre de defilement horizontale sur toute la page, mesuree
+     a 1440 comme a 375. */
+  inset: 0;
+  z-index: -1;
+  background-image:
+    linear-gradient(var(--grille) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grille) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: linear-gradient(to bottom, var(--masque-plein) 0%, transparent 92%);
+  pointer-events: none;
+}
+
+@media print {
+  .accroche::before {
+    display: none;
+  }
 }
 
 /* LA MESURE SE POSE SUR LE TEXTE, PAS SUR LE CONTENEUR. `ch` se resout contre
@@ -1406,7 +1457,7 @@ label {
 }
 
 .accroche__accent {
-  color: var(--lien);
+  color: var(--accent);
 }
 
 .accroche__sous-titre {
@@ -1489,7 +1540,7 @@ label {
   bottom: calc(var(--pas) * 1.5);
   width: 3px;
   border-radius: 999px;
-  background: var(--lien);
+  background: var(--bord-fort);
 }
 
 .apercu-parcours__titre {
@@ -1605,7 +1656,7 @@ label {
 }
 
 .marque__accent {
-  color: var(--lien);
+  color: var(--accent);
   margin-left: 0.35ch;
 }
 
@@ -1692,39 +1743,6 @@ label {
     width: auto;
     padding-top: 0;
   }
-}
-
-/* --- Bascule de theme ---------------------------------------------------- */
-
-.bascule-theme {
-  font: inherit;
-  font-size: 0.8125rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 0 10px;
-  border: 1px solid var(--bord);
-  border-radius: 999px;
-  background: none;
-  color: var(--texte-doux);
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.bascule-theme:hover {
-  border-color: var(--bord-fort);
-  color: var(--texte);
-}
-
-.bascule-theme__marque {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  border: 2px solid currentColor;
-  /* Moitie pleine : la marque dit « thème », le libelle dit lequel. */
-  background: linear-gradient(to right, currentColor 50%, transparent 50%);
-  flex: none;
 }
 
 /* --- Pied ---------------------------------------------------------------- */
@@ -2086,7 +2104,7 @@ label {
 
 .indicateur-stockage:hover {
   background: var(--erreur);
-  color: var(--erreur-fond);
+  color: var(--sur-erreur);
 }
 
 .indicateur-stockage__point {

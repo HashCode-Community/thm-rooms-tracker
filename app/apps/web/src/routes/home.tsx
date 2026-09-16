@@ -7,6 +7,7 @@ import { Compteur } from "../components/Compteur.js";
 import { ErrorState } from "../components/states.js";
 import { Badge, Skeleton } from "../components/ui/index.js";
 import { useProgression } from "../progression.js";
+import { useTitre } from "../titre.js";
 import { rootRoute } from "./root.js";
 
 const NIVEAUX: Readonly<Record<string, string>> = {
@@ -27,6 +28,7 @@ const NIVEAUX: Readonly<Record<string, string>> = {
  * par ou je commence, qu'est-ce que ca vaut, comment ca marche.
  */
 function Home(): ReactNode {
+  useTitre("714 rooms TryHackMe, trois parcours");
   const stats = useResource<StatsResponse>(urls.stats());
   const tracks = useResource<TrackListResponse>(urls.tracks());
   const progression = useProgression();
@@ -41,8 +43,8 @@ function Home(): ReactNode {
           <span className="accroche__accent">Trois chemins pour les traverser.</span>
         </h1>
         <p className="accroche__sous-titre">
-          Un catalogue ne dit pas par où commencer. Les parcours, si — écrits à la main, assumés
-          comme des recommandations.
+          Un catalogue ne dit pas par où commencer. Les parcours, oui : trois chemins écrits à la
+          main, assumés comme des recommandations, jamais comme des prérequis.
         </p>
 
         {/* DEUX actions, une seule principale. Le parcours d'abord : c'est ce que
