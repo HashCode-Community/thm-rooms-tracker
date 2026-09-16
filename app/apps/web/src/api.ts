@@ -95,6 +95,28 @@ export function loadTags(): Promise<TagListResponse> {
   return tagsPromise;
 }
 
+/**
+ * Detail d'un parcours, memorise par slug.
+ *
+ * Le contenu est editorial : il ne change qu'a une publication, jamais pendant
+ * une session. L'accueil en a besoin pour savoir quelles etapes sont terminees,
+ * et la page du parcours le redemanderait juste apres — une seule requete sert
+ * les deux.
+ */
+const parcoursEnCours = new Map<string, Promise<TrackDetailResponse>>();
+
+export function loadTrack(slug: string): Promise<TrackDetailResponse> {
+  const memorise = parcoursEnCours.get(slug);
+  if (memorise !== undefined) return memorise;
+
+  const promesse = request<TrackDetailResponse>(urls.track(slug)).catch((error: unknown) => {
+    parcoursEnCours.delete(slug);
+    throw error;
+  });
+  parcoursEnCours.set(slug, promesse);
+  return promesse;
+}
+
 export function loadCategories(): Promise<CategoryListResponse> {
   categoriesPromise ??= request<CategoryListResponse>(urls.categories()).catch((error: unknown) => {
     categoriesPromise = null;

@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 /**
  * En-tete.
@@ -21,12 +21,39 @@ const LIENS = [
   { to: "/progression", libelle: "Progression" },
 ] as const;
 
+/**
+ * Vrai des que la page a quitte le haut.
+ *
+ * L'en-tete est transparente sur le hero — elle le laisse respirer — et se pose
+ * sur un fond des que du contenu passe dessous, sinon le texte defilerait
+ * derriere des liens illisibles. Le seuil est bas (24 px) : la bascule doit
+ * avoir lieu avant que quoi que ce soit atteigne la barre.
+ */
+function useDefilee(): boolean {
+  const [defilee, setDefilee] = useState(false);
+
+  useEffect(() => {
+    const suivre = (): void => {
+      setDefilee(window.scrollY > 24);
+    };
+    suivre();
+    // `passive` : ce gestionnaire ne bloque jamais le defilement.
+    window.addEventListener("scroll", suivre, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", suivre);
+    };
+  }, []);
+
+  return defilee;
+}
+
 export function Entete(): ReactNode {
   const [ouvert, setOuvert] = useState(false);
   const menuId = useId();
+  const defilee = useDefilee();
 
   return (
-    <header className="entete">
+    <header className={`entete${defilee || ouvert ? " entete--posee" : ""}`}>
       <div className="entete__interieur">
         <Link to="/" className="marque" onClick={() => setOuvert(false)}>
           THM<span className="marque__accent">Roadmap</span>

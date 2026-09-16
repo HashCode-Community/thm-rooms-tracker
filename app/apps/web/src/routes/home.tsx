@@ -1,9 +1,12 @@
 import { createRoute, Link } from "@tanstack/react-router";
 import type { StatsResponse, TrackListResponse } from "@thm/shared";
 import type { ReactNode } from "react";
+import { useMemo } from "react";
 import { urls, useResource } from "../api.js";
+import { type AvancementParcours, useAvancement } from "../avancement.js";
 import { formatDuration } from "../components/badges.js";
 import { Compteur } from "../components/Compteur.js";
+import { GrapheParcours } from "../components/GrapheParcours.js";
 import { ErrorState } from "../components/states.js";
 import { Badge, Skeleton } from "../components/ui/index.js";
 import { useProgression } from "../progression.js";
@@ -32,31 +35,67 @@ function Home(): ReactNode {
   const stats = useResource<StatsResponse>(urls.stats());
   const tracks = useResource<TrackListResponse>(urls.tracks());
   const progression = useProgression();
-  const aCommence = progression.completedRooms.length > 0;
+  const codes = useMemo(
+    () => progression.completedRooms.map((room) => room.code),
+    [progression.completedRooms],
+  );
+  const slugs = useMemo(
+    () => (tracks.data === null ? [] : tracks.data.data.map((track) => track.slug)),
+    [tracks.data],
+  );
+  const avancements = useAvancement(slugs, codes);
+  const reprise = premiereRepriseUtile(slugs, avancements);
 
   return (
     <>
-      <section className="accroche">
-        <h1 className="accroche__titre">
-          714 rooms TryHackMe gratuites.
-          <br />
-          <span className="accroche__accent">Trois chemins pour les traverser.</span>
-        </h1>
-        <p className="accroche__sous-titre">
-          Un catalogue ne dit pas par où commencer. Les parcours, oui : trois chemins écrits à la
-          main, assumés comme des recommandations, jamais comme des prérequis.
-        </p>
+      <section className="hero">
+        {/* Le fond : une trame, un halo tres faible derriere le graphe, un grain.
+            Trois couches decoratives, aucune information. */}
+        <div className="hero__fond" aria-hidden="true" />
 
-        {/* DEUX actions, une seule principale. Le parcours d'abord : c'est ce que
-            le titre vient d'affirmer, et proposer deux portes egales reviendrait
-            a ne rien recommander du tout. */}
-        <div className="accroche__actions">
-          <Link to="/roadmap" className="bouton bouton--principal">
-            {aCommence ? "Reprendre un parcours" : "Commencer par un parcours"}
-          </Link>
-          <Link to="/rooms" className="bouton">
-            Explorer le catalogue
-          </Link>
+        <div className="hero__colonnes">
+          <div className="accroche">
+            <h1 className="accroche__titre">
+              714 rooms TryHackMe gratuites.
+              <br />
+              <span className="accroche__accent">Trois chemins pour les traverser.</span>
+            </h1>
+            <p className="accroche__sous-titre">
+              Un catalogue ne dit pas par où commencer. Les parcours, oui : trois chemins écrits à
+              la main, assumés comme des recommandations, jamais comme des prérequis.
+            </p>
+
+            {/* DEUX actions, une seule principale. Le parcours d'abord : c'est ce
+                que le titre vient d'affirmer, et proposer deux portes egales
+                reviendrait a ne rien recommander du tout. Quand une progression
+                existe, l'action principale dit OU on reprend, pas « reprendre ». */}
+            <div className="accroche__actions">
+              {reprise === null ? (
+                <Link to="/roadmap" className="bouton bouton--principal">
+                  Commencer par un parcours
+                </Link>
+              ) : (
+                <Link
+                  to="/roadmap/$slug"
+                  params={{ slug: reprise.slug }}
+                  className="bouton bouton--principal"
+                >
+                  Reprendre {reprise.titre}, étape {reprise.etape}
+                </Link>
+              )}
+              <Link to="/rooms" className="bouton">
+                Explorer le catalogue
+              </Link>
+            </div>
+          </div>
+
+          <div className="hero__visuel">
+            {tracks.data === null ? (
+              <div className="graphe graphe--attente" aria-hidden="true" />
+            ) : (
+              <GrapheParcours tracks={tracks.data.data} avancements={avancements} />
+            )}
+          </div>
         </div>
       </section>
 
@@ -185,6 +224,24 @@ function Home(): ReactNode {
       </section>
     </>
   );
+}
+
+/**
+ * Le parcours a reprendre : le premier, dans l ordre des parcours, qui est
+ * entame et pas fini. Sans progression, il n y en a aucun et l action
+ * principale redevient « commencer ».
+ */
+function premiereRepriseUtile(
+  slugs: readonly string[],
+  avancements: ReadonlyMap<string, AvancementParcours>,
+): { slug: string; titre: string; etape: number } | null {
+  for (const slug of slugs) {
+    const avancement = avancements.get(slug);
+    if (avancement === undefined || avancement.prochaine === null) continue;
+    if (avancement.pourcentage === 0) continue;
+    return { slug, titre: avancement.titre, etape: avancement.prochaine };
+  }
+  return null;
 }
 
 function Chiffre({ valeur, libelle }: { valeur: number; libelle: string }): ReactNode {

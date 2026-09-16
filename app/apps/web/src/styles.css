@@ -101,7 +101,10 @@
 
   /* La grille de fond : une trame technique, assez faible pour ne jamais
      disputer la lecture. Elle vaut 4 % de blanc, soit moins que la bordure. */
-  --color-hc-grille: rgb(255 255 255 / 0.045);
+  --color-hc-grille: rgb(255 255 255 / 0.07);
+  /* Le halo derriere le graphe : assez pour que le fond ne soit pas plat,
+     assez peu pour ne jamais lutter avec le lime des elements actifs. */
+  --color-hc-halo: rgb(168 255 0 / 0.1);
 
   /* --- Les roles ------------------------------------------------------ */
 
@@ -162,6 +165,7 @@
   --diff-insane-bord: var(--color-hc-diff-extreme-25);
 
   --grille: var(--color-hc-grille);
+  --halo: var(--color-hc-halo);
   /* Butee de masque, pas une couleur : seul son canal alpha compte. Elle est
      nommee parce que la regle « aucune couleur ecrite en clair » porte sur la
      FORME, et qu'une exception au cas par cas ferait tomber la regle. */
@@ -1412,35 +1416,243 @@ label {
    texte au-dela d'environ 70 caracteres oblige l'oeil a chercher le debut de la
    suivante, et c'est la premiere chose que quelqu'un lit du produit. */
 
-/* ELEMENT DE SIGNATURE. Une trame de 32 px, qui s'efface vers le bas : elle
-   situe le produit du cote des outils sans rien ajouter a lire. Elle est
-   decorative au sens strict — aucune information n'y est portee, et elle
-   disparait pour qui demande moins de mouvement visuel comme pour qui imprime. */
-.accroche {
+/* --- Hero ---------------------------------------------------------------
+
+   PLEIN ECRAN, PARCE QU'IL PORTE LE PRODUIT. L'accueil affirmait « trois
+   chemins » et n'en montrait aucun : le visiteur devait croire sur parole qu'il
+   existait une progression. La moitie droite etait vide. Elle porte maintenant
+   le graphe, et c'est la seule chose spectaculaire de la page — le reste reste
+   sobre, sinon plus rien ne ressort. */
+
+.hero {
   position: relative;
-  padding: calc(var(--pas) * 5) 0 calc(var(--pas) * 4);
+  min-height: 88svh;
+  display: flex;
+  align-items: center;
+  margin-bottom: calc(var(--pas) * 4);
 }
 
-.accroche::before {
-  content: "";
+/* Trois couches decoratives, aucune information : halo, trame, grain. Elles
+   portent `aria-hidden` et disparaissent a l'impression. */
+.hero__fond {
   position: absolute;
-  /* Pas de debordement hors de la colonne : `-50vw` de chaque cote faisait
-     apparaitre une barre de defilement horizontale sur toute la page, mesuree
-     a 1440 comme a 375. */
-  inset: 0;
+  inset: -24px -16px 0;
   z-index: -1;
+  pointer-events: none;
   background-image:
+    radial-gradient(52% 46% at 74% 44%, var(--halo), transparent 72%),
     linear-gradient(var(--grille) 1px, transparent 1px),
     linear-gradient(90deg, var(--grille) 1px, transparent 1px);
-  background-size: 32px 32px;
-  mask-image: linear-gradient(to bottom, var(--masque-plein) 0%, transparent 92%);
-  pointer-events: none;
+  background-size:
+    100% 100%,
+    34px 34px,
+    34px 34px;
+  mask-image: linear-gradient(
+    to bottom,
+    var(--masque-plein) 0%,
+    var(--masque-plein) 58%,
+    transparent 100%
+  );
+}
+
+/* Le grain casse l'aplat parfait des grandes surfaces sombres, ou le degrade du
+   halo se voit par bandes sur un ecran 8 bits. Turbulence SVG, aucune requete,
+   aucune couleur : seule la luminance du bruit est gardee. */
+.hero__fond::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.4;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='b'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23b)' opacity='0.06'/%3E%3C/svg%3E");
+}
+
+.hero__colonnes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: calc(var(--pas) * 4);
+  width: 100%;
+  padding: calc(var(--pas) * 4) 0;
+}
+
+@media (min-width: 901px) {
+  .hero__colonnes {
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    align-items: center;
+    gap: calc(var(--pas) * 4);
+  }
+
+  /* Le titre est plus bas qu'en pleine largeur : il partage la ligne avec le
+     graphe. Mesure a 1440 avant reglage : cinq lignes pour deux. */
+  .hero .accroche__titre {
+    font-size: clamp(1.625rem, 1rem + 1.9vw, 2.375rem);
+  }
 }
 
 @media print {
-  .accroche::before {
+  .hero__fond {
     display: none;
   }
+}
+
+/* --- Graphe des parcours -------------------------------------------------
+
+   Le trace est orthogonal a angles arrondis : vocabulaire du plan de metro et
+   du circuit imprime. Les courbes libres auraient dit « schema de
+   presentation » ; ce produit est un outil. */
+
+.graphe {
+  position: relative;
+  width: 100%;
+  aspect-ratio: var(--largeur-graphe) / var(--hauteur-graphe);
+}
+
+.graphe--attente {
+  --largeur-graphe: 520;
+  --hauteur-graphe: 400;
+  border: 1px dashed var(--bord);
+  border-radius: var(--rayon);
+}
+
+.graphe__dessin {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* `pathLength="1"` rend la longueur du trace independante de sa forme : le
+   dessin s'anime en CSS, sans mesurer le chemin en JavaScript. */
+.graphe__trace {
+  fill: none;
+  stroke: var(--bord-fort);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: graphe-tracer 900ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  animation-delay: calc(var(--rang) * 180ms);
+}
+
+@keyframes graphe-tracer {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.graphe__etape {
+  fill: var(--fond);
+  stroke: var(--bord-fort);
+  stroke-width: 2;
+  opacity: 0;
+  animation: graphe-apparait 220ms ease-out forwards;
+  animation-delay: calc(360ms + var(--rang) * 180ms + var(--index) * 55ms);
+}
+
+@keyframes graphe-apparait {
+  to {
+    opacity: 1;
+  }
+}
+
+/* Une etape terminee est pleine. C'est la progression, donc c'est l'accent. */
+.graphe__etape--faite {
+  fill: var(--accent);
+  stroke: var(--accent);
+}
+
+.graphe__ici-coeur {
+  fill: var(--accent);
+}
+
+.graphe__ici-onde {
+  fill: var(--accent);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: graphe-onde 2.8s ease-out infinite;
+}
+
+@keyframes graphe-onde {
+  0% {
+    transform: scale(0.55);
+    opacity: 0.45;
+  }
+  70%,
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+/* Les libelles sont des liens HTML poses sur le dessin : vrai focus, vraie
+   cible tactile, et un ordre de lecture qui suit le chemin. */
+.graphe__noeuds {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.graphe__noeud {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  transform: translate(-10px, -100%);
+  max-width: 40%;
+}
+
+.graphe__noeud a {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 10px 10px;
+  border-radius: var(--rayon);
+  text-decoration: none;
+  border: 1px solid transparent;
+}
+
+.graphe__noeud a:hover {
+  background: var(--fond-doux);
+  border-color: var(--bord);
+  text-decoration: none;
+}
+
+.graphe__titre {
+  font-family: var(--police-display);
+  font-weight: 700;
+  font-size: 0.9375rem;
+  line-height: 1.2;
+}
+
+.graphe__meta {
+  color: var(--texte-eteint);
+  font-size: 0.75rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .graphe__trace,
+  .graphe__etape,
+  .graphe__ici-onde {
+    animation: none;
+  }
+
+  .graphe__trace {
+    stroke-dashoffset: 0;
+  }
+
+  .graphe__etape {
+    opacity: 1;
+  }
+
+  .graphe__ici-onde {
+    opacity: 0.3;
+  }
+}
+
+.accroche {
+  padding: 0;
 }
 
 /* LA MESURE SE POSE SUR LE TEXTE, PAS SUR LE CONTENEUR. `ch` se resout contre
@@ -1621,18 +1833,45 @@ label {
    contenu qui defile sous une barre translucide devient illisible. La couleur
    de repli, opaque, s'applique la ou `backdrop-filter` n'existe pas. */
 
+/* TRANSPARENTE SUR LE HERO, POSEE ENSUITE. Le fond est porte par un pseudo
+   element dont seule l'OPACITE change : une transition de couleur de fond
+   repeindrait la barre a chaque image, alors qu'une opacite est composee par le
+   compositeur. Meme resultat, aucune peinture. */
 .entete {
   position: sticky;
   top: 0;
   z-index: 20;
-  background: var(--fond);
+  border-bottom: 1px solid transparent;
+}
+
+.entete::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--fond-appuye);
   border-bottom: 1px solid var(--bord);
+  opacity: 0;
+  transition: opacity 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.entete--posee::before {
+  opacity: 1;
 }
 
 @supports (backdrop-filter: blur(8px)) {
-  .entete {
-    background: color-mix(in srgb, var(--fond) 82%, transparent);
+  .entete--posee {
     backdrop-filter: blur(10px);
+  }
+
+  .entete--posee::before {
+    background: color-mix(in srgb, var(--fond-appuye) 76%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .entete::before {
+    transition: none;
   }
 }
 
