@@ -25,6 +25,10 @@ existe finit par être supprimée comme « inutile ».
 
 ## Sécurité (échéance phase 9) et déploiement
 
+> Ce que le déploiement doit poser est rassemblé dans [`deploiement.md`](deploiement.md) :
+> variables d'environnement, en-têtes du front, vérifications après mise en ligne.
+
+
 | # | À faire | Sans ça |
 |---|---|---|
 | S1 | ~~**Trancher `pnpm audit` : 1 vulnérabilité modérée**~~ **CLOS le 2026-09-16.** `pnpm audit` rend désormais **« No known vulnerabilities found »**. L'exception datée du 2026-09-14 n'est pas reconduite : elle est remplacée par un correctif. Un `override` **ciblé sur le seul chemin vulnérable** — `@esbuild-kit/core-utils>esbuild` — force `>=0.25.0` là où [GHSA-67mh-4wv8-2f99](https://github.com/advisories/GHSA-67mh-4wv8-2f99) s'applique, sans toucher au `esbuild ^0.25.4` dont `drizzle-kit` dépend directement. C'était l'objection retenue en septembre — « forcer une version d'esbuild sous drizzle-kit change le compilateur qui évalue `drizzle.config.ts` » — et elle tombe dès lors que l'override est ciblé. **Vérifié après coup : `db:generate` et `db:migrate` fonctionnent toujours.** Le réglage vit dans `pnpm-workspace.yaml`, où pnpm 12 lit les paramètres d'espace de travail, et non dans le champ `pnpm` de `package.json`, qu'il ignore silencieusement — première tentative perdue là-dessus. |

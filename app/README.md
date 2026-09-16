@@ -8,9 +8,12 @@ Projet non affilie a TryHackMe. Seules des metadonnees publiques sont indexees,
 avec un lien sortant vers chaque room d'origine.
 
 > Les decisions structurantes vivent dans [`docs/adr/`](docs/adr/), le contrat de
-> donnees dans [`docs/data-contract.md`](docs/data-contract.md), et ce qui reste du
-> ce qui reste a faire dans [`docs/dette-phase-10.md`](docs/dette-phase-10.md).
-> Chaque ligne de dette nomme le mode de defaillance qu'elle empeche.
+> donnees dans [`docs/data-contract.md`](docs/data-contract.md), et ce qui reste a
+> faire dans [`docs/dette-phase-10.md`](docs/dette-phase-10.md) — chaque ligne y
+> nomme le mode de defaillance qu'elle empeche.
+>
+> La mise en ligne est decrite dans [`docs/deploiement.md`](docs/deploiement.md),
+> qui dit ce que l'hebergeur doit poser et ce que le code ne peut pas atteindre.
 
 ---
 
