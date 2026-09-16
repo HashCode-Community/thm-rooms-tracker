@@ -9,6 +9,8 @@ import {
   validatorCompiler,
 } from "fastify-type-provider-zod";
 import type { AppConfig } from "./config.js";
+import { registerRateLimit } from "./http/debit.js";
+import { registerCors } from "./http/origines.js";
 import { registerProblemHandlers } from "./http/problem.js";
 import { registerSecurityHeaders } from "./http/securite.js";
 import { catalogRoutes } from "./routes/catalog.js";
@@ -33,6 +35,9 @@ import { trackRoutes } from "./routes/tracks.js";
 export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
   const app = Fastify({
     logger: { level: config.logLevel },
+    // Decide si `request.ip` lit `X-Forwarded-For`. C'est la MEME question que
+    // celle de la limite de debit, et elle se repond a un seul endroit.
+    trustProxy: config.trustProxy,
     routerOptions: {
       // Rend `?tech[]=a` et `?tech=a` equivalents.
       // Convention partagee avec le front : packages/shared/src/querystring.ts.
@@ -66,6 +71,16 @@ export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
     // est nomme ici, pas devine.
     prefixesHtml: ["/docs"],
   });
+
+  // La limite de debit AVANT les routes : une requete refusee ne doit pas avoir
+  // touche la base.
+  await registerRateLimit(app, {
+    max: config.rateLimitMax,
+    fenetreMs: config.rateLimitWindowMs,
+    trustProxy: config.trustProxy,
+  });
+
+  await registerCors(app, { autorisees: config.corsOrigins });
 
   registerProblemHandlers(app, config.exposeErrorDetail);
 

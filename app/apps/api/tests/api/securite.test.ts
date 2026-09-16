@@ -73,7 +73,9 @@ describe("politique de contenu", () => {
       const docs = await avecDocs.inject({ method: "GET", url: "/docs/" });
       const api = await avecDocs.inject({ method: "GET", url: "/api/stats" });
 
-      expect(docs.headers["content-security-policy"]).toContain("script-src 'self' 'unsafe-inline'");
+      expect(docs.headers["content-security-policy"]).toContain(
+        "script-src 'self' 'unsafe-inline'",
+      );
       expect(api.headers["content-security-policy"]).toContain("default-src 'none'");
       // Le relachement ne touche PAS le detournement de clic.
       expect(docs.headers["content-security-policy"]).toContain("frame-ancestors 'none'");
