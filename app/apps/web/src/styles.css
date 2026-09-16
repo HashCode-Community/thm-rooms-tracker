@@ -496,6 +496,123 @@ kbd {
   color: var(--texte);
 }
 
+/* Le bouton PRINCIPAL. Un seul par vue : deux actions egales en importance
+   veulent dire qu'aucune ne l'est. Il porte le fond, pas juste la bordure. */
+.bouton--principal {
+  background: var(--lien);
+  border-color: var(--lien);
+  color: var(--fond);
+  font-weight: 650;
+}
+
+.bouton--principal:hover:not(:disabled) {
+  background: var(--lien-survol);
+  border-color: var(--lien-survol);
+}
+
+/* Le bouton DISCRET : une action de service, qui ne dispute pas l'attention au
+   contenu. Bordure seule au survol, rien au repos. */
+.bouton--discret {
+  border-color: transparent;
+  background: none;
+  color: var(--texte-doux);
+}
+
+.bouton--discret:hover:not(:disabled) {
+  border-color: var(--bord);
+  background: var(--fond-doux);
+  color: var(--texte);
+}
+
+/* --- Liste deroulante ---------------------------------------------------
+   Un `<select>` NATIF habille. `appearance: none` retire le chevron du
+   systeme ; on en redessine un, purement decoratif. Le clavier, le tactile et
+   l'annonce restent ceux du navigateur, qu'aucune reimplementation n'egale. */
+.champ-liste {
+  position: relative;
+  display: block;
+}
+
+.champ--liste {
+  appearance: none;
+  width: 100%;
+  padding-right: calc(var(--pas) * 4);
+  cursor: pointer;
+}
+
+.champ-liste__chevron {
+  position: absolute;
+  right: var(--pas);
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  margin-top: -6px;
+  border-right: 2px solid var(--texte-doux);
+  border-bottom: 2px solid var(--texte-doux);
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
+/* --- Encart -------------------------------------------------------------- */
+
+.encart {
+  border: 1px solid var(--bord-fort);
+  border-left-width: 3px;
+  border-radius: var(--rayon);
+  background: var(--fond-doux);
+  padding: var(--pas) calc(var(--pas) * 1.5);
+  margin: calc(var(--pas) * 2) 0;
+  display: grid;
+  gap: 6px;
+  max-width: 78ch;
+  font-size: 0.875rem;
+}
+
+.encart--alerte {
+  border-color: var(--alerte);
+  background: var(--alerte-fond);
+}
+
+.encart--erreur {
+  border-color: var(--erreur);
+  background: var(--erreur-fond);
+}
+
+.encart__titre {
+  font-weight: 650;
+  margin: 0;
+}
+
+/* Le marqueur de `<details>` reste, mais discret : il signale que l'encart se
+   replie. Le retirer rendrait le pliage invisible. */
+details.encart > summary {
+  cursor: pointer;
+  list-style-position: inside;
+}
+
+details.encart > summary::marker {
+  color: var(--texte-doux);
+}
+
+/* --- Etat vide ----------------------------------------------------------- */
+
+.etat--vide {
+  text-align: center;
+  display: grid;
+  gap: var(--pas);
+  justify-items: center;
+}
+
+.etat__icone {
+  color: var(--texte-eteint);
+  line-height: 0;
+}
+
+.etat__icone svg {
+  width: 44px;
+  height: 44px;
+}
+
 .bouton--lien {
   border: 0;
   background: none;

@@ -2,6 +2,7 @@ import type { CategoryListResponse, FacetsResponse, SortKey } from "@thm/shared"
 import { DEFAULT_SORT, SORT_KEYS } from "@thm/shared";
 import { type ReactNode, useEffect, useId, useState } from "react";
 import type { RoomSearch } from "../search.js";
+import { Button, Select } from "./ui/index.js";
 
 /**
  * Panneau de filtres.
@@ -98,21 +99,15 @@ function Panel({ search, facets, tagNames, categories, onChange, onReset }: Prop
   return (
     <div className="filtres">
       <div>
-        <label htmlFor={sortId}>Trier par</label>
-        <select
+        <Select
           id={sortId}
-          className="champ"
+          etiquette="Trier par"
           value={search.sort ?? DEFAULT_SORT}
+          options={SORT_KEYS.map((key) => ({ valeur: key, libelle: SORT_LABELS[key] }))}
           onChange={(event) => {
             onChange({ sort: event.target.value as SortKey });
           }}
-        >
-          {SORT_KEYS.map((key) => (
-            <option key={key} value={key}>
-              {SORT_LABELS[key]}
-            </option>
-          ))}
-        </select>
+        />
       </div>
 
       <DurationFilter search={search} onChange={onChange} />
@@ -188,9 +183,9 @@ function Panel({ search, facets, tagNames, categories, onChange, onReset }: Prop
         />
       )}
 
-      <button type="button" className="bouton" onClick={onReset} disabled={!hasFilters}>
+      <Button variante="discret" onClick={onReset} disabled={!hasFilters}>
         Tout effacer
-      </button>
+      </Button>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { type Async, loadProgressionResources, type ProgressionResources } from "../api.js";
 import { formatDuration } from "../components/badges.js";
 import { Empty, ErrorState, Loading } from "../components/states.js";
+import { ProgressBar } from "../components/ui/index.js";
 import { ProgressionDownloadLink, RoomCompletionControl, useProgression } from "../progression.js";
 import { grouperParParcours, type RoomTerminee } from "../progression-groupes.js";
 import { summarizeCompletedRooms } from "../progression-summary.js";
@@ -257,9 +258,11 @@ function ProgressionContent({
                   </Link>
                   <strong>{trackProgress.percent} %</strong>
                 </div>
-                <progress value={trackProgress.coreDone} max={trackProgress.coreTotal || 1}>
-                  {trackProgress.percent} %
-                </progress>
+                <ProgressBar
+                  faits={trackProgress.coreDone}
+                  total={trackProgress.coreTotal}
+                  pourcent={trackProgress.percent}
+                />
                 <p className="petit doux">
                   {trackProgress.coreDone} sur {trackProgress.coreTotal} rooms recommandées
                   {(() => {

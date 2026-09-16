@@ -4,14 +4,10 @@ import type { ReactNode } from "react";
 import { useMemo } from "react";
 import { ApiError, urls, useResource } from "../api.js";
 import { formatDuration } from "../components/badges.js";
-import {
-  AvancementParcours,
-  CheminEnChargement,
-  EtapeDuChemin,
-  etatDeLEtape,
-} from "../components/chemin.js";
+import { CheminEnChargement, EtapeDuChemin, etatDeLEtape } from "../components/chemin.js";
 import { Disclaimer, Provenance } from "../components/roadmap.js";
 import { Empty, ErrorState } from "../components/states.js";
+import { ProgressBar } from "../components/ui/index.js";
 import { useProgression } from "../progression.js";
 import { rootRoute } from "./root.js";
 
@@ -62,10 +58,11 @@ function RoadmapDetail(): ReactNode {
 
       {/* L'avancement passe AVANT les chiffres du parcours : « ou j'en suis »
           prime sur « combien ca pese ». */}
-      <AvancementParcours
+      <ProgressBar
         faits={progress.coreDone}
         total={progress.coreTotal}
         pourcent={progress.percent}
+        avecChiffre
       />
 
       <div className="rang" style={{ marginTop: 12 }}>

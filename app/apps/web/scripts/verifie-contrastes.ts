@@ -121,6 +121,10 @@ const PAIRES: readonly Paire[] = [
 
   // --- inversions : la paire inverse est une paire ---
   { contexte: "lien sortant survole", premierPlan: "--fond", arrierePlan: "--lien" },
+  // Le bouton principal porte le fond de l'accent, pas seulement sa bordure :
+  // le texte pose dessus est donc celui de la page, a l'envers.
+  { contexte: "bouton principal", premierPlan: "--fond", arrierePlan: "--lien" },
+  { contexte: "bouton principal survole", premierPlan: "--fond", arrierePlan: "--lien-survol" },
   { contexte: "erreur inversee au survol", premierPlan: "--erreur-fond", arrierePlan: "--erreur" },
   // Le lien d'evitement est le PREMIER element focalisable de chaque page. Il
   // peignait `#fff` sur `var(--texte)` : invisible des que `--texte` est devenu

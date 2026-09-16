@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { Button } from "./components/ui/index.js";
 import {
   type CompletedRoom,
   createProgressionExport,
@@ -163,15 +164,13 @@ export function ProgressionPersistenceWarning(): ReactNode {
       <p className="alerte-stockage__titre">{titre}</p>
       <p>{corps}</p>
       <p>
-        <button
-          type="button"
-          className="bouton"
+        <Button
           onClick={() => {
             setAcquitte(warning);
           }}
         >
           J'ai compris
-        </button>
+        </Button>
       </p>
     </div>
   );

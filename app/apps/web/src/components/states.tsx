@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Button } from "./ui/index.js";
 
 /**
  * Les trois etats, ecrits des le premier jet.
@@ -46,9 +47,7 @@ export function ErrorState({
       <p className="petit">{error.message}</p>
       {onRetry !== undefined && (
         <p style={{ marginTop: 8 }}>
-          <button type="button" className="bouton" onClick={onRetry}>
-            Réessayer
-          </button>
+          <Button onClick={onRetry}>Réessayer</Button>
         </p>
       )}
     </div>

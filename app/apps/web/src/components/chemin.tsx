@@ -137,37 +137,6 @@ export function EtapeDuChemin({
 }
 
 /**
- * Avancement du parcours, en tete de chemin.
- *
- * `progress` est un element natif : il porte son role, sa valeur et son maximum
- * sans qu'on ait a les reecrire en ARIA, et il reste lisible quand la feuille de
- * style ne charge pas.
- */
-export function AvancementParcours({
-  faits,
-  total,
-  pourcent,
-}: {
-  faits: number;
-  total: number;
-  pourcent: number;
-}): ReactNode {
-  return (
-    <div className="avancement">
-      <div className="avancement__ligne">
-        <strong className="avancement__chiffre">{pourcent} %</strong>
-        <span className="petit doux">
-          {faits} sur {total} room{total > 1 ? "s" : ""} recommandée{total > 1 ? "s" : ""}
-        </span>
-      </div>
-      <progress className="avancement__barre" value={faits} max={total || 1}>
-        {pourcent} %
-      </progress>
-    </div>
-  );
-}
-
-/**
  * Squelette du chemin, AUX DIMENSIONS DU CONTENU REEL.
  *
  * Trois etapes de la hauteur qu'auront les vraies, epine comprise. Un squelette

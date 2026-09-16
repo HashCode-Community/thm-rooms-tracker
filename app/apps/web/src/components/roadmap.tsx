@@ -1,5 +1,6 @@
 import type { Provenance as ProvenanceData } from "@thm/shared";
 import type { ReactNode } from "react";
+import { Callout } from "./ui/index.js";
 
 /**
  * Elements propres aux parcours.
@@ -11,17 +12,25 @@ import type { ReactNode } from "react";
  */
 
 /**
- * Mention obligatoire. En tete de page, pas en note de bas de page.
+ * Mention obligatoire.
  *
- * Le texte vient de l'API : une interface qui le recopierait pourrait le recopier
- * de travers, ou l'oublier a la prochaine refonte.
+ * REPLIABLE, PAS MASQUEE. Elle occupait un bloc entier avant tout contenu, si
+ * bien qu'elle dominait la page qu'elle accompagne. Repliee, elle reste
+ * presente, annoncee, dans le document — donc trouvable par la recherche de
+ * page — et l'utilisateur la rouvre d'un clic.
+ *
+ * Elle s'ouvre PAR DEFAUT. Une obligation qu'on cache d'emblee n'est plus une
+ * obligation ; ce qu'on corrige ici est sa taille, pas sa presence.
+ *
+ * Le texte vient de l'API : une interface qui le recopierait pourrait le
+ * recopier de travers, ou l'oublier a la prochaine refonte.
  */
 export function Disclaimer({ text }: { text: string | undefined }): ReactNode {
   if (text === undefined) return null;
   return (
-    <p className="mention">
-      <strong>À lire avant de suivre un parcours.</strong> {text}
-    </p>
+    <Callout ton="neutre" titre="À lire avant de suivre un parcours" repliable>
+      <p>{text}</p>
+    </Callout>
   );
 }
 

@@ -9,9 +9,9 @@ import type { ReactNode } from "react";
 import { useMemo } from "react";
 import { urls, useResource } from "../api.js";
 import { formatDuration } from "../components/badges.js";
-import { AvancementParcours } from "../components/chemin.js";
 import { Disclaimer, Provenance } from "../components/roadmap.js";
 import { Empty, ErrorState, Loading } from "../components/states.js";
+import { ProgressBar } from "../components/ui/index.js";
 import { useProgression } from "../progression.js";
 import { rootRoute } from "./root.js";
 
@@ -49,10 +49,11 @@ function AvancementDeLaCarte({ slug }: { slug: string }): ReactNode {
 
   return (
     <>
-      <AvancementParcours
+      <ProgressBar
         faits={progress.coreDone}
         total={progress.coreTotal}
         pourcent={progress.percent}
+        avecChiffre
       />
       <p className="petit doux parcours-carte__suite">
         {etape === undefined ? (
