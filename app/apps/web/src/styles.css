@@ -1195,6 +1195,167 @@ label {
  * Etapes verticales numerotees. Ici la numerotation encode une SEQUENCE : le
  * trait vertical relie les etapes pour le dire visuellement.
  */
+/* --- Accueil -------------------------------------------------------------
+
+   L'accroche occupe une colonne LISIBLE, pas toute la largeur. Une ligne de
+   texte au-dela d'environ 70 caracteres oblige l'oeil a chercher le debut de la
+   suivante, et c'est la premiere chose que quelqu'un lit du produit. */
+
+.accroche {
+  max-width: 34ch;
+  padding: calc(var(--pas) * 4) 0 calc(var(--pas) * 3);
+}
+
+.accroche__titre {
+  font-size: clamp(1.75rem, 1.2rem + 2.4vw, 2.75rem);
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.accroche__accent {
+  color: var(--lien);
+}
+
+.accroche__sous-titre {
+  color: var(--texte-doux);
+  font-size: 1rem;
+  margin-top: var(--pas);
+  max-width: 52ch;
+}
+
+.accroche__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pas);
+  margin-top: calc(var(--pas) * 3);
+}
+
+/* Les actions sont des liens qui ressemblent a des boutons : la destination est
+   une adresse, donc un lien. Un `<button>` qui navigue casse le clic milieu,
+   l'ouverture en onglet et la copie de l'adresse. */
+.accroche__actions .bouton {
+  min-height: 44px;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+@media (min-width: 720px) {
+  .accroche {
+    max-width: 46ch;
+  }
+}
+
+/* --- Sections de l'accueil ----------------------------------------------- */
+
+.section-accueil {
+  margin-top: calc(var(--pas) * 5);
+}
+
+.section-accueil__entete {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--pas);
+  flex-wrap: wrap;
+  margin-bottom: var(--pas);
+}
+
+/* --- Apercu des parcours ------------------------------------------------- */
+
+.apercu-parcours {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--pas);
+}
+
+.apercu-parcours__carte {
+  position: relative;
+  border: 1px solid var(--bord);
+  border-radius: var(--rayon);
+  background: var(--fond-doux);
+  padding: calc(var(--pas) * 1.5) calc(var(--pas) * 1.5) calc(var(--pas) * 1.5)
+    calc(var(--pas) * 2.5);
+  display: grid;
+  gap: var(--pas);
+  align-content: start;
+}
+
+/* LE FIL. La meme marque verticale que l'epine d'un parcours, reduite a la
+   hauteur d'une carte. C'est la seule chose qui distingue ce produit d'un
+   annuaire, et elle doit se reconnaitre d'une page a l'autre. */
+.apercu-parcours__fil {
+  position: absolute;
+  left: var(--pas);
+  top: calc(var(--pas) * 1.5);
+  bottom: calc(var(--pas) * 1.5);
+  width: 3px;
+  border-radius: 999px;
+  background: var(--lien);
+}
+
+.apercu-parcours__titre {
+  margin: 0;
+  font-size: 1.0625rem;
+}
+
+.apercu-parcours__titre a {
+  text-decoration: none;
+}
+
+.apercu-parcours__titre a:hover {
+  text-decoration: underline;
+}
+
+.apercu-parcours__resume {
+  margin: 0;
+}
+
+/* --- Comment ca marche --------------------------------------------------- */
+
+.marche {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: calc(var(--pas) * 2);
+  max-width: 70ch;
+}
+
+.marche__etape {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: calc(var(--pas) * 1.5);
+  align-items: start;
+}
+
+.marche__marque {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--bord-fort);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: var(--texte-doux);
+}
+
+.marche__etape h3 {
+  margin: 4px 0 2px;
+  font-size: 1rem;
+}
+
+.marche__etape p {
+  margin: 0;
+}
+
 /* --- En-tete -------------------------------------------------------------
 
    COLLANTE AVEC UN LEGER FLOU. Le flou n'est pas decoratif : sans lui, le
