@@ -20,11 +20,20 @@ import { analyser } from "./accents.js";
 const RACINE = resolve(import.meta.dirname, "..");
 const DEPOT = resolve(RACINE, "../..");
 
-/** Fichiers du paquet partage qui portent du texte affiche a l'ecran. */
-const PARTAGES = [
+/**
+ * Fichiers hors de `apps/web` qui portent du texte AFFICHE.
+ *
+ * Les libelles de difficulte et d'equipe ne sont pas ecrits dans le front : ils
+ * viennent de la base, peuplee par `seed-reference.ts`. Le controle ne les
+ * voyait donc pas, et « Intermediaire » et « Extreme » sont restes les trois
+ * derniers mots non accentues du site pendant toute la refonte. Un controle qui
+ * ne regarde pas la ou le texte est ecrit ne controle rien.
+ */
+const HORS_WEB = [
   "packages/shared/src/roadmap.ts",
   "packages/shared/src/api-queries.ts",
   "packages/shared/src/api-responses.ts",
+  "apps/api/src/db/seed-reference.ts",
 ];
 
 function sources(racine: string): string[] {
@@ -41,7 +50,7 @@ function sources(racine: string): string[] {
 
 const fichiers = [
   ...sources(resolve(RACINE, "src")),
-  ...PARTAGES.map((chemin) => resolve(DEPOT, chemin)),
+  ...HORS_WEB.map((chemin) => resolve(DEPOT, chemin)),
 ];
 
 let total = 0;

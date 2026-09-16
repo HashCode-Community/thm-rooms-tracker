@@ -107,6 +107,15 @@ export const FORMES_SANS_ACCENT: readonly string[] = [
   "ecrits",
   "arretee",
   "repond",
+  // Les libelles servis par la base : ils manquaient a la liste, donc le
+  // controle serait reste muet meme apres avoir recu le bon perimetre.
+  "intermediaire",
+  "extreme",
+  "defi",
+  "defis",
+  "defensive",
+  "detaille",
+  "detail",
 ];
 
 const MOTIF = new RegExp(`(?<![A-Za-zÀ-ÿ])(${FORMES_SANS_ACCENT.join("|")})(?![A-Za-zÀ-ÿ])`, "gi");
@@ -170,7 +179,13 @@ function estProse(ligne: string): boolean {
 export function estAffichable(brut: string): boolean {
   const texte = brut.trim();
   if (texte.length < 4) return false;
-  if (!texte.includes(" ")) return false;
+  // UN LIBELLE PEUT TENIR EN UN MOT. « Intermediaire » et « Extreme » sont des
+  // libelles affiches ; exiger une espace les laissait passer, et c'est
+  // exactement ce qui s'est produit. Un mot seul compte s'il a la forme d'un
+  // libelle : une capitale puis des minuscules, ou tout en capitales. Les
+  // identifiants du depot sont en camelCase ou en PascalCase, donc porteurs
+  // d'une capitale interne, et restent ecartes.
+  if (!texte.includes(" ") && !/^([A-ZÀ-Þ][a-zà-ÿ]{3,}|[A-ZÀ-Þ]{4,})$/.test(texte)) return false;
   if (texte.includes("/")) return false;
   if (texte.includes("__") || texte.includes("--")) return false;
   if (/[;,{(=]$/.test(texte)) return false;

@@ -23,20 +23,27 @@ if (!connectionString) {
 const LABELS: Record<string, string> = {
   info: "Informatif",
   easy: "Facile",
-  medium: "Intermediaire",
+  medium: "Intermédiaire",
   hard: "Difficile",
-  insane: "Extreme",
+  insane: "Extrême",
   walkthrough: "Guide",
-  challenge: "Defi",
+  challenge: "Défi",
   Red: "Offensive",
-  Blue: "Defensive",
+  Blue: "Défensive",
   Purple: "Mixte",
 };
 
 /**
  * Couleurs d'accent. Elles ne sont JAMAIS l'unique porteur d'information :
- * chaque badge porte aussi son libelle. Contrastes choisis pour rester >= 4.5:1
- * sur fond clair, a verifier en phase 6 avec le design reel.
+ * chaque badge porte aussi son libelle.
+ *
+ * CES LIBELLES S'AFFICHENT, ils ne sont pas des cles : ils portent donc leurs
+ * accents, comme tout texte affiche. Ils etaient les trois derniers mots non
+ * accentues du site, et ils venaient de la base — donc d'un endroit ou le
+ * controle d'accents ne regardait pas. Il y regarde maintenant.
+ *
+ * Le contraste de ces couleurs est mesure par `pnpm contrast`, avec le blanc
+ * pose dessus : elles viennent de la base, la feuille de style ne les regle pas.
  */
 const TEAM_COLORS: Record<string, string> = {
   Red: "#b3261e",
