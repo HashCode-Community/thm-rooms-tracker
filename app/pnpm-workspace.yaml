@@ -9,3 +9,14 @@ allowBuilds:
 
 minimumReleaseAgeExclude:
   - '@tanstack/react-router@1.170.35'
+
+# GHSA-67mh-4wv8-2f99 : esbuild <= 0.24.2 laisse n'importe quel site interroger
+# son serveur de developpement. La chaine vulnerable est
+# drizzle-kit > @esbuild-kit/esm-loader > @esbuild-kit/core-utils > esbuild,
+# un loader hérité que drizzle-kit traine encore en 0.31.10, la derniere publiee.
+#
+# L'override est CIBLE sur ce seul chemin. drizzle-kit depend par ailleurs de
+# esbuild ^0.25.4, deja corrige : le forcer globalement changerait le compilateur
+# qui evalue drizzle.config.ts, alors que le probleme est ailleurs.
+overrides:
+  "@esbuild-kit/core-utils>esbuild": ">=0.25.0"
