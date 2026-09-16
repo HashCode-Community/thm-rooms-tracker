@@ -20,7 +20,8 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import {
   analyser,
-  lireTokens,
+  comparerBlocs,
+  lireTokensDuBloc,
   type Paire,
   type Reglages,
   verifierThemeColor,
@@ -171,48 +172,91 @@ function fichiersSources(dossier: string): Array<{ chemin: string; contenu: stri
 }
 
 const css = readFileSync(FEUILLE, "utf8");
-const rapport = analyser(css, REGLAGES, fichiersSources(SOURCES));
+const html = readFileSync(resolve(RACINE, "index.html"), "utf8");
+const composants = fichiersSources(SOURCES);
 
-// La couleur de la barre d'adresse mobile vit dans le `<head>`, pas dans la
-// feuille : elle s'applique AVANT que le CSS arrive. Elle est donc ecrite en
-// clair, et doit etre comparee a `--fond`.
-const fond = lireTokens(css).get("--fond") ?? "";
-const derive = verifierThemeColor(readFileSync(resolve(RACINE, "index.html"), "utf8"), fond);
-const echecs = derive === null ? rapport.echecs : [...rapport.echecs, derive];
+/**
+ * LES TROIS BLOCS DE TOKENS.
+ *
+ * `:root` porte le sombre. Le clair est ecrit deux fois, CSS ne permettant pas
+ * de reunir un selecteur ordinaire et un selecteur sous requete de media.
+ */
+const SOMBRE = ":root";
+const CLAIR_SYSTEME = ':root:not([data-theme="dark"])';
+const CLAIR_CHOISI = ':root[data-theme="light"]';
+
+const palettes = [
+  { nom: "sombre", tokens: lireTokensDuBloc(css, SOMBRE) },
+  { nom: "clair", tokens: lireTokensDuBloc(css, CLAIR_CHOISI) },
+] as const;
 
 console.log("\nContrastes — apps/web/src/styles.css");
-console.log(`${PAIRES.length} paires declarees\n`);
-
-console.log("  1. Paires premier-plan / arriere-plan");
-for (const mesure of rapport.mesures) {
-  console.log(
-    `     ${mesure.passe ? "OK  " : "ECHEC"} ${mesure.ratio.toFixed(2).padStart(6)}:1  ` +
-      `(seuil ${mesure.seuil})  ${mesure.contexte}`,
-  );
-}
-
-console.log("\n  2. Couleurs imposees par les donnees");
-for (const externe of rapport.externes) {
-  console.log(
-    `     ${externe.passe ? "OK  " : "ECHEC"} ${externe.ratio.toFixed(2).padStart(6)}:1  ` +
-      `${externe.nom}  ${externe.couleur}`,
-  );
-}
-
-console.log("\n  3. La rampe de difficulte reste une rampe en niveaux de gris");
-for (const { nom, clarte } of rapport.clartes) {
-  console.log(`     ${nom.padEnd(15)} L* ${clarte.toFixed(1).padStart(5)}`);
-}
 console.log(
-  `     ecart minimal ${rapport.ecartMinimal.toFixed(1)} (minimum ${REGLAGES.seuilGris})`,
+  `${PAIRES.length} paires x ${palettes.length} themes = ${PAIRES.length * palettes.length} mesures\n`,
 );
-console.log("     --diff-info est HORS RAMPE : autre nature, pas autre cran");
 
-console.log("\n  4. Aucun token n'echappe a la mesure");
-console.log("  5. Aucune couleur ecrite en clair hors du bloc de tokens");
-console.log(`     ${rapport.litteraux.length} litteral(aux) trouve(s)`);
+const echecs: string[] = [];
+let litteraux = 0;
 
-console.log("  6. `theme-color` du <head> dit la meme chose que `--fond`");
+for (const palette of palettes) {
+  // Les litteraux et les emplois ne dependent pas du theme : on ne les compte
+  // qu'une fois, sur la premiere palette.
+  const premier = palette === palettes[0];
+  const rapport = analyser(css, REGLAGES, premier ? composants : [], palette.tokens, palette.nom);
+  echecs.push(...rapport.echecs);
+  if (premier) litteraux = rapport.litteraux.length;
+
+  console.log(`  THEME ${palette.nom.toUpperCase()}`);
+  for (const mesure of rapport.mesures) {
+    console.log(
+      `     ${mesure.passe ? "OK  " : "ECHEC"} ${mesure.ratio.toFixed(2).padStart(6)}:1  ` +
+        `(seuil ${mesure.seuil})  ${mesure.contexte}`,
+    );
+  }
+  console.log("     rampe :");
+  for (const { nom, clarte } of rapport.clartes) {
+    console.log(`       ${nom.padEnd(15)} L* ${clarte.toFixed(1).padStart(5)}`);
+  }
+  console.log(
+    `       ecart minimal ${rapport.ecartMinimal.toFixed(1)} (minimum ${REGLAGES.seuilGris})`,
+  );
+  console.log("");
+}
+
+console.log("  Couleurs imposees par les donnees, identiques dans les deux themes");
+{
+  const rapport = analyser(css, REGLAGES, [], palettes[0].tokens, "");
+  for (const externe of rapport.externes) {
+    console.log(
+      `     ${externe.passe ? "OK  " : "ECHEC"} ${externe.ratio.toFixed(2).padStart(6)}:1  ` +
+        `${externe.nom}  ${externe.couleur}`,
+    );
+  }
+}
+
+// Les deux ecritures du theme clair doivent etre identiques : la duplication
+// est imposee par CSS, la derive ne l'est pas.
+echecs.push(
+  ...comparerBlocs(
+    lireTokensDuBloc(css, CLAIR_SYSTEME),
+    lireTokensDuBloc(css, CLAIR_CHOISI),
+    "le clair sous preference systeme",
+    "le clair choisi explicitement",
+  ),
+);
+
+// `theme-color` : une balise par theme, chacune egale au `--fond` du sien.
+for (const palette of palettes) {
+  const fond = palette.tokens.get("--fond") ?? "";
+  const derive = verifierThemeColor(html, fond, palette.nom);
+  if (derive !== null) echecs.push(derive);
+}
+
+console.log("\n  Aucun token n'echappe a la mesure");
+console.log("  Aucune couleur ecrite en clair hors d'une declaration de token");
+console.log(`     ${litteraux} litteral(aux) trouve(s)`);
+console.log("  Les deux ecritures du theme clair sont identiques");
+console.log("  `theme-color` accorde a `--fond`, dans les deux themes");
 
 if (echecs.length > 0) {
   console.error(`
@@ -223,4 +267,4 @@ ECHEC — ${echecs.length} probleme(s) :
   process.exit(1);
 }
 
-console.log("\nOK — paires au seuil, rampe monotone, aucune couleur en clair.\n");
+console.log("\nOK — les deux palettes tiennent, rampes monotones, rien en clair.\n");

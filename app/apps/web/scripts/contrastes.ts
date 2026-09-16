@@ -60,18 +60,63 @@ export function sansCommentaires(source: string): string {
   return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|\s)\/\/[^\n]*/g, "$1");
 }
 
-export function lireTokens(css: string): Map<string, string> {
-  const debut = css.indexOf(":root {");
-  const fin = css.indexOf("}", debut);
-  if (debut < 0 || fin < 0) throw new Error("Bloc :root introuvable");
-  const bloc = css.slice(debut, fin);
+/**
+ * Tokens declares dans UN bloc, designe par son selecteur.
+ *
+ * Il y en a trois : `:root` porte le theme sombre, et le clair est ecrit deux
+ * fois — une fois sous la preference systeme, une fois sous le choix explicite.
+ * CSS ne permet pas de reunir ces deux selecteurs, l'un vivant dans une requete
+ * de media.
+ */
+export function lireTokensDuBloc(css: string, selecteur: string): Map<string, string> {
+  const debut = css.indexOf(`${selecteur} {`);
+  if (debut < 0) throw new Error(`Bloc introuvable : ${selecteur}`);
 
+  // Fin du bloc : la premiere accolade fermante en debut de ligne a partir du
+  // selecteur. Les declarations sont toutes indentees, donc sans ambiguite.
+  const lignes = css.slice(debut).split("\n");
   const tokens = new Map<string, string>();
-  for (const ligne of bloc.split("\n")) {
+  for (const ligne of lignes.slice(1)) {
+    if (/^\s{0,2}\}/.test(ligne)) break;
     const trouve = /^\s*(--[a-z0-9-]+)\s*:\s*(#[0-9a-fA-F]{3,8})\s*;/.exec(ligne);
     if (trouve?.[1] !== undefined && trouve[2] !== undefined) tokens.set(trouve[1], trouve[2]);
   }
+  if (tokens.size === 0) throw new Error(`Aucun token dans ${selecteur}`);
   return tokens;
+}
+
+/** Le theme sombre, valeur par defaut de la feuille. */
+export function lireTokens(css: string): Map<string, string> {
+  return lireTokensDuBloc(css, ":root");
+}
+
+/**
+ * Les deux ecritures du theme clair doivent etre IDENTIQUES.
+ *
+ * La duplication est imposee par CSS ; la derive ne l'est pas. Sans ce
+ * controle, un token corrige d'un seul cote donnerait deux apparences
+ * differentes selon qu'on subit la preference systeme ou qu'on a choisi.
+ */
+export function comparerBlocs(
+  gauche: ReadonlyMap<string, string>,
+  droite: ReadonlyMap<string, string>,
+  nomGauche: string,
+  nomDroite: string,
+): string[] {
+  const echecs: string[] = [];
+  for (const [token, valeur] of gauche) {
+    const autre = droite.get(token);
+    if (autre === undefined)
+      echecs.push(`${token} est dans ${nomGauche} mais absent de ${nomDroite}`);
+    else if (autre !== valeur) {
+      echecs.push(`${token} vaut ${valeur} dans ${nomGauche} et ${autre} dans ${nomDroite}`);
+    }
+  }
+  for (const token of droite.keys()) {
+    if (!gauche.has(token))
+      echecs.push(`${token} est dans ${nomDroite} mais absent de ${nomGauche}`);
+  }
+  return echecs;
 }
 
 /** Tokens employes comme `color:` et comme fond, dans TOUTE la feuille. */
@@ -121,16 +166,18 @@ export function trouverLitteraux(
   const trouves: Litteral[] = [];
 
   for (const { chemin, contenu } of fichiers) {
-    const nettoye = sansCommentaires(contenu);
-    const lignes = nettoye.split("\n");
-
-    // Le bloc `:root` est le SEUL endroit ou une couleur s'ecrit en clair.
-    const debutRoot = lignes.findIndex((l) => l.includes(":root {"));
-    const finRoot =
-      debutRoot === -1 ? -1 : lignes.findIndex((l, i) => i > debutRoot && l.trim() === "}");
+    const lignes = sansCommentaires(contenu).split("\n");
 
     for (const [index, ligne] of lignes.entries()) {
-      if (debutRoot !== -1 && index >= debutRoot && index <= finRoot) continue;
+      // UNE DECLARATION DE TOKEN EST LE SEUL ENDROIT LEGITIME, ou qu'elle soit.
+      //
+      // La regle portait avant sur le bloc `:root`. Elle ne tient plus des lors
+      // qu'il y a trois blocs de tokens, dont deux dans des selecteurs
+      // differents et l'un dans une requete de media. Ce qui compte n'a jamais
+      // ete l'endroit mais la FORME : une couleur nommee est declaree, une
+      // couleur anonyme est un litteral.
+      if (/^\s*--[a-z0-9-]+\s*:\s*#[0-9a-fA-F]{3,8}\s*;/.test(ligne)) continue;
+
       for (const trouve of ligne.matchAll(LITTERAL)) {
         trouves.push({ fichier: chemin, ligne: index + 1, texte: trouve[0] });
       }
@@ -199,14 +246,30 @@ export type Rapport = Readonly<{
  * celle-ci deriverait en silence — personne ne relit un `<head>`. On les
  * compare.
  */
-export function verifierThemeColor(html: string, fond: string): string | null {
-  const trouve = /<meta\s+name="theme-color"\s+content="(#[0-9a-fA-F]{3,8})"/.exec(html);
+export function verifierThemeColor(
+  html: string,
+  fond: string,
+  theme: "clair" | "sombre",
+): string | null {
+  // Une balise PAR THEME, chacune portant sa requete de media. Une balise unique
+  // ne pourrait pas suivre les deux palettes, et la barre d'adresse trancherait
+  // avec la page dans l'un des deux cas.
+  // `String.raw` : dans un gabarit ordinaire, `\s` n'est pas une sequence
+  // d'echappement valide et se reduit a `s`. Le motif ne correspondrait alors
+  // jamais, et le garde se tairait — exactement ce qu'un garde ne doit pas faire.
+  const prefere = theme === "clair" ? "light" : "dark";
+  const motif = new RegExp(
+    String.raw`<meta\s+name="theme-color"\s+content="(#[0-9a-fA-F]{3,8})"\s+media="\(prefers-color-scheme:\s*` +
+      prefere +
+      String.raw`\)"`,
+  );
+  const trouve = motif.exec(html);
   if (trouve?.[1] === undefined) {
-    return "index.html ne declare pas de `theme-color` : la barre d'adresse mobile restera claire";
+    return `index.html ne declare pas de \`theme-color\` pour le theme ${theme} : la barre d'adresse mobile ne suivra pas la page`;
   }
   const declare = trouve[1].toLowerCase();
   if (declare !== fond.toLowerCase()) {
-    return `theme-color vaut ${declare} alors que --fond vaut ${fond} : la barre d'adresse ne sera pas de la couleur de la page`;
+    return `theme-color du theme ${theme} vaut ${declare} alors que --fond y vaut ${fond}`;
   }
   return null;
 }
@@ -215,8 +278,12 @@ export function analyser(
   css: string,
   reglages: Reglages,
   fichiersComposants: ReadonlyArray<{ chemin: string; contenu: string }> = [],
+  /** Palette a mesurer. Par defaut celle de `:root`, c'est-a-dire le sombre. */
+  tokens: ReadonlyMap<string, string> = lireTokens(css),
+  /** Nomme le theme dans les messages : « texte sur la page (clair) ». */
+  theme = "",
 ): Rapport {
-  const tokens = lireTokens(css);
+  const suffixe = theme === "" ? "" : ` (${theme})`;
   const echecs: string[] = [];
 
   const resoudre = (nom: string): Rgb => {
@@ -232,7 +299,7 @@ export function analyser(
     const passe = mesure >= seuil;
     if (!passe) {
       echecs.push(
-        `${paire.contexte} : ${mesure.toFixed(2)}:1, seuil ${seuil}:1 ` +
+        `${paire.contexte}${suffixe} : ${mesure.toFixed(2)}:1, seuil ${seuil}:1 ` +
           `(${paire.premierPlan} sur ${paire.arrierePlan})`,
       );
     }
@@ -260,7 +327,7 @@ export function analyser(
     ecartMinimal = Math.min(ecartMinimal, Math.abs(ecart));
     if (ecart <= 0) {
       echecs.push(
-        `la rampe n'est plus monotone entre ${gauche.nom} et ${droite.nom} : ` +
+        `la rampe${suffixe} n'est plus monotone entre ${gauche.nom} et ${droite.nom} : ` +
           `${gauche.clarte.toFixed(1)} puis ${droite.clarte.toFixed(1)}`,
       );
     } else if (ecart < reglages.seuilGris) {
@@ -285,13 +352,17 @@ export function analyser(
   for (const token of [...emplois.premierPlan].sort()) {
     if (!tokens.has(token)) continue;
     if (!declaresPartout.has(token)) {
-      echecs.push(`${token} est employe comme \`color:\` mais n'est mesure par aucune paire`);
+      echecs.push(
+        `${token}${suffixe} est employe comme \`color:\` mais n'est mesure par aucune paire`,
+      );
     }
   }
   for (const token of [...emplois.arrierePlan].sort()) {
     if (!tokens.has(token)) continue;
     if (!declaresFond.has(token)) {
-      echecs.push(`${token} est peint en fond sans qu'aucune paire ne mesure ce qui s'y pose`);
+      echecs.push(
+        `${token}${suffixe} est peint en fond sans qu'aucune paire ne mesure ce qui s'y pose`,
+      );
     }
   }
 

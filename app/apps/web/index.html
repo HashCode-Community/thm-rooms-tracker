@@ -13,13 +13,14 @@
       blanc a chaque ouverture de page dans une application entierement sombre.
       Elle doit dire la meme chose que `:root { color-scheme: dark }`.
     -->
-    <meta name="color-scheme" content="dark" />
+    <meta name="color-scheme" content="dark light" />
     <!--
       Barre d'adresse du navigateur mobile. Meme valeur que `--fond`. Sans elle
       elle reste claire et tranche avec la page, sur le type d'ecran qui est
       justement majoritaire pour le public vise.
     -->
-    <meta name="theme-color" content="#0f1115" />
+    <meta name="theme-color" content="#0f1115" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#fbfcfd" media="(prefers-color-scheme: light)" />
   </head>
   <body>
     <div id="root"></div>

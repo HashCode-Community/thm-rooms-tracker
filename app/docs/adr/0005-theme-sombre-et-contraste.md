@@ -1,9 +1,13 @@
-# ADR-0005 — Thème sombre unique, et le contraste devient un garde
+# ADR-0005 — Thème(s) et contraste mesuré
+
+> **Le titre a changé le 2026-09-16.** Il disait « thème sombre unique ». Voir l'amendement
+> en fin de document.
 
 - **Statut** : accepté
 - **Date** : 2026-09-15
 - **Décideur** : Nelkaël
 - **Amende** : la décision de la phase 8b sur le déclenchement de l'avertissement de persistance
+- **Amendé le 2026-09-16** : Q1 est remplacée, deux thèmes au lieu d'un
 
 ---
 
@@ -19,7 +23,12 @@ Posée par Nel le 2026-09-15, elle vaut pour tous les ADR à venir.
 
 Le premier amendement de ce type est en fin de document.
 
-## Q1 — Un seul thème, sombre, sans sélecteur
+## Q1 — ~~Un seul thème, sombre, sans sélecteur~~ **REMPLACÉE le 2026-09-16**
+
+> Cette section est conservée telle qu'elle a été écrite. Ce qui la remplace est en fin de
+> document, sous « Amendement du 2026-09-16 ». La garder barrée plutôt que la réécrire est
+> délibéré : une décision effacée ne s'apprend plus, et celle-ci portait un raisonnement qui
+> reste vrai.
 
 **Décision.** `color-scheme: dark`. `prefers-color-scheme: light` n'est **pas** géré.
 
@@ -180,3 +189,37 @@ règle ne change pas. Ce qui reste intact : la lecture ne répare jamais, l'écr
 une valeur illisible, et chaque mutation retente.
 
 Commit `e8d6d95`.
+
+---
+
+## Amendement du 2026-09-16 — deux thèmes, clair et sombre
+
+**Décision remplacée** : Q1 ci-dessus, prise le 2026-09-15. Thème sombre unique,
+`prefers-color-scheme: light` non géré, au motif qu'« un thème clair à moitié fait est pire que
+pas de thème clair » et que le coût réel n'est pas la palette mais **la matrice de contraste qui
+double**.
+
+**Raison du remplacement** : décision de Nel, le 2026-09-16, en ouverture de la refonte visuelle.
+
+**Ce que l'argument d'origine avait de juste, et qui est tenu.** Il ne disait pas « le clair est
+une mauvaise idée », il disait « à moitié fait, c'est pire ». Le clair n'est donc pas à moitié
+fait :
+
+- les **64 paires** sont mesurées, 32 par thème, et `pnpm contrast` échoue sur n'importe laquelle ;
+- **la rampe de difficulté est recalculée, pas transposée.** En sombre les quatre crans sont clairs
+  sur un fond sombre ; en clair ils doivent être sombres sur un fond clair. Aucune valeur ne se
+  réutilise. Le sens, lui, ne bouge pas : `easy` reste le cran le plus léger. Clartés en clair :
+  45,3 / 36,1 / 26,8 / 18,0, monotone, écart minimal 8,9 ;
+- **`theme-color` est déclaré deux fois**, une balise par préférence, chacune tenue égale au
+  `--fond` de son thème par le contrôleur ;
+- **la duplication du bloc clair est surveillée.** CSS ne permet pas de réunir
+  `:root[data-theme="light"]` et le bloc sous `@media (prefers-color-scheme: light)` : le bloc est
+  donc écrit deux fois. Le contrôleur compare les deux et échoue s'ils divergent d'un seul token.
+
+**Ce qui change dans la règle des littéraux.** Elle portait sur le bloc `:root`. Avec trois blocs
+de tokens, dont un dans une requête de média, le lieu ne veut plus rien dire : la règle porte
+désormais sur la **forme**. Une couleur nommée est déclarée, une couleur anonyme est un littéral,
+où qu'elle soit.
+
+**Prouvé en le cassant**, trois fois : un token divergeant d'une unité entre les deux blocs clairs,
+la rampe claire rendue non monotone, et un `theme-color` clair désaccordé de `--fond`.

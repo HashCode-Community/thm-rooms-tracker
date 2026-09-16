@@ -5,9 +5,11 @@
  * hierarchie par la taille et le poids du texte, bordures plutot qu'ombres.
  * Pas de degrade, pas de grande banniere, pas d'ombre portee sur chaque carte.
  *
- * THEME SOMBRE UNIQUE, sans selecteur. `prefers-color-scheme: light` n'est PAS
- * gere, et c'est une decision, pas un oubli : un theme clair a moitie fait est
- * pire que pas de theme clair. Voir ADR-0005 et la dette de la phase 10.
+ * DEUX THEMES, clair et sombre. Le sombre est la valeur de `:root`, le clair
+ * s'applique sur preference systeme ou sur choix explicite. Amendement date
+ * d'ADR-0005, qui avait tranche l'inverse : « un theme clair a moitie fait est
+ * pire que pas de theme clair » reste vrai, et c'est pour ca que les DEUX
+ * palettes sont mesurees — 64 paires au lieu de 32.
  *
  * Les contrastes ne sont pas affirmes ici, ils sont MESURES : `pnpm contrast`
  * calcule le ratio WCAG de chaque paire employee et sort en code 1 sous le seuil.
@@ -82,6 +84,128 @@
   --pas: 8px;
 
   color-scheme: dark;
+}
+
+/* ---------------------------------------------------------------------------
+   THEME CLAIR.
+ *
+ * Le meme bloc est ecrit DEUX FOIS : une fois pour la preference systeme, une
+ * fois pour le choix explicite de l'utilisateur. CSS ne permet pas de reunir
+ * les deux selecteurs, l'un vivant dans une requete de media.
+ *
+ * Une duplication derive. Celle-ci ne peut pas : `pnpm contrast` compare les
+ * deux blocs et echoue s'ils divergent d'un seul token. C'est le meme garde que
+ * celui qui tient `theme-color` egal a `--fond`.
+ *
+ * `:not([data-theme="dark"])` : un choix explicite l'emporte toujours sur la
+ * preference du systeme, sinon le selecteur de theme ne servirait a rien pour
+ * qui veut du sombre sur une machine reglee en clair.
+ * ------------------------------------------------------------------------- */
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    /* --- Fonds ---
+     Ni blanc pur ni noir pur, dans ce sens-ci non plus : un blanc absolu sous
+     du texte tres sombre eblouit en lecture longue. */
+    --fond: #fbfcfd;
+    --fond-doux: #f4f6f8;
+    --fond-appuye: #eaeef2;
+
+    /* --- Bordures --- */
+    --bord: #d7dde5;
+    --bord-fort: #6b7685;
+
+    /* --- Textes --- */
+    --texte: #14171c;
+    --texte-doux: #4a5462;
+    --texte-eteint: #6e7887;
+
+    /* --- Accent --- */
+    --lien: #1552b8;
+    --lien-survol: #0e3c8a;
+    --lien-visite: #6b3fa0;
+
+    /* --- Difficulte ---
+     LA RAMPE EST RECALCULEE, PAS TRANSPOSEE. En sombre les couleurs sont
+     claires sur un fond sombre ; en clair elles doivent etre SOMBRES sur un
+     fond clair, donc aucune valeur ne se reutilise. Le sens, lui, ne bouge
+     pas : `easy` reste le cran le plus leger, `insane` le plus lourd.
+     L* 45,3 / 36,1 / 26,8 / 18,0 — monotone, ecart minimal 8,9. */
+    --diff-info: #55606f;
+    --diff-easy: #127b46;
+    --diff-medium: #7c4903;
+    --diff-hard: #7f140a;
+    --diff-insane: #421264;
+
+    /* --- Etats --- */
+    --succes: #186c3d;
+    --alerte: #7d5400;
+    --erreur: #a81e16;
+    --focus: #1552b8;
+
+    /* --- Surfaces d'etat --- */
+    --succes-fond: #e6f5ed;
+    --alerte-fond: #fbf1dd;
+    --erreur-fond: #fceceb;
+
+    /* Les couleurs d'equipe viennent de l'API et ne changent pas avec le theme :
+     le blanc pose dessus reste le bon choix dans les deux. */
+    --sur-couleur-imposee: #ffffff;
+
+    color-scheme: light;
+  }
+}
+
+:root[data-theme="light"] {
+  /* --- Fonds ---
+     Ni blanc pur ni noir pur, dans ce sens-ci non plus : un blanc absolu sous
+     du texte tres sombre eblouit en lecture longue. */
+  --fond: #fbfcfd;
+  --fond-doux: #f4f6f8;
+  --fond-appuye: #eaeef2;
+
+  /* --- Bordures --- */
+  --bord: #d7dde5;
+  --bord-fort: #6b7685;
+
+  /* --- Textes --- */
+  --texte: #14171c;
+  --texte-doux: #4a5462;
+  --texte-eteint: #6e7887;
+
+  /* --- Accent --- */
+  --lien: #1552b8;
+  --lien-survol: #0e3c8a;
+  --lien-visite: #6b3fa0;
+
+  /* --- Difficulte ---
+     LA RAMPE EST RECALCULEE, PAS TRANSPOSEE. En sombre les couleurs sont
+     claires sur un fond sombre ; en clair elles doivent etre SOMBRES sur un
+     fond clair, donc aucune valeur ne se reutilise. Le sens, lui, ne bouge
+     pas : `easy` reste le cran le plus leger, `insane` le plus lourd.
+     L* 45,3 / 36,1 / 26,8 / 18,0 — monotone, ecart minimal 8,9. */
+  --diff-info: #55606f;
+  --diff-easy: #127b46;
+  --diff-medium: #7c4903;
+  --diff-hard: #7f140a;
+  --diff-insane: #421264;
+
+  /* --- Etats --- */
+  --succes: #186c3d;
+  --alerte: #7d5400;
+  --erreur: #a81e16;
+  --focus: #1552b8;
+
+  /* --- Surfaces d'etat --- */
+  --succes-fond: #e6f5ed;
+  --alerte-fond: #fbf1dd;
+  --erreur-fond: #fceceb;
+
+  /* Les couleurs d'equipe viennent de l'API et ne changent pas avec le theme :
+     le blanc pose dessus reste le bon choix dans les deux. */
+  --sur-couleur-imposee: #ffffff;
+
+  color-scheme: light;
 }
 *,
 *::before,
