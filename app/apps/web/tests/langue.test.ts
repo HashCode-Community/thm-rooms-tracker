@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { analyser, estAffichable, formesTrouvees, sansCommentaires } from "../scripts/accents.js";
+import {
+  analyser,
+  analyserYaml,
+  estAffichable,
+  formesTrouvees,
+  marquesTutoiement,
+  sansCommentaires,
+} from "../scripts/langue.js";
 
 /**
  * Le controleur d'accents, exerce sur des sources fabriquees.
@@ -11,7 +18,7 @@ import { analyser, estAffichable, formesTrouvees, sansCommentaires } from "../sc
  * apres coup doit d'abord prouver qu'il attrape ce qui lui a echappe.
  */
 
-describe("controleur d'accents", () => {
+describe("controleur de la langue affichee", () => {
   it("attrape un paragraphe JSX reparti sur plusieurs lignes", () => {
     const source = `
       export function Vue() {
@@ -64,5 +71,27 @@ describe("controleur d'accents", () => {
 
   it("distingue le mot du prefixe : « memento » n'est pas « meme »", () => {
     assert.deepEqual(formesTrouvees("un memento des acces"), ["acces"]);
+  });
+
+  it("attrape le tutoiement, pronom comme possessif", () => {
+    assert.deepEqual(marquesTutoiement("Explore ton catalogue"), ["ton"]);
+    assert.deepEqual(marquesTutoiement("ce que tu viens d'apprendre"), ["tu"]);
+    assert.deepEqual(marquesTutoiement("Explorez votre catalogue"), []);
+  });
+
+  it("attrape la forme elidee, sans confondre avec une autre apostrophe", () => {
+    assert.deepEqual(marquesTutoiement("le metier qui t'attire"), ["t'a"]);
+    assert.deepEqual(marquesTutoiement("la carte n'attire personne"), []);
+  });
+
+  it("lit le contenu editorial YAML, ou le tutoiement avait survecu", () => {
+    const source = [
+      "  - position: 1",
+      `    objective: "Savoir quels metiers existent, et lequel t'attire."`,
+      '    note: "Prevoyez une vraie session."',
+    ].join("\n");
+    const signalements = analyserYaml(source);
+    assert.equal(signalements.length, 1);
+    assert.equal(signalements[0]?.genre, "tutoiement");
   });
 });

@@ -1,5 +1,10 @@
 /**
- * Detection des textes francais affiches sans leurs accents.
+ * Controle de la langue affichee : accents et adresse au lecteur.
+ *
+ * DEUX DEFAUTS, LA MEME CAUSE. Un texte ecrit sans ses accents et un texte qui
+ * tutoie alors que le reste vouvoie viennent tous deux de la meme chose : le
+ * texte affiche est ecrit a plusieurs endroits, par plusieurs mains, et
+ * personne ne relit l'ensemble. Un controle le fait a chaque `pnpm lint`.
  *
  * POURQUOI UN CONTROLE ET PAS UNE RELECTURE. La passe d'accentuation a laisse
  * des restes trois fois de suite : la premiere fois sur des paragraphes JSX
@@ -118,6 +123,37 @@ export const FORMES_SANS_ACCENT: readonly string[] = [
   "detail",
 ];
 
+/**
+ * Marques du tutoiement.
+ *
+ * Le produit VOUVOIE, partout, y compris dans le contenu editorial des
+ * parcours. Ce n'est pas une preference de style : un site qui vouvoie sur
+ * l'accueil et tutoie dans les parcours parle de deux voix, et le lecteur
+ * l'entend meme s'il ne sait pas le nommer.
+ *
+ * Seuls les PRONOMS et POSSESSIFS sont listes. Les imperatifs (« prevois »,
+ * « choisis ») ne le sont pas : leur forme est trop proche d'autres personnes
+ * pour etre reconnue sans analyser la phrase, et un controle qui se trompe est
+ * un controle qu'on desactive.
+ */
+export const MARQUES_TUTOIEMENT: readonly string[] = [
+  "tu",
+  "te",
+  "toi",
+  "ton",
+  "ta",
+  "tes",
+  "tien",
+  "tienne",
+  "tiens",
+  "tiennes",
+];
+
+const MOTIF_TUTOIEMENT = new RegExp(
+  `(?<![A-Za-zÀ-ÿ'])(${MARQUES_TUTOIEMENT.join("|")})(?![A-Za-zÀ-ÿ])`,
+  "gi",
+);
+
 const MOTIF = new RegExp(`(?<![A-Za-zÀ-ÿ])(${FORMES_SANS_ACCENT.join("|")})(?![A-Za-zÀ-ÿ])`, "gi");
 
 /**
@@ -205,16 +241,72 @@ export function formesTrouvees(texte: string): string[] {
   return [...sansCode.matchAll(MOTIF)].map((trouve) => trouve[0]);
 }
 
-export type Signalement = { ligne: number; texte: string; formes: string[] };
+/**
+ * Les marques de tutoiement d'un texte.
+ *
+ * `t'` est exclu de la liste et traite ici : `t'attire` tutoie, mais la meme
+ * apostrophe suit aussi des mots qui ne tutoient pas. On ne signale donc que la
+ * forme elidee suivie d'une lettre, jamais l'apostrophe seule.
+ */
+export function marquesTutoiement(texte: string): string[] {
+  const sansCode = texte.replace(/\${[^}]*}/g, " ");
+  const trouves = [...sansCode.matchAll(MOTIF_TUTOIEMENT)].map((trouve) => trouve[0]);
+  const elide = /(?<![A-Za-zÀ-ÿ])t'[a-zà-ÿ]/gi;
+  for (const trouve of sansCode.matchAll(elide)) trouves.push(trouve[0]);
+  return trouves;
+}
+
+export type Signalement = {
+  ligne: number;
+  texte: string;
+  formes: string[];
+  /** Ce que le signalement reproche au texte. */
+  genre: "accent" | "tutoiement";
+};
 
 /** Analyse un fichier source et renvoie ses signalements. */
 export function analyser(source: string): Signalement[] {
   const signalements: Signalement[] = [];
   for (const candidat of textesAffiches(source)) {
+    const texte = candidat.texte.trim();
     const formes = formesTrouvees(candidat.texte);
     if (formes.length > 0) {
-      signalements.push({ ligne: candidat.ligne, texte: candidat.texte.trim(), formes });
+      signalements.push({ ligne: candidat.ligne, texte, formes, genre: "accent" });
+    }
+    const marques = marquesTutoiement(candidat.texte);
+    if (marques.length > 0) {
+      signalements.push({ ligne: candidat.ligne, texte, formes: marques, genre: "tutoiement" });
     }
   }
+  return signalements;
+}
+
+/**
+ * Les textes d'un fichier YAML de parcours.
+ *
+ * Le contenu editorial n'est pas dans le code : il vit dans `data/roadmap`,
+ * passe par le semis, puis par la base, puis par l'API. C'est le dernier
+ * endroit ou le controle regardait — donc celui ou le tutoiement a survecu a
+ * toute la refonte. Une valeur YAML est prise telle quelle, cle retiree.
+ */
+export function analyserYaml(source: string): Signalement[] {
+  const signalements: Signalement[] = [];
+  source.split("\n").forEach((ligne, index) => {
+    const valeur = /^\s*(?:-\s*)?(?:[a-z_]+:\s*)?(.*)$/i.exec(ligne)?.[1] ?? "";
+    if (!estAffichable(valeur)) return;
+    const formes = formesTrouvees(valeur);
+    if (formes.length > 0) {
+      signalements.push({ ligne: index + 1, texte: valeur.trim(), formes, genre: "accent" });
+    }
+    const marques = marquesTutoiement(valeur);
+    if (marques.length > 0) {
+      signalements.push({
+        ligne: index + 1,
+        texte: valeur.trim(),
+        formes: marques,
+        genre: "tutoiement",
+      });
+    }
+  });
   return signalements;
 }

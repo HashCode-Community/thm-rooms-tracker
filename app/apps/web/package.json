@@ -11,7 +11,7 @@
     "test": "node --conditions=development --import tsx --test tests/*.test.ts",
     "contrast": "node --conditions=development --import tsx scripts/verifie-contrastes.ts",
     "build:analyse": "vite build --sourcemap && node --import tsx scripts/analyse-bundle.ts",
-    "accents": "node --conditions=development --import tsx scripts/verifie-accents.ts"
+    "langue": "node --conditions=development --import tsx scripts/verifie-langue.ts"
   },
   "dependencies": {
     "@tanstack/react-router": "1.170.35",

@@ -15,7 +15,7 @@
 
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
-import { analyser } from "./accents.js";
+import { analyser, analyserYaml } from "./langue.js";
 
 const RACINE = resolve(import.meta.dirname, "..");
 const DEPOT = resolve(RACINE, "../..");
@@ -29,6 +29,9 @@ const DEPOT = resolve(RACINE, "../..");
  * derniers mots non accentues du site pendant toute la refonte. Un controle qui
  * ne regarde pas la ou le texte est ecrit ne controle rien.
  */
+/** Contenu editorial des parcours : la source, avant la base. */
+const CONTENU = "data/roadmap/tracks";
+
 const HORS_WEB = [
   "packages/shared/src/roadmap.ts",
   "packages/shared/src/api-queries.ts",
@@ -53,21 +56,28 @@ const fichiers = [
   ...HORS_WEB.map((chemin) => resolve(DEPOT, chemin)),
 ];
 
+const parcours = readdirSync(resolve(DEPOT, CONTENU))
+  .filter((nom) => nom.endsWith(".yaml"))
+  .map((nom) => resolve(DEPOT, CONTENU, nom));
+
 let total = 0;
-for (const fichier of fichiers) {
-  const signalements = analyser(readFileSync(fichier, "utf8"));
-  for (const { ligne, texte, formes } of signalements) {
+const compter = (fichier: string, signalements: ReturnType<typeof analyser>): void => {
+  for (const { ligne, texte, formes, genre } of signalements) {
     total += 1;
-    const court = texte.length > 88 ? `${texte.slice(0, 88)}…` : texte;
-    console.error(`${relative(DEPOT, fichier)}:${ligne} — ${formes.join(", ")} :: ${court}`);
+    const court = texte.length > 80 ? `${texte.slice(0, 80)}…` : texte;
+    console.error(
+      `${relative(DEPOT, fichier)}:${ligne} [${genre}] ${formes.join(", ")} :: ${court}`,
+    );
   }
-}
+};
+
+for (const fichier of fichiers) compter(fichier, analyser(readFileSync(fichier, "utf8")));
+for (const fichier of parcours) compter(fichier, analyserYaml(readFileSync(fichier, "utf8")));
 
 if (total > 0) {
-  console.error(
-    `\nECHEC — ${total} texte${total > 1 ? "s" : ""} affiche${total > 1 ? "s" : ""} sans accent.`,
-  );
+  console.error(`
+ECHEC — ${total} probleme${total > 1 ? "s" : ""} de langue.`);
   process.exit(1);
 }
 
-console.log(`OK — ${fichiers.length} fichiers, aucun texte affiche sans accent.`);
+console.log(`OK — ${fichiers.length + parcours.length} fichiers, tout est accentue et vouvoie.`);

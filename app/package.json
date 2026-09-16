@@ -13,7 +13,7 @@
     "dev": "pnpm -r --parallel run dev",
     "build": "pnpm -r run build",
     "typecheck": "pnpm -r run typecheck",
-    "lint": "biome check . && pnpm --filter @thm/web run contrast && pnpm --filter @thm/web run accents",
+    "lint": "biome check . && pnpm --filter @thm/web run contrast && pnpm --filter @thm/web run langue",
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
     "db:up": "docker compose up -d",
@@ -30,7 +30,7 @@
     "test": "pnpm -r run test",
     "roadmap:seed": "pnpm --filter @thm/api roadmap:seed",
     "roadmap:candidates": "pnpm --filter @thm/api roadmap:candidates",
-    "accents": "pnpm --filter @thm/web run accents"
+    "langue": "pnpm --filter @thm/web run langue"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.12",

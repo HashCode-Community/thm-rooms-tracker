@@ -3,6 +3,7 @@ import { ErrorState } from "./components/states.js";
 import { homeRoute } from "./routes/home.js";
 import { mentionsRoute } from "./routes/mentions.js";
 import { progressionRoute } from "./routes/progression.js";
+import { catalogueRedirection, parcoursRedirection } from "./routes/redirections.js";
 import { roadmapDetailRoute } from "./routes/roadmap-detail.js";
 import { roadmapListRoute } from "./routes/roadmap-list.js";
 import { roomDetailRoute } from "./routes/room-detail.js";
@@ -23,6 +24,8 @@ const routeTree = rootRoute.addChildren([
   roadmapListRoute,
   roadmapDetailRoute,
   mentionsRoute,
+  catalogueRedirection,
+  parcoursRedirection,
 ]);
 
 export const router = createRouter({

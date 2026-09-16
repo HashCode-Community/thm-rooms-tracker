@@ -34,7 +34,7 @@ steps:
       - { code: ohsint, requirement: core, note: "Challenge OSINT. Frustrant et formateur : cherche, ne devine pas." }
 
   - title: "Scan et énumération"
-    objective: "Découvrir ce qui tourne sur une machine et sur quels ports. Nmap est l'outil que tu utiliseras le plus souvent de ta carrière."
+    objective: "Découvrir ce qui tourne sur une machine et sur quels ports. Nmap est l'outil que vous utiliserez le plus souvent de votre carrière."
     rooms:
       - { code: furthernmap, requirement: core }
       - { code: nmap02, requirement: core, note: "120 min. Comprendre la différence entre les types de scan vaut l'investissement." }
@@ -45,7 +45,7 @@ steps:
     rooms:
       - { code: introwebapplicationsecurity, requirement: core }
       - { code: enumerationbruteforce, requirement: core }
-      - { code: sqlinjectionlm, requirement: core, note: "Classée medium : c'est ta première marche de difficulté. Normal de ralentir ici." }
+      - { code: sqlinjectionlm, requirement: core, note: "Classée medium : c'est votre première marche de difficulté. Normal de ralentir ici." }
       - { code: burpsuiterepeater, requirement: optional, note: "Burp Suite est l'outil de référence. ATTENTION : l'introduction de la série n'est pas gratuite, seul cet épisode l'est. Tu apprendras l'outil dans le désordre." }
 
   - title: "Exploitation guidée"
@@ -60,10 +60,10 @@ steps:
     rooms:
       - { code: linprivesc, requirement: core }
       - { code: postexploit, requirement: core }
-      - { code: windows10privesc, requirement: optional, note: "Côté Windows. À faire si tu vises l'Active Directory ensuite." }
+      - { code: windows10privesc, requirement: optional, note: "Côté Windows. À faire si vous visez l'Active Directory ensuite." }
 
   - title: "Machines en autonomie"
-    objective: "Refaire seul, sans guide, ce que tu as appris. C'est ici que ça rentre vraiment."
+    objective: "Refaire seul, sans guide, ce que vous avez appris. C'est ici que ça rentre vraiment."
     rooms:
       - { code: basicpentestingjt, requirement: core }
       - { code: cowboyhacker, requirement: core }
