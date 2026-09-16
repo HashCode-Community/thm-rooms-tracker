@@ -7,8 +7,10 @@ est le parcours d'apprentissage structure et le suivi de progression.
 Projet non affilie a TryHackMe. Seules des metadonnees publiques sont indexees,
 avec un lien sortant vers chaque room d'origine.
 
-> Documentation complete (architecture, contrat de donnees, redaction des parcours)
-> en phase 10. Ce README ne couvre pour l'instant que l'installation.
+> Les decisions structurantes vivent dans [`docs/adr/`](docs/adr/), le contrat de
+> donnees dans [`docs/data-contract.md`](docs/data-contract.md), et ce qui reste du
+> ce qui reste a faire dans [`docs/dette-phase-10.md`](docs/dette-phase-10.md).
+> Chaque ligne de dette nomme le mode de defaillance qu'elle empeche.
 
 ---
 
@@ -139,8 +141,11 @@ Python. Le seul point de contact est `data/datasets/rooms.v1.json` et son schema
 | `pnpm dev` | API + front en parallele |
 | `pnpm build` | Build des deux apps |
 | `pnpm typecheck` | `tsc --noEmit` sur tout le monorepo |
-| `pnpm lint` | Biome (lint + format) |
+| `pnpm lint` | Biome **puis le controleur de contraste**. Les deux doivent passer. |
+| `pnpm contrast` | le controleur de contraste seul |
+| `pnpm typecheck:guard` | exige que la sonde d'inference morde encore |
 | `pnpm db:up` / `db:down` / `db:logs` | Postgres 16 local |
+| `pnpm data:audit` | audit du dataset, sans jamais corriger |
 
 ### Tests
 
@@ -274,9 +279,102 @@ Trois points a ne pas casser :
    ressource. Jamais d'ecran blanc. Pendant un rechargement, la liste precedente reste
    affichee, grisee.
 3. **La couleur n'est jamais le seul porteur d'information.** Chaque badge de
-   difficulte, de type et d'equipe affiche son libelle. Contrastes mesures : 6,54 a
-   7,38 pour le blanc sur les couleurs d'equipe, 14,8 a 16,2 pour les fonds de
-   difficulte.
+   difficulte, de type et d'equipe affiche son libelle. Les chiffres de contraste ne
+   sont pas recopies ici : `pnpm contrast` les mesure et fait echouer la construction
+   sous le seuil. Une valeur ecrite dans un README vieillit sans prevenir — celle qui
+   occupait ces deux lignes decrivait encore le theme clair.
+
+---
+
+## Progression locale
+
+Sans compte, sans cookie, sans traceur. La progression vit dans le `localStorage` du
+navigateur et **ne part jamais sur le reseau** — ce n'est pas une intention, c'est une
+propriete : l'API n'expose que des routes `GET`, et un test refuse toute methode
+d'ecriture. Elle est exportable en JSON depuis `/progression`.
+
+Quatre comportements qui ne se devinent pas :
+
+1. **Une sonde d'ecriture tourne au demarrage.** Une lecture ne distingue pas « rien
+   n'a ete enregistre » de « rien n'a PU l'etre » : les deux laissent la cle absente.
+   Seule une ecriture tranche. Sans elle, un stockage sature affichait « aucune room
+   terminee » sans le moindre avertissement.
+2. **L'avertissement ne se ferme pas, il se replie.** Le premier acquittement le reduit
+   a un indicateur qui ne disparait pas et redeploie au clic. L'acquittement vit en
+   memoire, jamais dans le stockage — celui-ci est precisement ce qui est en panne.
+3. **La lecture ne repare jamais.** Une valeur illisible est laissee intacte, au cas ou
+   elle serait recuperable a la main, et chaque mutation retente l'ecriture.
+4. **Le lot est borne par un COMPTE et par des OCTETS.** `/api/rooms/batch` accepte 200
+   codes ; le client decoupe a 100 ou 1900 octets d'URL, la premiere borne atteinte
+   fermant la tranche. Le compte seul ne borne pas une URL : une tranche des 200 codes
+   les plus longs ferait 5906 octets.
+
+---
+
+## Securite
+
+| Mesure | Ou |
+|---|---|
+| En-tetes sur **toute** reponse, erreurs et 404 comprises | `apps/api/src/http/securite.ts` |
+| Limite de debit, 120 requetes par minute et par adresse | `apps/api/src/http/debit.ts` |
+| Politique d'origine, **vide par defaut**, `*` refuse au demarrage | `apps/api/src/http/origines.ts` |
+| Erreurs au format RFC 9457, une seule autorite sur leur forme | `apps/api/src/http/problem.ts` |
+| `/docs` ferme en production | `apps/api/src/app.ts` |
+
+**L'adresse IP ne part pas dans les journaux.** Retiree avant ecriture,
+`x-forwarded-for` compris. Elle reste employee en memoire, le temps d'une requete,
+pour compter les appels — jamais conservee.
+
+**Deux reglages n'ont aucune valeur par defaut sure**, et le deploiement doit les
+trancher : `TRUST_PROXY` et `CORS_ORIGINS`. Les deux sont documentes dans la dette,
+avec ce qui casse dans chaque sens.
+
+---
+
+## Accessibilite
+
+Les contrastes sont **mesures**, pas affirmes. `pnpm contrast`, branche sur
+`pnpm lint`, sort en code 1 si une seule paire de couleurs employee passe sous 4,5:1
+(3:1 pour le texte large et les bordures porteuses de sens).
+
+Il fait cinq controles, et les deux derniers sont ceux qui en font un garde :
+
+1. le ratio de chaque paire declaree ;
+2. les couleurs imposees par les donnees, que la feuille de style ne regle pas ;
+3. la rampe de difficulte reste **monotone** et separee en niveaux de gris — quatre
+   crans, `info` exclu : ce n'est pas un niveau, c'est une autre nature ;
+4. **tout token employe** est mesure par une paire, et un token peint en fond doit
+   etre declare comme arriere-plan ;
+5. **aucune couleur ecrite en clair** hors du bloc de tokens.
+
+Le cinquieme existe parce que le passage au theme sombre a revele deux regles qui
+peignaient `#fff` sur une couleur devenue claire — dont le lien d'evitement, premier
+element focalisable de chaque page. Les deux ont ete trouves en regardant. Une couleur
+litterale echappe par construction a un controleur qui lit des tokens : elle est donc
+interdite, pas surveillee.
+
+Cibles tactiles a 24 px minimum, WCAG 2.2 AA. La bascule de completion atteint 44 px
+par **extension de zone**, pas par agrandissement du dessin : 104x52 de zone cliquable
+pour une case de 20x20.
+
+---
+
+## Integration continue
+
+`.github/workflows/verification.yml`. Chaque etape nomme le mode de defaillance
+qu'elle empeche — une etape dont on a oublie la raison finit par etre supprimee comme
+« lente ».
+
+| Etape | Sans elle |
+|---|---|
+| Service PostgreSQL | `pnpm test` ne lancerait que l'unitaire. Une CI verte qui ne teste pas les 212 tests d'API donne une garantie qui n'existe pas. |
+| Sidecar SHA-256, **en deuxieme position** | Le mode de defaillance des fins de ligne se declenche au checkout, pas au commit. Une etape ulterieure pourrait le masquer. |
+| `pnpm typecheck:guard` | La sonde d'inference peut cesser de mordre en silence : il suffit de vider ses assertions. |
+| `pnpm data:audit` | Un dataset remplace sans que ses chiffres de controle soient reverifies passerait. |
+
+`roadmap:seed` et `data:import` ont la **simulation pour defaut**. Sans `--apply`,
+ils sortent en code 0 sans rien ecrire : la CI les appelle avec le drapeau, faute de
+quoi la base resterait vide et les tests echoueraient sur une cause sans rapport.
 
 ---
 
