@@ -11,6 +11,7 @@ import {
   TypeBadge,
 } from "../components/badges.js";
 import { Empty, ErrorState, Loading } from "../components/states.js";
+import { Callout } from "../components/ui/index.js";
 import { RoomCompletionControl } from "../progression.js";
 import { rootRoute } from "./root.js";
 
@@ -51,92 +52,112 @@ function RoomView({ room, stale }: { room: RoomDetailPayload; stale: boolean }):
         <Link to="/rooms">Catalogue</Link> <span aria-hidden="true">/</span> {room.title}
       </p>
 
-      <div className="detail">
-        <div className="detail__corps">
-          <div>
-            <h1>{room.title}</h1>
-            <div className="rang" style={{ marginTop: 8 }}>
-              <DifficultyBadge difficulty={room.difficulty} />
-              <TypeBadge type={room.type} />
-              {room.teams.map((team) => (
-                <TeamBadge key={team.key} team={team} />
-              ))}
-            </div>
-          </div>
-
-          {room.description === null ? (
-            <p className="doux">Cette room n'a pas de description dans les données source.</p>
-          ) : (
-            <p>{room.description}</p>
-          )}
-
-          {/*
-            Le lien sortant est le point de sortie utile de la page : c'est la
-            que se fait la room. `rel="noopener noreferrer"` avec `target="_blank"`,
-            et le `code` part TEL QUEL — jamais de repli de casse, l'URL TryHackMe
-            en depend (ADR-0001 Q1).
-          */}
-          <p>
-            <a
-              className="lien-sortant"
-              href={room.thmUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Ouvrir sur TryHackMe
-              <span aria-hidden="true">↗</span>
-              <span className="visuellement-cache">(nouvel onglet)</span>
-            </a>
-          </p>
-
-          <p>
-            <RoomCompletionControl code={room.code} />
-          </p>
-
-          <TagGroup title="Technologies" tags={room.tags.technology} facet="tech" />
-          <TagGroup title="Outils" tags={room.tags.tool} facet="tool" />
-          <TagGroup title="Compétences" tags={room.tags.skill} facet="skill" />
-
-          <section>
-            <h2>Parcours qui contiennent cette room</h2>
-            {room.trackSteps.length === 0 ? (
-              <p className="petit doux" style={{ marginTop: 4 }}>
-                Aucun pour l'instant. Les parcours sont un contenu éditorial : ils ne se déduisent
-                d'aucune donnée TryHackMe.
-              </p>
-            ) : (
-              <ul>
-                {room.trackSteps.map((step) => (
-                  <li key={`${step.trackSlug}-${step.stepPosition}`}>
-                    {step.trackTitle} — étape {step.stepPosition} : {step.stepTitle}
-                    {step.note !== null && <span className="doux"> ({step.note})</span>}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+      <article className="fiche-room">
+        <h1>{room.title}</h1>
+        <div className="rang">
+          <DifficultyBadge difficulty={room.difficulty} />
+          <TypeBadge type={room.type} />
+          {room.teams.map((team) => (
+            <TeamBadge key={team.key} team={team} />
+          ))}
         </div>
 
-        <aside className="fiche" aria-label="Informations">
-          <dl>
-            <dt>Code</dt>
+        {/*
+          LES QUATRE FAITS, SOUS LE TITRE. Ils occupaient une colonne de 280 px
+          a droite qui ne portait qu'eux — et qui, sous 860 px, tombait APRES
+          tout le reste : apres les tags, apres les parcours, tout en bas de
+          page. La duree d'une room est ce qu'on lit en premier, pas en dernier.
+        */}
+        <dl className="meta-room">
+          <div>
+            <dt>Durée</dt>
+            <dd>{formatDuration(room.durationMinutes)}</dd>
+          </div>
+          <div>
+            <dt>Participants</dt>
+            <dd>{formatUsers(room.usersCount).replace(" participants", "")}</dd>
+          </div>
+          <div>
+            <dt>Republiée le</dt>
+            <dd>{formatDate(room.publishedAt)}</dd>
+          </div>
+          <div>
             {/* Affiche a la casse exacte : c'est l'identifiant, pas un libelle. */}
+            <dt>Code</dt>
             <dd>
               <code>{room.code}</code>
             </dd>
-            <dt>Durée</dt>
-            <dd>{formatDuration(room.durationMinutes)}</dd>
-            <dt>Participants</dt>
-            <dd>{formatUsers(room.usersCount).replace(" participants", "")}</dd>
-            <dt>Republiée le</dt>
-            <dd>{formatDate(room.publishedAt)}</dd>
-          </dl>
+          </div>
+        </dl>
+
+        {room.description === null ? (
+          <p className="doux">Cette room n'a pas de description dans les données source.</p>
+        ) : (
+          <p>{room.description}</p>
+        )}
+
+        {/*
+          LES DEUX ACTIONS COTE A COTE. Faire la room et la cocher sont le meme
+          geste en deux temps ; chacune dans son paragraphe, la seconde se
+          cherchait. Le lien sortant porte le bouton principal : c'est le point
+          de sortie utile de la page, et `rel="noopener noreferrer"` accompagne
+          `target="_blank"`. Le `code` part TEL QUEL — jamais de repli de casse,
+          l'URL TryHackMe en depend (ADR-0001 Q1).
+        */}
+        <div className="fiche-room__actions">
+          <a
+            className="bouton bouton--principal lien-externe"
+            href={room.thmUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Ouvrir sur TryHackMe
+            <span aria-hidden="true">↗</span>
+            <span className="visuellement-cache">(nouvel onglet)</span>
+          </a>
+          <RoomCompletionControl code={room.code} />
+        </div>
+
+        <TagGroup title="Technologies" tags={room.tags.technology} facet="tech" />
+        <TagGroup title="Outils" tags={room.tags.tool} facet="tool" />
+        <TagGroup title="Compétences" tags={room.tags.skill} facet="skill" />
+
+        <section>
+          <h2>Parcours qui contiennent cette room</h2>
+          {room.trackSteps.length === 0 ? (
+            <p className="petit doux" style={{ marginTop: 4 }}>
+              Aucun pour l'instant. Les parcours sont un contenu éditorial : ils ne se déduisent
+              d'aucune donnée TryHackMe.
+            </p>
+          ) : (
+            <ul className="parcours-de-la-room">
+              {room.trackSteps.map((step) => (
+                <li key={`${step.trackSlug}-${step.stepPosition}`}>
+                  {/* LE PARCOURS EST CLIQUABLE. Il ne l'etait pas : la fiche
+                      nommait le parcours et laissait l'utilisateur retrouver son
+                      adresse tout seul, alors que c'est la suite naturelle. */}
+                  <Link to="/roadmap/$slug" params={{ slug: step.trackSlug }}>
+                    {step.trackTitle}
+                  </Link>
+                  <span className="doux">
+                    {" — "}étape {step.stepPosition} : {step.stepTitle}
+                    {step.note !== null && ` (${step.note})`}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        {/* La nuance sur la date est vraie et utile, mais elle ne merite pas
+            quatre lignes en permanence sous les faits qu'elle nuance. */}
+        <Callout repliable ouvertParDefaut={false} titre="Ce que « Republiée » veut dire">
           <p className="petit doux">
-            « Republiée » est la date fournie par TryHackMe. Ce n'est pas une date de création :
-            n'en tirez aucune conclusion sur l'ancienneté du contenu.
+            C'est la date fournie par TryHackMe. Ce n'est pas une date de création : n'en tirez
+            aucune conclusion sur l'ancienneté du contenu.
           </p>
-        </aside>
-      </div>
+        </Callout>
+      </article>
     </div>
   );
 }

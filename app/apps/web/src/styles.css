@@ -1190,77 +1190,73 @@ label {
 
 /* --- Detail ------------------------------------------------------------ */
 
-.detail {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 280px;
-  gap: calc(var(--pas) * 4);
-  align-items: start;
-}
-
-@media (max-width: 860px) {
-  .detail {
-    grid-template-columns: minmax(0, 1fr);
-    gap: calc(var(--pas) * 3);
-  }
-}
-
-.detail__corps {
+/* UNE SEULE COLONNE. La fiche tenait sur deux : le contenu a gauche, quatre
+   faits dans un encadre de 280 px a droite. Sous 860 px cet encadre passait
+   APRES tout le reste, donc la duree de la room s'affichait en bas de page,
+   apres les tags et les parcours. Une colonne de 280 px pour quatre valeurs ne
+   valait pas ce prix-la. */
+.fiche-room {
   display: flex;
   flex-direction: column;
   gap: calc(var(--pas) * 2);
   max-width: 70ch;
 }
 
-.fiche {
-  border: 1px solid var(--bord);
-  border-radius: var(--rayon);
-  padding: calc(var(--pas) * 2);
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--pas) * 1.5);
+.fiche-room h1 {
+  margin-bottom: 0;
 }
 
-.fiche dl {
+/* Les quatre faits en ligne, repliables en colonne quand la place manque. */
+.meta-room {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pas) calc(var(--pas) * 3);
   margin: 0;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 4px var(--pas);
+  padding: calc(var(--pas) * 1.5) 0;
+  border-top: 1px solid var(--bord);
+  border-bottom: 1px solid var(--bord);
   font-size: 0.875rem;
 }
 
-.fiche dt {
+.meta-room dt {
   color: var(--texte-doux);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-.fiche dd {
-  margin: 0;
+.meta-room dd {
+  margin: 2px 0 0;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
-.lien-sortant {
+.fiche-room__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pas);
+  align-items: center;
+}
+
+/* Les deux commandes de la fiche font la meme hauteur : elles sont le meme
+   geste en deux temps. */
+.fiche-room__actions .bouton {
+  min-height: 44px;
+  padding: 0 16px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  border: 1px solid var(--lien);
-  color: var(--lien);
-  background: var(--fond);
-  border-radius: var(--rayon);
-  padding: 8px 14px;
-  font-weight: 650;
+}
+
+.lien-externe {
   text-decoration: none;
 }
 
-.lien-sortant:hover {
-  background: var(--lien);
-  color: var(--fond);
-}
-
-.lien-sortant:visited {
-  color: var(--lien);
-}
-
-.lien-sortant:visited:hover {
-  color: var(--fond);
+.parcours-de-la-room {
+  margin: 4px 0 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 4px;
 }
 
 /* Cible tactile minimale : 24x24 px CSS, WCAG 2.2 AA (critere 2.5.8).
