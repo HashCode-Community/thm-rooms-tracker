@@ -105,6 +105,9 @@
   /* Le halo derriere le graphe : assez pour que le fond ne soit pas plat,
      assez peu pour ne jamais lutter avec le lime des elements actifs. */
   --color-hc-halo: rgb(168 255 0 / 0.1);
+  /* La meme trame que le hero, deux fois plus faible : les pages interieures
+     la portent sans que leur contenu ait a lutter contre elle. */
+  --color-hc-grille-attenuee: rgb(255 255 255 / 0.035);
 
   /* --- Les roles ------------------------------------------------------ */
 
@@ -166,6 +169,7 @@
 
   --grille: var(--color-hc-grille);
   --halo: var(--color-hc-halo);
+  --grille-attenuee: var(--color-hc-grille-attenuee);
   /* Butee de masque, pas une couleur : seul son canal alpha compte. Elle est
      nommee parce que la regle « aucune couleur ecrite en clair » porte sur la
      FORME, et qu'une exception au cas par cas ferait tomber la regle. */
@@ -1276,15 +1280,22 @@ label {
   gap: 6px;
 }
 
+.entete-page__actions .bouton {
+  min-height: var(--hauteur-commande);
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .lien-externe {
   text-decoration: none;
 }
 
 .parcours-de-la-room {
-  margin: 4px 0 0;
-  padding-left: 20px;
-  display: grid;
-  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 /* Cible tactile minimale : 24x24 px CSS, WCAG 2.2 AA (critere 2.5.8).
@@ -1372,44 +1383,131 @@ label {
   font-size: 0.875rem;
 }
 
+/* --- Cartes de parcours --------------------------------------------------
+
+   LA GRILLE DIT LE CHEMIN. Trois cartes egales affirment trois options
+   equivalentes ; le premier parcours est le socle des deux autres. La carte
+   large en tete, les deux dessous : c'est la forme du graphe de l'accueil,
+   redite par la mise en page. */
+
 .parcours-liste {
-  list-style: none;
-  margin: 0;
-  padding: 0;
   display: grid;
-  gap: var(--pas);
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: minmax(0, 1fr);
+  gap: calc(var(--pas) * 2);
+  list-style: none;
+  margin: calc(var(--pas) * 3) 0 0;
+  padding: 0;
+}
+
+@media (min-width: 860px) {
+  .parcours-liste {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .parcours-carte--large {
+    grid-column: 1 / -1;
+  }
 }
 
 .parcours-carte {
+  position: relative;
+  display: grid;
+  gap: var(--pas);
+  align-content: start;
+  padding: calc(var(--pas) * 2.5);
   border: 1px solid var(--bord);
   border-radius: var(--rayon);
-  padding: calc(var(--pas) * 2);
-  display: flex;
-  flex-direction: column;
-  gap: var(--pas);
+  background: var(--fond-doux);
+  /* Seules la couleur et l'ombre changent au survol : ni la taille, ni la
+     position, donc aucun element voisin ne bouge. */
+  transition:
+    background-color 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    border-color 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.parcours-carte:hover {
-  border-color: var(--bord-fort);
+.parcours-carte:hover,
+.parcours-carte:focus-within {
+  background: var(--fond-appuye);
+  border-color: var(--accent-fond);
 }
 
 .parcours-carte__titre {
-  font-size: 1.0625rem;
+  font-size: 1.25rem;
+  margin: 0;
+}
+
+.parcours-carte--large .parcours-carte__titre {
+  font-size: 1.5rem;
 }
 
 .parcours-carte__titre a {
   text-decoration: none;
 }
 
-.parcours-carte__titre a:hover {
-  text-decoration: underline;
+/* Toute la carte est la cible, et le titre reste le seul lien : l'appel a
+   l'action en dessous est un signe, pas un second lien vers la meme page. */
+.parcours-carte__titre a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
 }
 
-/*
- * Etapes verticales numerotees. Ici la numerotation encode une SEQUENCE : le
- * trait vertical relie les etapes pour le dire visuellement.
- */
+.glyphe-parcours {
+  width: 32px;
+  height: 32px;
+  color: var(--texte-doux);
+}
+
+.glyphe-parcours svg {
+  width: 100%;
+  height: 100%;
+}
+
+.parcours-carte:hover .glyphe-parcours {
+  color: var(--accent);
+}
+
+.parcours-carte__resume {
+  /* Deux lignes, puis on coupe : le resume oriente, il ne raconte pas. Le
+     parcours entier est a un clic. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 0;
+}
+
+.parcours-carte--large .parcours-carte__resume {
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
+.parcours-carte__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 650;
+  color: var(--accent);
+  font-size: 0.875rem;
+}
+
+.parcours-carte__fleche {
+  transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.parcours-carte:hover .parcours-carte__fleche {
+  transform: translateX(4px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .parcours-carte,
+  .parcours-carte__fleche {
+    transition: none;
+  }
+}
+
 /* --- Accueil -------------------------------------------------------------
 
    L'accroche occupe une colonne LISIBLE, pas toute la largeur. Une ligne de
@@ -1695,6 +1793,175 @@ label {
   display: inline-flex;
   align-items: center;
   text-decoration: none;
+}
+
+/* --- En-tete des pages interieures --------------------------------------
+
+   Meme famille que le hero, en sourdine : la trame est deux fois plus faible et
+   s'arrete au bas de l'en-tete. Elle situe la page dans le produit sans lui
+   voler l'attention. */
+
+.entete-page {
+  position: relative;
+  padding: calc(var(--pas) * 3) 0 calc(var(--pas) * 3);
+  margin-bottom: calc(var(--pas) * 3);
+  border-bottom: 1px solid var(--bord);
+}
+
+.entete-page__fond {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--grille-attenuee) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grille-attenuee) 1px, transparent 1px);
+  background-size: 34px 34px;
+  mask-image: linear-gradient(to bottom, var(--masque-plein) 0%, transparent 92%);
+}
+
+.entete-page__ligne {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: calc(var(--pas) * 2);
+  flex-wrap: wrap;
+}
+
+.entete-page__texte {
+  min-width: 0;
+}
+
+.entete-page__titre {
+  font-family: var(--police-display);
+  font-size: clamp(1.5rem, 1.1rem + 1.4vw, 2.125rem);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.entete-page__sous-titre {
+  color: var(--texte-doux);
+  margin-top: 6px;
+  max-width: 62ch;
+}
+
+.entete-page__actions {
+  display: flex;
+  gap: var(--pas);
+  /* Les commandes de page font 44 px, comme partout ailleurs. */
+  --hauteur-commande: 44px;
+  align-items: center;
+  flex-wrap: wrap;
+  flex: 1 1 320px;
+  justify-content: flex-end;
+}
+
+@media print {
+  .entete-page__fond {
+    display: none;
+  }
+}
+
+/* --- Recherche du catalogue ---------------------------------------------
+
+   Haute de 52 px, avec sa loupe et son raccourci. C'est la commande la plus
+   employee du produit : elle avait la taille d'un champ de formulaire
+   ordinaire, posee au-dessus de la grille comme un filtre parmi d'autres. */
+
+.recherche {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  max-width: 520px;
+}
+
+.recherche__loupe {
+  position: absolute;
+  left: 14px;
+  width: 18px;
+  height: 18px;
+  color: var(--texte-eteint);
+  pointer-events: none;
+}
+
+.recherche__loupe svg {
+  width: 100%;
+  height: 100%;
+}
+
+.recherche__champ {
+  font: inherit;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 46px 0 42px;
+  border: 1px solid var(--bord-fort);
+  border-radius: var(--rayon);
+  background: var(--fond-doux);
+  color: var(--texte);
+}
+
+.recherche__champ::placeholder {
+  color: var(--texte-eteint);
+}
+
+.recherche__champ:focus {
+  border-color: var(--accent);
+}
+
+.recherche__raccourci {
+  position: absolute;
+  right: 12px;
+  min-width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--bord);
+  border-radius: 4px;
+  color: var(--texte-eteint);
+  font-family: var(--police-display);
+  font-size: 0.75rem;
+  pointer-events: none;
+}
+
+/* --- Grille de page ------------------------------------------------------
+
+   DOUZE COLONNES, et une colonne laterale qui SERT. Le contenu des pages
+   interieures etait borne a 70ch : sur un ecran de 1440, le tiers droit restait
+   vide alors que la page avait des choses a y mettre — la progression, les
+   parcours qui contiennent la room, le sommaire des etapes. La lecture reste
+   bornee par la colonne principale, pas par une largeur posee sur la page. */
+
+.grille-page {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: calc(var(--pas) * 3);
+  align-items: start;
+}
+
+.colonne-principale {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.colonne-laterale {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+@media (min-width: 1024px) {
+  .colonne-principale {
+    grid-column: span 8;
+  }
+
+  .colonne-laterale {
+    grid-column: span 4;
+    position: sticky;
+    /* Sous l'en-tete collante, plus une respiration. */
+    top: calc(var(--pas) * 9);
+  }
 }
 
 /* --- Sections de l'accueil ----------------------------------------------- */
@@ -2213,11 +2480,94 @@ label {
   line-height: 1;
 }
 
+/* LA PISTE SE VOIT MEME A ZERO. Une barre a 0 % qui n'affiche rien ne dit pas
+   « rien de fait » : elle ne dit rien du tout, et on doute que la barre existe.
+   Le remplissage est anime, la piste ne l'est jamais. `accent-color` ne suffit
+   pas : il colore le remplissage sans rien dire de la piste. */
 .avancement__barre {
   width: 100%;
   height: 8px;
   margin-top: 6px;
-  accent-color: var(--succes);
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--fond-appuye);
+}
+
+.avancement__barre::-webkit-progress-bar {
+  background: var(--fond-appuye);
+  border-radius: 999px;
+}
+
+.avancement__barre::-webkit-progress-value {
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.avancement__barre::-moz-progress-bar {
+  background: var(--accent);
+  border-radius: 999px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .avancement__barre::-webkit-progress-value {
+    transition: none;
+  }
+}
+
+/* --- Panneau lateral ---------------------------------------------------- */
+
+.panneau {
+  border: 1px solid var(--bord);
+  border-radius: var(--rayon);
+  background: var(--fond-doux);
+  padding: calc(var(--pas) * 2);
+}
+
+.panneau__titre {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--texte-doux);
+  margin-bottom: var(--pas);
+}
+
+.renvoi-parcours {
+  position: relative;
+  padding: var(--pas) 0;
+}
+
+.renvoi-parcours + .renvoi-parcours {
+  border-top: 1px solid var(--bord);
+}
+
+.renvoi-parcours__titre {
+  font-size: 0.9375rem;
+  margin: 0;
+}
+
+.renvoi-parcours__titre a {
+  text-decoration: none;
+}
+
+/* Toute la ligne est la cible, comme les cartes du catalogue. */
+.renvoi-parcours__titre a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.renvoi-parcours:hover {
+  background: var(--fond-appuye);
+}
+
+.renvoi-parcours__etape {
+  color: var(--texte-doux);
+  font-size: 0.8125rem;
+  margin-top: 2px;
 }
 
 /* --- Squelettes AUX DIMENSIONS DU CONTENU REEL ------------------------- */

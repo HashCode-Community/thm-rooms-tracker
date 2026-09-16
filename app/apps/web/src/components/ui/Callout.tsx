@@ -19,6 +19,8 @@ type Props = {
   children: ReactNode;
   repliable?: boolean;
   ouvertParDefaut?: boolean;
+  /** Appele la premiere fois que l'encart est deploye. */
+  onOuverture?: () => void;
 };
 
 export function Callout({
@@ -27,6 +29,7 @@ export function Callout({
   children,
   repliable = false,
   ouvertParDefaut = true,
+  onOuverture,
 }: Props): ReactNode {
   const classe = `encart encart--${ton}`;
 
@@ -40,7 +43,13 @@ export function Callout({
   }
 
   return (
-    <details className={classe} open={ouvertParDefaut}>
+    <details
+      className={classe}
+      open={ouvertParDefaut}
+      onToggle={(evenement) => {
+        if (evenement.currentTarget.open) onOuverture?.();
+      }}
+    >
       <summary className="encart__titre">{titre}</summary>
       {children}
     </details>

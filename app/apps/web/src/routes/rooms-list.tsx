@@ -2,6 +2,8 @@ import { createRoute, useNavigate } from "@tanstack/react-router";
 import type { CategoryListResponse, FacetsResponse, RoomListResponse } from "@thm/shared";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { type Async, loadCategories, loadTags, urls, useResource } from "../api.js";
+import { Compteur } from "../components/Compteur.js";
+import { EntetePage } from "../components/EntetePage.js";
 import { countActiveFilters, type FilterChange, FilterPanel } from "../components/filters.js";
 import { Pagination } from "../components/pagination.js";
 import { PucesFiltres } from "../components/puces-filtres.js";
@@ -77,11 +79,11 @@ function RoomsList(): ReactNode {
 
   return (
     <>
-      <h1 style={{ marginBottom: 16 }}>Catalogue</h1>
-
-      <div className="rang" style={{ marginBottom: 16, alignItems: "flex-end" }}>
-        <SearchBox value={search.q ?? ""} onSearch={applySearchTerm} />
-      </div>
+      <EntetePage
+        titre="Catalogue"
+        sousTitre="Les 714 rooms gratuites de TryHackMe, filtrables par difficulté, durée, technologie ou outil."
+        actions={<SearchBox value={search.q ?? ""} onSearch={applySearchTerm} />}
+      />
 
       {/* Les filtres actifs EN CLAIR, avant la grille et hors du panneau : sur
           mobile le panneau est replie, et « Filtres (3) » ne dit pas lesquels. */}
@@ -187,17 +189,20 @@ function ResultsHeader({
 
   // Ne jamais annoncer « Chargement… » alors qu'une erreur est affichee juste
   // en dessous : les deux messages se contrediraient.
-  const compte =
-    total !== undefined
-      ? `${nombre(total)} room${total > 1 ? "s" : ""}`
-      : rooms.status === "error"
-        ? "Résultats indisponibles"
-        : "Chargement…";
-
   return (
     <div className="barre-resultats">
+      {/* Le compte s'anime comme les chiffres de l'accueil : c'est la reponse a
+          ce qu'on vient de demander, elle merite d'etre vue changer. */}
       <span className="barre-resultats__compte" aria-live="polite">
-        {compte}
+        {total !== undefined ? (
+          <>
+            <Compteur valeur={total} /> room{total > 1 ? "s" : ""}
+          </>
+        ) : rooms.status === "error" ? (
+          "Résultats indisponibles"
+        ) : (
+          "Chargement…"
+        )}
       </span>
 
       {/* L'API dit quelle strategie de recherche a reellement servi. Le taire

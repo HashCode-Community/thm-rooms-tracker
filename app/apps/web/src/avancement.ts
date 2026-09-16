@@ -26,6 +26,9 @@ export type AvancementParcours = Readonly<{
   /** Position de la prochaine etape a faire, ou `null` si tout est fait. */
   prochaine: number | null;
   pourcentage: number;
+  /** Rooms recommandees terminees, et leur total : ce que la barre affiche. */
+  faits: number;
+  total: number;
 }>;
 
 export function useAvancement(
@@ -65,6 +68,8 @@ export function useAvancement(
         etapes: progression.steps.map((etape) => etape.complete),
         prochaine: nextStepPosition(progression),
         pourcentage: progression.percent,
+        faits: progression.coreDone,
+        total: progression.coreTotal,
       });
     }
     return par;

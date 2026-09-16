@@ -226,7 +226,11 @@ export function estAffichable(brut: string): boolean {
   if (texte.includes("__") || texte.includes("--")) return false;
   if (/[;,{(=]$/.test(texte)) return false;
   if (/^[A-Za-z_$][A-Za-z0-9_$]*\s*[:(<]/.test(texte)) return false;
-  if (/["']/.test(texte) && /[=:]/.test(texte)) return false;
+  // Une prose francaise porte des apostrophes ET des deux-points : « ATTENTION :
+  // l'introduction n'est pas gratuite ». La regle qui les rejetait ensemble
+  // faisait taire le controle sur une note entiere, tutoiement compris. Ce qui
+  // ecarte le code est la FORME d'une affectation, testee juste au-dessus.
+  if (/^[A-Za-z_$][A-Za-z0-9_$]*\s*=/.test(texte)) return false;
   return true;
 }
 
@@ -287,26 +291,39 @@ export function analyser(source: string): Signalement[] {
  * Le contenu editorial n'est pas dans le code : il vit dans `data/roadmap`,
  * passe par le semis, puis par la base, puis par l'API. C'est le dernier
  * endroit ou le controle regardait — donc celui ou le tutoiement a survecu a
- * toute la refonte. Une valeur YAML est prise telle quelle, cle retiree.
+ * toute la refonte.
+ *
+ * LES CHAINES CITEES D'ABORD. Une ligne YAML de ce depot vaut souvent
+ * `- { code: x, requirement: optional, note: "..." }` : prise entiere, elle
+ * porte des deux-points et des guillemets, donc les regles d'exclusion la
+ * jetaient comme du code. Le tutoiement d'une note y a survecu a la premiere
+ * version de ce controle, et c'est en lisant les donnees que je l'ai vu, pas en
+ * lisant le vert du controle. On extrait donc les chaines citees, et on ne
+ * retombe sur le reste de la ligne que lorsqu'il n'y en a aucune.
  */
 export function analyserYaml(source: string): Signalement[] {
   const signalements: Signalement[] = [];
+
   source.split("\n").forEach((ligne, index) => {
-    const valeur = /^\s*(?:-\s*)?(?:[a-z_]+:\s*)?(.*)$/i.exec(ligne)?.[1] ?? "";
-    if (!estAffichable(valeur)) return;
-    const formes = formesTrouvees(valeur);
-    if (formes.length > 0) {
-      signalements.push({ ligne: index + 1, texte: valeur.trim(), formes, genre: "accent" });
-    }
-    const marques = marquesTutoiement(valeur);
-    if (marques.length > 0) {
-      signalements.push({
-        ligne: index + 1,
-        texte: valeur.trim(),
-        formes: marques,
-        genre: "tutoiement",
-      });
+    const citees = [...ligne.matchAll(/"([^"\n]*)"|'([^'\n]*)'/g)].map(
+      (trouve) => trouve[1] ?? trouve[2] ?? "",
+    );
+    const candidats =
+      citees.length > 0 ? citees : [/^\s*(?:-\s*)?(?:[a-z_]+:\s*)?(.*)$/i.exec(ligne)?.[1] ?? ""];
+
+    for (const valeur of candidats) {
+      if (!estAffichable(valeur)) continue;
+      const texte = valeur.trim();
+      const formes = formesTrouvees(valeur);
+      if (formes.length > 0) {
+        signalements.push({ ligne: index + 1, texte, formes, genre: "accent" });
+      }
+      const marques = marquesTutoiement(valeur);
+      if (marques.length > 0) {
+        signalements.push({ ligne: index + 1, texte, formes: marques, genre: "tutoiement" });
+      }
     }
   });
+
   return signalements;
 }

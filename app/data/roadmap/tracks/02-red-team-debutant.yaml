@@ -46,7 +46,7 @@ steps:
       - { code: introwebapplicationsecurity, requirement: core }
       - { code: enumerationbruteforce, requirement: core }
       - { code: sqlinjectionlm, requirement: core, note: "Classée medium : c'est votre première marche de difficulté. Normal de ralentir ici." }
-      - { code: burpsuiterepeater, requirement: optional, note: "Burp Suite est l'outil de référence. ATTENTION : l'introduction de la série n'est pas gratuite, seul cet épisode l'est. Tu apprendras l'outil dans le désordre." }
+      - { code: burpsuiterepeater, requirement: optional, note: "Burp Suite est l'outil de référence. ATTENTION : l'introduction de la série n'est pas gratuite, seul cet épisode l'est. Vous apprendrez l'outil dans le désordre." }
 
   - title: "Exploitation guidée"
     objective: "Compromettre une machine complète, avec un guide pas à pas. Trois systèmes différents pour voir que la méthode reste la même."

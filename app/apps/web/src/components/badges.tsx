@@ -36,6 +36,15 @@ export function TeamBadge({ team }: { team: RoomSummary["teams"][number] }): Rea
   // comme variable, et la feuille en tire un fond a 12 % et une bordure a 25 %,
   // comme pour les difficultes. Trois aplats satures au milieu de badges a 12 %
   // criaient plus fort que la difficulte, qui est l'information.
+  // MIXTE N'A PAS DE TEINTE. Le violet servi par la base est celui que la
+  // charte a retire des liens visites, et c'est la seule couleur d'equipe sans
+  // equivalent dans la palette : un badge violet au milieu de badges cyan,
+  // ambre et orange se lit comme un cran de difficulte de plus. Le libelle
+  // porte l'information, comme pour le type.
+  if (team.color === null || team.key === "Purple") {
+    return <span className="badge badge--neutre">{team.label}</span>;
+  }
+
   return (
     <span
       className="badge badge--equipe"

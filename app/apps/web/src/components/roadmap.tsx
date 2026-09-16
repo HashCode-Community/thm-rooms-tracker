@@ -1,5 +1,6 @@
 import type { Provenance as ProvenanceData } from "@thm/shared";
 import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { Callout } from "./ui/index.js";
 
 /**
@@ -11,6 +12,39 @@ import { Callout } from "./ui/index.js";
  * meme quand il parait evident.
  */
 
+const CLE_LUE = "thm-roadmap.mention-lue";
+
+/**
+ * Vrai si la mention a deja ete ouverte dans ce navigateur.
+ *
+ * Lu en effet, pas au premier rendu : le stockage peut etre inaccessible
+ * (navigation privee, cookies bloques) et le composant doit rendre la meme
+ * chose des deux cotes plutot que de dependre d'un acces qui peut echouer.
+ */
+function useMentionLue(): [boolean, () => void] {
+  const [lue, setLue] = useState(false);
+
+  useEffect(() => {
+    try {
+      setLue(window.localStorage.getItem(CLE_LUE) === "1");
+    } catch {
+      // Stockage inaccessible : la mention se comporte comme jamais lue, ce qui
+      // est le repli le plus sur pour une obligation.
+    }
+  }, []);
+
+  const marquer = (): void => {
+    setLue(true);
+    try {
+      window.localStorage.setItem(CLE_LUE, "1");
+    } catch {
+      // Sans stockage, elle se redeploiera a la prochaine visite. Tant mieux.
+    }
+  };
+
+  return [lue, marquer];
+}
+
 /**
  * Mention obligatoire.
  *
@@ -19,16 +53,36 @@ import { Callout } from "./ui/index.js";
  * presente, annoncee, dans le document — donc trouvable par la recherche de
  * page — et l'utilisateur la rouvre d'un clic.
  *
- * Elle s'ouvre PAR DEFAUT. Une obligation qu'on cache d'emblee n'est plus une
- * obligation ; ce qu'on corrige ici est sa taille, pas sa presence.
+ * AMENDEMENT DU 2026-09-17, decide par Nel. Elle s'ouvrait par defaut, au motif
+ * qu'une obligation cachee d'emblee n'en est plus une. Elle est desormais
+ * REPLIEE par defaut, et la page du detail la masque entierement une fois
+ * qu'elle a ete ouverte : la meme phrase, lue sur la liste puis relue sur chaque
+ * parcours, cesse d'etre lue du tout. Elle reste dans le document sur la liste,
+ * toujours annoncee, toujours depliable.
  *
  * Le texte vient de l'API : une interface qui le recopierait pourrait le
  * recopier de travers, ou l'oublier a la prochaine refonte.
  */
-export function Disclaimer({ text }: { text: string | undefined }): ReactNode {
+export function Disclaimer({
+  text,
+  masquerSiLue = false,
+}: {
+  text: string | undefined;
+  /** Sur une page qui n'est pas le point d'entree des parcours. */
+  masquerSiLue?: boolean;
+}): ReactNode {
+  const [lue, marquer] = useMentionLue();
   if (text === undefined) return null;
+  if (masquerSiLue && lue) return null;
+
   return (
-    <Callout ton="neutre" titre="À lire avant de suivre un parcours" repliable>
+    <Callout
+      ton="neutre"
+      titre="À lire avant de suivre un parcours"
+      repliable
+      ouvertParDefaut={false}
+      onOuverture={marquer}
+    >
       <p>{text}</p>
     </Callout>
   );

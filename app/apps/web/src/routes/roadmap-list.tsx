@@ -1,15 +1,13 @@
 import { createRoute, Link } from "@tanstack/react-router";
-import {
-  computeTrackProgress,
-  nextStepPosition,
-  type TrackDetailResponse,
-  type TrackListResponse,
-} from "@thm/shared";
+import type { TrackListResponse, TrackSummary } from "@thm/shared";
 import type { ReactNode } from "react";
 import { useMemo } from "react";
 import { urls, useResource } from "../api.js";
+import { type AvancementParcours, useAvancement } from "../avancement.js";
 import { formatDuration } from "../components/badges.js";
-import { Disclaimer, Provenance } from "../components/roadmap.js";
+import { EntetePage } from "../components/EntetePage.js";
+import { GlypheParcours } from "../components/GlypheParcours.js";
+import { Disclaimer } from "../components/roadmap.js";
 import { Empty, ErrorState, Loading } from "../components/states.js";
 import { ProgressBar } from "../components/ui/index.js";
 import { useProgression } from "../progression.js";
@@ -23,69 +21,47 @@ const LEVEL_LABELS: Readonly<Record<string, string>> = {
 };
 
 /**
- * Avancement d'un parcours sur sa carte.
+ * Liste des parcours.
  *
- * La reponse de liste ne porte pas les etapes : le detail est donc charge par
- * carte. Trois requetes de plus sur une page qui en faisait une — c'est le prix
- * de la seule information que l'utilisateur vient chercher ici, et elles partent
- * en parallele. Sans elle, la page des parcours ne dit pas ou l'on en est, ce
- * qui la ramene a un sommaire.
+ * LA GRILLE DIT LE CHEMIN. Trois cartes sur trois colonnes affirment trois
+ * options equivalentes ; or le premier parcours est le socle des deux autres,
+ * qui en partent. La carte large en tete et les deux dessous reprennent la forme
+ * du graphe de l'accueil — meme information, deux representations qui se
+ * repondent.
  *
- * Le chargement n'affiche RIEN plutot qu'un zero : annoncer « 0 % » a quelqu'un
- * qui a tout termine est pire que de ne rien annoncer une demi-seconde.
+ * L'AVERTISSEMENT NE SE REPETE PLUS. Chaque carte portait « Non suivi de bout en
+ * bout par notre equipe », soit trois fois la meme phrase sous trois titres
+ * differents. Il est dit une fois, en tete, et la mention obligatoire le porte.
  */
-function AvancementDeLaCarte({ slug }: { slug: string }): ReactNode {
-  const detail = useResource<TrackDetailResponse>(urls.track(slug));
-  const progression = useProgression();
-  const completedCodes = useMemo(
-    () => new Set(progression.completedRooms.map((room) => room.code)),
-    [progression.completedRooms],
-  );
-
-  if (detail.data === null) return null;
-
-  const progress = computeTrackProgress(detail.data.data.steps, completedCodes);
-  const prochaine = nextStepPosition(progress);
-  const etape = detail.data.data.steps.find((step) => step.position === prochaine);
-
-  return (
-    <>
-      <ProgressBar
-        faits={progress.coreDone}
-        total={progress.coreTotal}
-        pourcent={progress.percent}
-        avecChiffre
-      />
-      <p className="petit doux parcours-carte__suite">
-        {etape === undefined ? (
-          <strong>Parcours terminé.</strong>
-        ) : (
-          <>
-            <strong>Prochaine étape :</strong> {etape.position}. {etape.title}
-          </>
-        )}
-      </p>
-    </>
-  );
-}
-
 function RoadmapList(): ReactNode {
   useTitre("Parcours");
   const tracks = useResource<TrackListResponse>(urls.tracks());
+  const progression = useProgression();
+  const codes = useMemo(
+    () => progression.completedRooms.map((faite) => faite.code),
+    [progression.completedRooms],
+  );
+  const slugs = useMemo(
+    () => (tracks.data === null ? [] : tracks.data.data.map((track) => track.slug)),
+    [tracks.data],
+  );
+  const avancements = useAvancement(slugs, codes);
 
   return (
     <>
-      <div className="intro">
-        <h1>Parcours</h1>
-        <p className="doux">
-          Un ordre de lecture dans les 714 rooms. Chaque étape <strong>recommande</strong> des rooms
-          — ce ne sont pas des prérequis techniques : les données TryHackMe n'en contiennent aucun.
-        </p>
-      </div>
+      <EntetePage
+        titre="Parcours"
+        sousTitre={
+          <>
+            Un ordre de lecture dans les 714 rooms. Chaque étape <strong>recommande</strong> des
+            rooms : ce ne sont pas des prérequis techniques, les données TryHackMe n'en contiennent
+            aucun.
+          </>
+        }
+      />
 
-      {/* Mention obligatoire, en tete de page et non en note de bas de page.
-          Le texte vient de l'API pour qu'aucune interface ne puisse le recopier
-          de travers. */}
+      {/* Mention obligatoire, une seule fois sur la page. Le texte vient de
+          l'API pour qu'aucune interface ne puisse le recopier de travers. */}
       <Disclaimer text={tracks.data?.disclaimer} />
 
       {tracks.status === "loading" && tracks.data === null && (
@@ -111,40 +87,78 @@ function RoadmapList(): ReactNode {
 
       {tracks.data !== null && tracks.data.data.length > 0 && (
         <ul className={`parcours-liste${tracks.status === "loading" ? " perime" : ""}`}>
-          {tracks.data.data.map((track) => (
-            <li key={track.slug} className="parcours-carte">
-              <h2 className="parcours-carte__titre">
-                <Link to="/roadmap/$slug" params={{ slug: track.slug }}>
-                  {track.title}
-                </Link>
-              </h2>
-
-              <AvancementDeLaCarte slug={track.slug} />
-
-              <div className="rang">
-                <span className="badge badge--neutre">
-                  {LEVEL_LABELS[track.level] ?? track.level}
-                </span>
-                <span className="badge badge--neutre">
-                  {track.stepCount} étape{track.stepCount > 1 ? "s" : ""}
-                </span>
-                <span className="badge badge--neutre">
-                  {track.coreRoomCount} room{track.coreRoomCount > 1 ? "s" : ""} recommandée
-                  {track.coreRoomCount > 1 ? "s" : ""}
-                </span>
-                <span className="badge badge--neutre">
-                  {formatDuration(track.estimatedMinutes)}
-                </span>
-              </div>
-
-              {track.summary !== null && <p className="doux">{track.summary}</p>}
-
-              <Provenance provenance={track.provenance} compact />
-            </li>
+          {tracks.data.data.map((track, rang) => (
+            <CarteParcours
+              key={track.slug}
+              track={track}
+              avancement={avancements.get(track.slug)}
+              large={rang === 0}
+            />
           ))}
         </ul>
       )}
     </>
+  );
+}
+
+/**
+ * Une carte de parcours.
+ *
+ * Toute la carte est la cible : le titre porte le lien, un pseudo element
+ * l'etend. L'appel a l'action n'est donc PAS un second lien — il serait annonce
+ * deux fois pour une seule destination.
+ *
+ * Le glyphe identifie le parcours SANS COULEUR : le cyan et le rouge disent deja
+ * la difficulte, et un parcours n'est pas une difficulte.
+ */
+function CarteParcours({
+  track,
+  avancement,
+  large,
+}: {
+  track: TrackSummary;
+  avancement: AvancementParcours | undefined;
+  large: boolean;
+}): ReactNode {
+  const commence = avancement !== undefined && avancement.faits > 0;
+
+  return (
+    <li className={`parcours-carte${large ? " parcours-carte--large" : ""}`}>
+      <GlypheParcours slug={track.slug} />
+
+      <h2 className="parcours-carte__titre">
+        <Link to="/roadmap/$slug" params={{ slug: track.slug }}>
+          {track.title}
+        </Link>
+      </h2>
+
+      <div className="rang">
+        <span className="badge badge--neutre">{LEVEL_LABELS[track.level] ?? track.level}</span>
+        <span className="badge badge--neutre">
+          {track.stepCount} étape{track.stepCount > 1 ? "s" : ""}
+        </span>
+        <span className="badge badge--neutre">
+          {track.coreRoomCount} room{track.coreRoomCount > 1 ? "s" : ""}
+        </span>
+        <span className="badge badge--neutre">{formatDuration(track.estimatedMinutes)}</span>
+      </div>
+
+      {track.summary !== null && <p className="doux parcours-carte__resume">{track.summary}</p>}
+
+      {avancement !== undefined && (
+        <ProgressBar
+          faits={avancement.faits}
+          total={avancement.total}
+          pourcent={avancement.pourcentage}
+          avecChiffre
+        />
+      )}
+
+      <span className="parcours-carte__cta" aria-hidden="true">
+        {commence ? "Continuer" : "Commencer"}
+        <span className="parcours-carte__fleche">→</span>
+      </span>
+    </li>
   );
 }
 

@@ -54,7 +54,7 @@ steps:
     rooms:
       - { code: introtoendpointsecurity, requirement: core }
       - { code: introdigitalforensics, requirement: core }
-      - { code: windowsforensics1, requirement: optional, note: "Classée medium, registre Windows. Ta première marche de difficulté côté défense." }
+      - { code: windowsforensics1, requirement: optional, note: "Classée medium, registre Windows. Votre première marche de difficulté côté défense." }
 
   - title: "Traiter une alerte de bout en bout"
     objective: "Ce que vous ferez réellement au quotidien : trier, qualifier, escalader, documenter."
