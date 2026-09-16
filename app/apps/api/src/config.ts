@@ -23,6 +23,14 @@ export type AppConfig = {
   readonly exposeDocs: boolean;
   /** Detail technique des erreurs 500 dans la reponse. Jamais en production. */
   readonly exposeErrorDetail: boolean;
+  /**
+   * Pose `Strict-Transport-Security`. Production seulement.
+   *
+   * Sur `http://`, l'en-tete est ignore — mais le poser quand meme apprendrait a
+   * le lire comme du decor, et sur un nom de domaine local il forcerait HTTPS
+   * durablement dans le navigateur du developpeur.
+   */
+  readonly hsts: boolean;
   readonly logLevel: string;
   readonly host: string;
   readonly port: number;
@@ -40,6 +48,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     nodeEnv,
     exposeDocs: !isProduction,
     exposeErrorDetail: !isProduction,
+    hsts: isProduction,
     logLevel: env.LOG_LEVEL ?? (nodeEnv === "test" ? "silent" : "info"),
     host: env.API_HOST ?? "127.0.0.1",
     port: Number.parseInt(env.API_PORT ?? "3000", 10),

@@ -10,6 +10,7 @@ import {
 } from "fastify-type-provider-zod";
 import type { AppConfig } from "./config.js";
 import { registerProblemHandlers } from "./http/problem.js";
+import { registerSecurityHeaders } from "./http/securite.js";
 import { catalogRoutes } from "./routes/catalog.js";
 import { healthRoutes } from "./routes/health.js";
 import { trackRoutes } from "./routes/tracks.js";
@@ -54,6 +55,16 @@ export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
     global: true,
     encodings: ["br", "gzip", "deflate"],
     threshold: 1024,
+  });
+
+  // En-tetes de securite, poses sur TOUTE reponse — y compris les erreurs et les
+  // 404. Un crochet `onSend` global est le seul endroit qui le garantisse :
+  // l'oublier sur une route est alors impossible.
+  registerSecurityHeaders(app, {
+    hsts: config.hsts,
+    // `/docs` sert du HTML et a besoin d'une politique plus large. Le prefixe
+    // est nomme ici, pas devine.
+    prefixesHtml: ["/docs"],
   });
 
   registerProblemHandlers(app, config.exposeErrorDetail);
