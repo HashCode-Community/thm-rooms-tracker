@@ -585,12 +585,16 @@ kbd {
 
 /* Le marqueur de `<details>` reste, mais discret : il signale que l'encart se
    replie. Le retirer rendrait le pliage invisible. */
-details.encart > summary {
+/* `.encart > summary` et non `details.encart > summary` : la specificite plus
+   elevee du second passait AVANT une regle plus faible ecrite plus bas, ce que
+   biome signale a juste titre. Seul l'encart repliable rend un `<summary>`,
+   donc la selection reste exacte. */
+.encart > summary {
   cursor: pointer;
   list-style-position: inside;
 }
 
-details.encart > summary::marker {
+.encart > summary::marker {
   color: var(--texte-doux);
 }
 
@@ -1191,6 +1195,203 @@ label {
  * Etapes verticales numerotees. Ici la numerotation encode une SEQUENCE : le
  * trait vertical relie les etapes pour le dire visuellement.
  */
+/* --- En-tete -------------------------------------------------------------
+
+   COLLANTE AVEC UN LEGER FLOU. Le flou n'est pas decoratif : sans lui, le
+   contenu qui defile sous une barre translucide devient illisible. La couleur
+   de repli, opaque, s'applique la ou `backdrop-filter` n'existe pas. */
+
+.entete {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--fond);
+  border-bottom: 1px solid var(--bord);
+}
+
+@supports (backdrop-filter: blur(8px)) {
+  .entete {
+    background: color-mix(in srgb, var(--fond) 82%, transparent);
+    backdrop-filter: blur(10px);
+  }
+}
+
+.entete__interieur {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--pas) calc(var(--pas) * 2);
+  display: flex;
+  align-items: center;
+  gap: var(--pas);
+  flex-wrap: wrap;
+}
+
+.marque {
+  font-weight: 700;
+  font-size: 1.0625rem;
+  text-decoration: none;
+  color: var(--texte);
+  letter-spacing: -0.01em;
+  margin-right: auto;
+}
+
+.marque__accent {
+  color: var(--lien);
+  margin-left: 0.35ch;
+}
+
+/* --- Menu mobile ---------------------------------------------------------
+
+   UN VRAI BOUTON, pas une case a cocher deguisee. Le motif « checkbox +
+   label » evite un peu de JavaScript et coute l'annonce correcte : un lecteur
+   d'ecran dit « case a cocher » la ou l'utilisateur ouvre un menu. */
+
+.entete__bascule {
+  font: inherit;
+  font-size: 0.875rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--bord-fort);
+  border-radius: var(--rayon);
+  background: none;
+  color: var(--texte);
+  cursor: pointer;
+}
+
+.entete__barres,
+.entete__barres::before,
+.entete__barres::after {
+  display: block;
+  width: 16px;
+  height: 2px;
+  background: currentColor;
+}
+
+.entete__barres {
+  position: relative;
+}
+
+.entete__barres::before,
+.entete__barres::after {
+  content: "";
+  position: absolute;
+  left: 0;
+}
+
+.entete__barres::before {
+  top: -5px;
+}
+
+.entete__barres::after {
+  top: 5px;
+}
+
+/* `:not([hidden])` N'EST PAS DECORATIF.
+   Une regle de classe qui pose `display` ECRASE la regle `[hidden]` de la
+   feuille du navigateur, dont la specificite est plus faible. Ecrit
+   `display: flex` sans condition, l'attribut `hidden` devient decoratif : le
+   menu reste ouvert, le bouton annonce « ferme », et les deux se contredisent
+   sans que rien n'echoue. Mesure avant correction : `hidden` a vrai,
+   `display` calcule a `flex`, 116 px de hauteur, quatre liens atteignables. */
+.entete__panneau:not([hidden]) {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--pas) * 2);
+  width: 100%;
+  padding-top: var(--pas);
+}
+
+/* A partir du palier large, le menu est toujours la et le bouton disparait. */
+@media (min-width: 720px) {
+  .entete__bascule {
+    display: none;
+  }
+
+  .entete__panneau {
+    width: auto;
+    padding-top: 0;
+  }
+
+  /* A cette largeur l'etat « ferme » n'a aucun sens : le panneau est montre
+     meme quand React le croit ferme. C'est le SEUL endroit ou l'on ecrase
+     `hidden`, et c'est deliberement ecrit avec l'attribut dans le selecteur. */
+  .entete__panneau[hidden] {
+    display: flex;
+    width: auto;
+    padding-top: 0;
+  }
+}
+
+/* --- Bascule de theme ---------------------------------------------------- */
+
+.bascule-theme {
+  font: inherit;
+  font-size: 0.8125rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--bord);
+  border-radius: 999px;
+  background: none;
+  color: var(--texte-doux);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.bascule-theme:hover {
+  border-color: var(--bord-fort);
+  color: var(--texte);
+}
+
+.bascule-theme__marque {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  /* Moitie pleine : la marque dit « thème », le libelle dit lequel. */
+  background: linear-gradient(to right, currentColor 50%, transparent 50%);
+  flex: none;
+}
+
+/* --- Pied ---------------------------------------------------------------- */
+
+.pied__mention {
+  max-width: 78ch;
+}
+
+.pied__colonnes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: calc(var(--pas) * 3);
+  margin-top: calc(var(--pas) * 3);
+  padding-top: calc(var(--pas) * 2);
+  border-top: 1px solid var(--bord);
+}
+
+.pied__colonne {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+  font-size: 0.875rem;
+}
+
+.pied__colonne a {
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.pied__titre {
+  font-weight: 650;
+  color: var(--texte);
+  margin: 0 0 2px;
+}
+
 /* --- Le chemin ---------------------------------------------------------
 
    MOBILE D'ABORD. Colonne verticale a TOUTES les largeurs : epine a gauche,

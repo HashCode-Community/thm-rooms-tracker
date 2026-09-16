@@ -21,6 +21,13 @@
     -->
     <meta name="theme-color" content="#0f1115" media="(prefers-color-scheme: dark)" />
     <meta name="theme-color" content="#fbfcfd" media="(prefers-color-scheme: light)" />
+    <!--
+      Applique le theme choisi AVANT la premiere peinture. Fichier separe et non
+      script en ligne : la politique de contenu du front reste script-src 'self',
+      sans 'unsafe-inline' ni condensat a tenir a jour. Charge sans
+      type=module, donc execute pendant l'analyse du document.
+    -->
+    <script src="/theme.js"></script>
   </head>
   <body>
     <div id="root"></div>
