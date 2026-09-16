@@ -16,9 +16,9 @@ import { useProgression } from "../progression.js";
 import { rootRoute } from "./root.js";
 
 const LEVEL_LABELS: Readonly<Record<string, string>> = {
-  beginner: "Debutant",
-  intermediate: "Intermediaire",
-  advanced: "Avance",
+  beginner: "Débutant",
+  intermediate: "Intermédiaire",
+  advanced: "Avancé",
 };
 
 /**
@@ -56,10 +56,10 @@ function AvancementDeLaCarte({ slug }: { slug: string }): ReactNode {
       />
       <p className="petit doux parcours-carte__suite">
         {etape === undefined ? (
-          <strong>Parcours termine.</strong>
+          <strong>Parcours terminé.</strong>
         ) : (
           <>
-            <strong>Prochaine etape :</strong> {etape.position}. {etape.title}
+            <strong>Prochaine étape :</strong> {etape.position}. {etape.title}
           </>
         )}
       </p>
@@ -75,8 +75,8 @@ function RoadmapList(): ReactNode {
       <div className="intro">
         <h1>Parcours</h1>
         <p className="doux">
-          Un ordre de lecture dans les 714 rooms. Chaque etape <strong>recommande</strong> des rooms
-          — ce ne sont pas des prerequis techniques : les donnees TryHackMe n'en contiennent aucun.
+          Un ordre de lecture dans les 714 rooms. Chaque étape <strong>recommande</strong> des rooms
+          — ce ne sont pas des prérequis techniques : les données TryHackMe n'en contiennent aucun.
         </p>
       </div>
 
@@ -123,10 +123,10 @@ function RoadmapList(): ReactNode {
                   {LEVEL_LABELS[track.level] ?? track.level}
                 </span>
                 <span className="badge badge--neutre">
-                  {track.stepCount} etape{track.stepCount > 1 ? "s" : ""}
+                  {track.stepCount} étape{track.stepCount > 1 ? "s" : ""}
                 </span>
                 <span className="badge badge--neutre">
-                  {track.coreRoomCount} room{track.coreRoomCount > 1 ? "s" : ""} recommandee
+                  {track.coreRoomCount} room{track.coreRoomCount > 1 ? "s" : ""} recommandée
                   {track.coreRoomCount > 1 ? "s" : ""}
                 </span>
                 <span className="badge badge--neutre">

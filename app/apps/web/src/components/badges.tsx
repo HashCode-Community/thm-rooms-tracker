@@ -49,7 +49,7 @@ export function TeamBadge({ team }: { team: RoomSummary["teams"][number] }): Rea
 const BASCULE_EN_HEURES = 120;
 
 export function formatDuration(minutes: number | null): string {
-  if (minutes === null) return "duree inconnue";
+  if (minutes === null) return "durée inconnue";
   if (minutes <= BASCULE_EN_HEURES) return `${minutes} min`;
   const hours = Math.floor(minutes / 60);
   const rest = minutes % 60;

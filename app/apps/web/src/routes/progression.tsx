@@ -88,7 +88,7 @@ function MissingRooms({
           {pluriel ? "'existent" : "'existe"} plus dans le catalogue.
         </strong>{" "}
         Elle{pluriel ? "s ne sont" : " n'est"} compte{pluriel ? "es" : "e"} ni dans vos heures
-        cumulees, ni dans l'avancement des parcours.
+        cumulées, ni dans l'avancement des parcours.
       </p>
       <ul className="petit doux">
         {codes.map((code) => (
@@ -112,7 +112,7 @@ function CompletedRoomRow({ room, completedAt }: RoomTerminee): ReactNode {
           <Link to="/rooms/$code" params={{ code: room.code }} className="progression-room__titre">
             {room.title}
           </Link>
-          {!room.isActive && <span className="badge badge--retiree">Retiree du catalogue</span>}
+          {!room.isActive && <span className="badge badge--retiree">Retirée du catalogue</span>}
         </div>
         <p className="petit doux">
           {/*
@@ -123,7 +123,7 @@ function CompletedRoomRow({ room, completedAt }: RoomTerminee): ReactNode {
           */}
           {completedAt === null
             ? "Date d'achevement inconnue"
-            : `Terminee le ${formatCompletedAt(completedAt)}`}{" "}
+            : `Terminée le ${formatCompletedAt(completedAt)}`}{" "}
           · {formatDuration(room.durationMinutes)}
         </p>
       </div>
@@ -149,7 +149,7 @@ function ProgressionPage(): ReactNode {
           <h1>Ma progression</h1>
           <p className="doux">Votre progression reste dans ce navigateur, sans compte.</p>
         </div>
-        <Empty title="Aucune room terminee pour l'instant">
+        <Empty title="Aucune room terminée pour l'instant">
           <p className="petit doux">
             Commencez par un parcours pour savoir dans quel ordre avancer, ou choisissez librement
             une room dans le catalogue. Vous pourrez la marquer comme terminee depuis sa fiche.
@@ -227,12 +227,12 @@ function ProgressionContent({
         <li>
           <strong>{summary.roomCount}</strong>
           <span>
-            room{summary.roomCount > 1 ? "s" : ""} terminee{summary.roomCount > 1 ? "s" : ""}
+            room{summary.roomCount > 1 ? "s" : ""} terminée{summary.roomCount > 1 ? "s" : ""}
           </span>
         </li>
         <li>
           <strong>{formatDuration(summary.totalMinutes)}</strong>
-          <span>cumulees</span>
+          <span>cumulées</span>
         </li>
       </ul>
       {summary.unknownDurationCount > 0 && (
@@ -261,11 +261,11 @@ function ProgressionContent({
                   {trackProgress.percent} %
                 </progress>
                 <p className="petit doux">
-                  {trackProgress.coreDone} sur {trackProgress.coreTotal} rooms recommandees
+                  {trackProgress.coreDone} sur {trackProgress.coreTotal} rooms recommandées
                   {(() => {
                     const suite = nextStepPosition(trackProgress);
                     const etape = track.steps.find((step) => step.position === suite);
-                    return etape === undefined ? " — termine" : ` — suite : ${etape.title}`;
+                    return etape === undefined ? " — terminé" : ` — suite : ${etape.title}`;
                   })()}
                 </p>
               </li>

@@ -65,7 +65,7 @@ function RoomView({ room, stale }: { room: RoomDetailPayload; stale: boolean }):
           </div>
 
           {room.description === null ? (
-            <p className="doux">Cette room n'a pas de description dans les donnees source.</p>
+            <p className="doux">Cette room n'a pas de description dans les données source.</p>
           ) : (
             <p>{room.description}</p>
           )}
@@ -95,7 +95,7 @@ function RoomView({ room, stale }: { room: RoomDetailPayload; stale: boolean }):
 
           <TagGroup title="Technologies" tags={room.tags.technology} facet="tech" />
           <TagGroup title="Outils" tags={room.tags.tool} facet="tool" />
-          <TagGroup title="Competences" tags={room.tags.skill} facet="skill" />
+          <TagGroup title="Compétences" tags={room.tags.skill} facet="skill" />
 
           <section>
             <h2>Parcours qui contiennent cette room</h2>
@@ -108,7 +108,7 @@ function RoomView({ room, stale }: { room: RoomDetailPayload; stale: boolean }):
               <ul>
                 {room.trackSteps.map((step) => (
                   <li key={`${step.trackSlug}-${step.stepPosition}`}>
-                    {step.trackTitle} — etape {step.stepPosition} : {step.stepTitle}
+                    {step.trackTitle} — étape {step.stepPosition} : {step.stepTitle}
                     {step.note !== null && <span className="doux"> ({step.note})</span>}
                   </li>
                 ))}
@@ -124,11 +124,11 @@ function RoomView({ room, stale }: { room: RoomDetailPayload; stale: boolean }):
             <dd>
               <code>{room.code}</code>
             </dd>
-            <dt>Duree</dt>
+            <dt>Durée</dt>
             <dd>{formatDuration(room.durationMinutes)}</dd>
             <dt>Participants</dt>
             <dd>{formatUsers(room.usersCount).replace(" participants", "")}</dd>
-            <dt>Republiee le</dt>
+            <dt>Republiée le</dt>
             <dd>{formatDate(room.publishedAt)}</dd>
           </dl>
           <p className="petit doux">

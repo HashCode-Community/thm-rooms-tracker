@@ -30,7 +30,7 @@ export function RoomCard({ room }: { room: RoomSummary }): ReactNode {
         Un LIBELLE, pas seulement une bordure coloree — la couleur ne porte jamais
         seule une information.
       */}
-      {terminee && <p className="carte__etat">Terminee</p>}
+      {terminee && <p className="carte__etat">Terminée</p>}
 
       <div className="rang">
         <DifficultyBadge difficulty={room.difficulty} />

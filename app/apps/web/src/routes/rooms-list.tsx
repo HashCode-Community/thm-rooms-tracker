@@ -169,7 +169,7 @@ function ResultsHeader({
     total !== undefined
       ? `${total.toLocaleString("fr-FR")} room${total > 1 ? "s" : ""}`
       : rooms.status === "error"
-        ? "Resultats indisponibles"
+        ? "Résultats indisponibles"
         : "Chargement…";
 
   return (

@@ -70,7 +70,7 @@ function RoadmapDetail(): ReactNode {
 
       <div className="rang" style={{ marginTop: 12 }}>
         <span className="badge badge--neutre">
-          {data.stepCount} etape{data.stepCount > 1 ? "s" : ""}
+          {data.stepCount} étape{data.stepCount > 1 ? "s" : ""}
         </span>
         <span className="badge badge--neutre">{formatDuration(data.estimatedMinutes)}</span>
       </div>

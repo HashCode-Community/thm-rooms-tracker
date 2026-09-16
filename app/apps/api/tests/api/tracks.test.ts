@@ -378,7 +378,7 @@ describe("GET /api/tracks", () => {
     for (const url of ["/api/tracks", "/api/tracks/fixture-alpha"]) {
       const response = await app.inject({ method: "GET", url });
       const body = response.json<{ disclaimer: string }>();
-      expect(body.disclaimer, url).toContain("n'ont pas ete integralement suivis");
+      expect(body.disclaimer, url).toContain("n'ont pas été intégralement suivis");
     }
   });
 

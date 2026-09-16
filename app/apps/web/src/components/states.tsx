@@ -40,14 +40,14 @@ export function ErrorState({
 }): ReactNode {
   return (
     <div className="etat etat--erreur" role="alert">
-      <div className="etat__titre">Impossible de charger ces donnees</div>
+      <div className="etat__titre">Impossible de charger ces données</div>
       {/* Le message vient du `detail` RFC 9457 du serveur : il dit quelque chose
           d'utile, contrairement a un « une erreur est survenue ». */}
       <p className="petit">{error.message}</p>
       {onRetry !== undefined && (
         <p style={{ marginTop: 8 }}>
           <button type="button" className="bouton" onClick={onRetry}>
-            Reessayer
+            Réessayer
           </button>
         </p>
       )}

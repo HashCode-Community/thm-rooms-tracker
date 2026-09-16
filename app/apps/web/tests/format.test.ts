@@ -14,7 +14,7 @@ describe("duree", () => {
   it("une absence n'est pas zero", () => {
     // `null` veut dire « TryHackMe ne publie pas cette duree ». Ecrire « 0 min »
     // affirmerait que la room se fait instantanement.
-    assert.equal(formatDuration(null), "duree inconnue");
+    assert.equal(formatDuration(null), "durée inconnue");
     assert.equal(formatDuration(0), "0 min");
   });
 

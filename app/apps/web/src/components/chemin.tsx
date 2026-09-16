@@ -34,7 +34,7 @@ export function etatDeLEtape(
 }
 
 const REQUIREMENT_LABELS: Readonly<Record<TrackRoom["requirement"], string>> = {
-  core: "Recommandee",
+  core: "Recommandée",
   optional: "Optionnelle",
   bonus: "Bonus",
 };
@@ -76,9 +76,9 @@ function RoomDuChemin({ room, terminee }: { room: TrackRoom; terminee: boolean }
 }
 
 const ETAT_LIBELLE: Readonly<Record<EtatEtape, string>> = {
-  faite: "Etape terminee",
-  prochaine: "Prochaine etape",
-  "a-venir": "Etape a venir",
+  faite: "Étape terminée",
+  prochaine: "Prochaine étape",
+  "a-venir": "Étape à venir",
 };
 
 export function EtapeDuChemin({
@@ -110,19 +110,19 @@ export function EtapeDuChemin({
         <div className="chemin__entete">
           <h2 className="chemin__titre">
             <span className="visuellement-cache">
-              Etape {step.position}, {ETAT_LIBELLE[etat]} :{" "}
+              Étape {step.position}, {ETAT_LIBELLE[etat]} :{" "}
             </span>
             {step.title}
           </h2>
-          {etat === "prochaine" && <span className="chemin__marqueur">Prochaine etape</span>}
+          {etat === "prochaine" && <span className="chemin__marqueur">Prochaine étape</span>}
         </div>
 
         {step.objective !== null && <p className="doux">{step.objective}</p>}
 
         <p className="petit doux chemin__compteur">
           {total === 0
-            ? "Aucune room recommandee a cette etape"
-            : `${faits} sur ${total} room${total > 1 ? "s" : ""} recommandee${total > 1 ? "s" : ""}`}
+            ? "Aucune room recommandée à cette étape"
+            : `${faits} sur ${total} room${total > 1 ? "s" : ""} recommandée${total > 1 ? "s" : ""}`}
           {step.estimatedMinutes !== null && ` — ${formatDuration(step.estimatedMinutes)}`}
         </p>
 
@@ -157,7 +157,7 @@ export function AvancementParcours({
       <div className="avancement__ligne">
         <strong className="avancement__chiffre">{pourcent} %</strong>
         <span className="petit doux">
-          {faits} sur {total} room{total > 1 ? "s" : ""} recommandee{total > 1 ? "s" : ""}
+          {faits} sur {total} room{total > 1 ? "s" : ""} recommandée{total > 1 ? "s" : ""}
         </span>
       </div>
       <progress className="avancement__barre" value={faits} max={total || 1}>

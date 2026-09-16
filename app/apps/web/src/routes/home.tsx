@@ -14,9 +14,9 @@ function Home(): ReactNode {
       <div className="intro">
         <h1>Le catalogue n'est pas le produit. Le parcours l'est.</h1>
         <p className="doux">
-          714 rooms TryHackMe gratuites, indexees et filtrables. Mais une liste de 714 entrees ne
-          dit pas par ou commencer : c'est le role des parcours, ecrits a la main et assumes comme
-          des recommandations, jamais comme des prerequis techniques.
+          714 rooms TryHackMe gratuites, indexées et filtrables. Mais une liste de 714 entrées ne
+          dit pas par où commencer : c'est le rôle des parcours, écrits à la main et assumés comme
+          des recommandations, jamais comme des prérequis techniques.
         </p>
       </div>
 
@@ -47,7 +47,7 @@ function Home(): ReactNode {
           <Figure value={stats.data.rooms.total.toLocaleString("fr-FR")} label="rooms gratuites" />
           <Figure
             value={Math.round(stats.data.durationMinutes.total / 60).toLocaleString("fr-FR")}
-            label="heures de contenu cumulees"
+            label="heures de contenu cumulées"
           />
           <Figure
             value={(
@@ -55,7 +55,7 @@ function Home(): ReactNode {
               stats.data.tags.tool +
               stats.data.tags.skill
             ).toLocaleString("fr-FR")}
-            label="technologies, outils et competences"
+            label="technologies, outils et compétences"
           />
           {/*
             Les parcours, pas « les rooms de niveau facile ». Le titre de la page
@@ -68,19 +68,19 @@ function Home(): ReactNode {
           {tracks.data !== null && (
             <Figure
               value={`${tracks.data.data.length}`}
-              label={`parcours ecrit${tracks.data.data.length > 1 ? "s" : ""} a la main`}
+              label={`parcours écrit${tracks.data.data.length > 1 ? "s" : ""} à la main`}
             />
           )}
         </ul>
       )}
 
-      <h2 style={{ marginBottom: 8 }}>Par ou entrer</h2>
+      <h2 style={{ marginBottom: 8 }}>Par où entrer</h2>
       <ul className="portes">
         <li>
           <Link to="/rooms" className="porte">
             <span className="porte__titre">Catalogue</span>
             <span className="petit doux">
-              Chercher, filtrer par technologie, outil, competence, difficulte ou duree.
+              Chercher, filtrer par technologie, outil, compétence, difficulté ou durée.
             </span>
           </Link>
         </li>
@@ -88,8 +88,8 @@ function Home(): ReactNode {
           <Link to="/roadmap" className="porte">
             <span className="porte__titre">Parcours</span>
             <span className="petit doux">
-              Un ordre de lecture dans les 714 rooms. Contenu editorial, ecrit a la main : les
-              donnees TryHackMe ne contiennent aucun ordre pedagogique.
+              Un ordre de lecture dans les 714 rooms. Contenu éditorial, écrit à la main : les
+              données TryHackMe ne contiennent aucun ordre pédagogique.
             </span>
           </Link>
         </li>
@@ -97,7 +97,7 @@ function Home(): ReactNode {
           <Link to="/progression" className="porte">
             <span className="porte__titre">Ma progression</span>
             <span className="petit doux">
-              Retrouver les rooms terminees, le temps cumule et l'avancement des parcours.
+              Retrouver les rooms terminées, le temps cumulé et l'avancement des parcours.
             </span>
           </Link>
         </li>

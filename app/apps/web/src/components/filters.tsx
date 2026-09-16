@@ -25,11 +25,11 @@ type Props = {
 
 const SORT_LABELS: Readonly<Record<SortKey, string>> = {
   popular: "Les plus suivies",
-  recent: "Republiees recemment",
+  recent: "Republiées récemment",
   shortest: "Les plus courtes",
   longest: "Les plus longues",
   az: "Titre (A-Z)",
-  difficulty: "Difficulte croissante",
+  difficulty: "Difficulté croissante",
 };
 
 /** Une facette dont les valeurs sont des slugs de tags. */
@@ -118,7 +118,7 @@ function Panel({ search, facets, tagNames, categories, onChange, onReset }: Prop
       <DurationFilter search={search} onChange={onChange} />
 
       <CheckboxFacet
-        title="Difficulte"
+        title="Difficulté"
         options={(facets?.difficulty ?? []).map((entry) => ({
           value: entry.key,
           label: entry.label,
@@ -144,7 +144,7 @@ function Panel({ search, facets, tagNames, categories, onChange, onReset }: Prop
       />
 
       <CheckboxFacet
-        title="Equipe"
+        title="Équipe"
         options={(facets?.team ?? []).map((entry) => ({
           value: entry.key,
           label: entry.label,
@@ -175,7 +175,7 @@ function Panel({ search, facets, tagNames, categories, onChange, onReset }: Prop
           promesse — et la categorisation est un travail editorial de la phase 7. */}
       {categories.length > 0 && (
         <CheckboxFacet
-          title="Categorie"
+          title="Catégorie"
           options={categories.map((entry) => ({
             value: entry.slug,
             label: entry.name,
@@ -198,7 +198,7 @@ function Panel({ search, facets, tagNames, categories, onChange, onReset }: Prop
 const FACET_TITLES: Readonly<Record<TagFacetKey, string>> = {
   tech: "Technologie",
   tool: "Outil",
-  skill: "Competence",
+  skill: "Compétence",
 };
 
 // --- Facette a cases a cocher ----------------------------------------------
@@ -369,10 +369,10 @@ function DurationFilter({
         });
       }}
     >
-      <div className="facette__titre">Duree (minutes)</div>
+      <div className="facette__titre">Durée (minutes)</div>
       <div className="rang" style={{ gap: 6, flexWrap: "nowrap" }}>
         <label htmlFor={minId} className="visuellement-cache">
-          Duree minimale en minutes
+          Durée minimale en minutes
         </label>
         <input
           id={minId}
@@ -391,7 +391,7 @@ function DurationFilter({
           -
         </span>
         <label htmlFor={maxId} className="visuellement-cache">
-          Duree maximale en minutes
+          Durée maximale en minutes
         </label>
         <input
           id={maxId}

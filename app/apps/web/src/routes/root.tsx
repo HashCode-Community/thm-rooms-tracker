@@ -34,8 +34,8 @@ function Layout(): ReactNode {
       <footer className="pied">
         <div className="pied__interieur">
           <p>
-            Projet independant, <strong>non affilie a TryHackMe</strong>. Seules des metadonnees
-            publiques des 714 rooms gratuites sont affichees ; les contenus restent sur{" "}
+            Projet indépendant, <strong>non affilié à TryHackMe</strong>. Seules des métadonnées
+            publiques des 714 rooms gratuites sont affichées ; les contenus restent sur{" "}
             <a href="https://tryhackme.com" rel="noopener noreferrer" target="_blank">
               tryhackme.com
             </a>
@@ -45,7 +45,7 @@ function Layout(): ReactNode {
               se pose la question, pas en decouvrant le produit. */}
           <p className="petit">
             <Link to="/mentions" className="pied__lien">
-              Mentions et donnees personnelles
+              Mentions et données personnelles
             </Link>
           </p>
         </div>

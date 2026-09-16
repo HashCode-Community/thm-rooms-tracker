@@ -15,7 +15,7 @@ export function Pagination({
   const last = Math.min(page * limit, total);
 
   return (
-    <nav className="pagination" aria-label="Pagination des resultats">
+    <nav className="pagination" aria-label="Pagination des résultats">
       <button
         type="button"
         className="bouton"
@@ -24,7 +24,7 @@ export function Pagination({
           onGoTo(page - 1);
         }}
       >
-        Precedente
+        Précédente
       </button>
 
       {/* `aria-live` : au clavier, changer de page ne deplace pas le regard.

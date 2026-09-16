@@ -20,7 +20,7 @@ export function Disclaimer({ text }: { text: string | undefined }): ReactNode {
   if (text === undefined) return null;
   return (
     <p className="mention">
-      <strong>A lire avant de suivre un parcours.</strong> {text}
+      <strong>À lire avant de suivre un parcours.</strong> {text}
     </p>
   );
 }
@@ -44,15 +44,15 @@ export function Provenance({
     return (
       <p className="petit doux">
         {validated
-          ? "Suivi de bout en bout par l'equipe."
-          : "Non suivi de bout en bout par notre equipe."}
+          ? "Suivi de bout en bout par l'équipe."
+          : "Non suivi de bout en bout par notre équipe."}
       </p>
     );
   }
 
   return (
     <section className="provenance" aria-label="Provenance du parcours">
-      <h2 className="provenance__titre">Comment ce parcours a ete construit</h2>
+      <h2 className="provenance__titre">Comment ce parcours a été construit</h2>
       <p>{provenance.method}</p>
 
       {provenance.sources.length > 0 && (
@@ -73,8 +73,8 @@ export function Provenance({
       <p style={{ marginTop: 8 }}>
         <strong>
           {validated
-            ? "Ce parcours a ete suivi de bout en bout par notre equipe."
-            : "Ce parcours n'a PAS ete suivi de bout en bout par notre equipe."}
+            ? "Ce parcours a été suivi de bout en bout par notre équipe."
+            : "Ce parcours n'a PAS été suivi de bout en bout par notre équipe."}
         </strong>
       </p>
     </section>
