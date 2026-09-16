@@ -626,6 +626,38 @@ kbd {
   text-underline-offset: 2px;
 }
 
+/* UN LIEN HABILLE EN BOUTON N'EST PAS UN LIEN VISITE.
+
+   `a:visited` pese (0,1,1), `.bouton` pese (0,1,0) : sans ces regles, le
+   libelle de tout bouton rendu par un `<a>` vire au violet des liens visites.
+   Mesure sur le bouton principal de l'accueil, une fois /roadmap visite :
+   #c9a6f5 sur #79b0ff, soit 1,34:1. Le controle de contraste ne pouvait pas le
+   voir : il mesure des paires de jetons, pas la cascade.
+
+   ET LA MESURE DANS LE NAVIGATEUR NE LE VOIT PAS NON PLUS.
+   `getComputedStyle` renvoie la couleur NON visitee, par protection de la vie
+   privee — une page ne doit pas pouvoir lire l'historique. Un defaut de couleur
+   sur `:visited` ne se constate donc qu'a l'oeil ou sur une capture. */
+a.bouton:visited {
+  color: var(--texte);
+}
+
+a.bouton--principal:visited {
+  color: var(--fond);
+}
+
+a.bouton--discret:visited {
+  color: var(--texte-doux);
+}
+
+a.bouton--actif:visited {
+  color: var(--texte);
+}
+
+a.bouton--lien:visited {
+  color: var(--lien);
+}
+
 .champ {
   font: inherit;
   border: 1px solid var(--bord-fort);
@@ -1202,15 +1234,20 @@ label {
    suivante, et c'est la premiere chose que quelqu'un lit du produit. */
 
 .accroche {
-  max-width: 34ch;
   padding: calc(var(--pas) * 4) 0 calc(var(--pas) * 3);
 }
 
+/* LA MESURE SE POSE SUR LE TEXTE, PAS SUR LE CONTENEUR. `ch` se resout contre
+   la police de l'element qui le porte : sur `.accroche` (16 px) un `max-width`
+   en `ch` bridait un titre rendu a 44 px. Mesure : les deux lignes voulues font
+   648 px et 635 px a 44 px, le titre tenait dans 372 px — cinq lignes pour deux.
+   D'ou une mesure en `rem`, independante de l'echelle des enfants. */
 .accroche__titre {
-  font-size: clamp(1.75rem, 1.2rem + 2.4vw, 2.75rem);
+  font-size: clamp(1.625rem, 1.1rem + 2.3vw, 2.75rem);
   line-height: 1.12;
   letter-spacing: -0.02em;
   margin: 0;
+  max-width: 44rem;
 }
 
 .accroche__accent {
@@ -1242,12 +1279,6 @@ label {
   text-decoration: none;
 }
 
-@media (min-width: 720px) {
-  .accroche {
-    max-width: 46ch;
-  }
-}
-
 /* --- Sections de l'accueil ----------------------------------------------- */
 
 .section-accueil {
@@ -1261,6 +1292,13 @@ label {
   gap: var(--pas);
   flex-wrap: wrap;
   margin-bottom: var(--pas);
+}
+
+/* Lien isole, donc vraie cible : 23 px mesures, 44 px imposes. */
+.section-accueil__entete a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
 }
 
 /* --- Apercu des parcours ------------------------------------------------- */
@@ -1310,6 +1348,21 @@ label {
 
 .apercu-parcours__titre a:hover {
   text-decoration: underline;
+}
+
+/* TOUTE LA CARTE EST LA CIBLE. Mesure a 375 px : le titre seul faisait 22 px de
+   haut, moitie du minimum tactile. Le lien s'etend a la carte par un pseudo
+   element, ce qui laisse UN SEUL lien dans l'arbre d'accessibilite au lieu d'en
+   dupliquer un par zone. */
+.apercu-parcours__titre a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.apercu-parcours__carte:focus-within {
+  border-color: var(--bord-fort);
 }
 
 .apercu-parcours__resume {
