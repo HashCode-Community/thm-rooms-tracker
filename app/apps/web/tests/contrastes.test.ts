@@ -37,6 +37,8 @@ const REGLAGES: Reglages = {
   paires: [{ contexte: "texte sur la page", premierPlan: "--texte", arrierePlan: "--fond" }],
   couleursExternes: [],
   surCouleursExternes: "--texte",
+  opaciteExterne: 0.12,
+  fondExterne: "--fond",
   teintes: ["--facile", "--dur"],
   marques: [],
   seuilTexte: 4.5,

@@ -58,6 +58,10 @@ const SEUIL_RECHERCHE_FACETTE = 20;
  * modele de donnees (5, 2 et 3 valeurs) ; technologies, outils, competences et
  * categories croissent avec le catalogue.
  *
+ * Seule « Difficulte » reste depliee : sur un portable de 1366x768, garder
+ * « Equipe » ouverte redonnait un ascenseur a la colonne (726 px demandes pour
+ * 682 disponibles). Arbitrage de Nel, 2026-09-16.
+ *
  * Mesure du defaut corrige, a 1440x900 : toutes deployees, la colonne demande
  * 1 649 px pour 816 disponibles, donc un ascenseur propre a la colonne EN PLUS
  * de celui de la page et de ceux des listes longues. Trois ascenseurs pour une
@@ -169,7 +173,6 @@ function Panel({
 
       <CheckboxFacet
         title="Équipe"
-        deplie
         chargement={chargement}
         options={(facets?.team ?? []).map((entry) => ({
           value: entry.key,

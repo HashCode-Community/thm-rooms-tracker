@@ -1,5 +1,5 @@
 import type { RoomSummary } from "@thm/shared";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { nombre } from "../nombres.js";
 
 /**
@@ -32,8 +32,15 @@ export function TypeBadge({ type }: { type: RoomSummary["type"] }): ReactNode {
 }
 
 export function TeamBadge({ team }: { team: RoomSummary["teams"][number] }): ReactNode {
+  // La couleur vient de la base et n'est PAS peinte en aplat : elle est posee
+  // comme variable, et la feuille en tire un fond a 12 % et une bordure a 25 %,
+  // comme pour les difficultes. Trois aplats satures au milieu de badges a 12 %
+  // criaient plus fort que la difficulte, qui est l'information.
   return (
-    <span className="badge badge--equipe" style={{ background: team.color }}>
+    <span
+      className="badge badge--equipe"
+      style={{ "--couleur-equipe": team.color } as CSSProperties}
+    >
       {team.label}
     </span>
   );

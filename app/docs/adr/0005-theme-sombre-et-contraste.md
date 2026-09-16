@@ -7,9 +7,19 @@
 - **Date** : 2026-09-15
 - **Décideur** : Nelkaël
 - **Amende** : la décision de la phase 8b sur le déclenchement de l'avertissement de persistance
-- **Amendé le 2026-09-16** : Q1 est remplacée, deux thèmes au lieu d'un
+- **Amendé le 2026-09-16** : Q1 est remplacée, deux thèmes au lieu d'un, puis un seul à nouveau
+  sous la charte HashCode — voir les deux amendements en fin de document
 
 ---
+
+## La pile, pour lever une ambiguïté récurrente
+
+`apps/web` n'a **aucun framework CSS** : ni Tailwind, ni CSS-in-JS, ni bibliothèque de
+composants. Une seule feuille, `src/styles.css`, et des propriétés personnalisées déclarées
+dans `:root`. La règle `@theme` appartient à Tailwind 4 et **n'existe pas ici** : une charte
+exprimée avec cette syntaxe se traduit en propriétés personnalisées portant les mêmes noms.
+Ajouter Tailwind pour la syntaxe seule contredirait la contrainte « aucune nouvelle dépendance
+lourde sans justification écrite ».
 
 ## Règle de tenue de ce dossier
 

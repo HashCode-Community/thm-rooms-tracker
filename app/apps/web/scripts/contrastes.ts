@@ -248,6 +248,14 @@ export type Reglages = Readonly<{
   /** Token de la couleur portee sur ces couleurs externes. */
   surCouleursExternes: string;
   /**
+   * Opacite a laquelle ces couleurs sont reellement peintes, et fond qui les
+   * recoit. Les badges d'equipe suivent l'idiome de la charte : teinte a 12 %
+   * sur la carte, libelle en blanc. Mesurer le blanc sur la couleur PLEINE
+   * donnerait un ratio qui ne s'affiche plus nulle part.
+   */
+  opaciteExterne: number;
+  fondExterne: string;
+  /**
    * Teintes dont la clarte percue est RAPPORTEE, sans condition de reussite.
    *
    * Le controle exigeait avant que les cinq crans de difficulte forment une
@@ -345,9 +353,12 @@ export function analyser(
   });
 
   // 2. couleurs imposees par les donnees
-  const surExterne = aplatir(resoudreCouleur(tokens, reglages.surCouleursExternes), [0, 0, 0]);
+  const fondExterne = aplatir(resoudreCouleur(tokens, reglages.fondExterne), [0, 0, 0]);
+  const surExterne = aplatir(resoudreCouleur(tokens, reglages.surCouleursExternes), fondExterne);
   const externes = reglages.couleursExternes.map(([nom, couleur]) => {
-    const mesure = ratio(surExterne, parseHex(couleur));
+    const [r, v, b] = parseHex(couleur);
+    const teinte = aplatir([r, v, b, reglages.opaciteExterne], fondExterne);
+    const mesure = ratio(surExterne, teinte);
     const passe = mesure >= reglages.seuilTexte;
     if (!passe) {
       echecs.push(`${nom} : ${mesure.toFixed(2)}:1 sur ${couleur}, seuil ${reglages.seuilTexte}:1`);

@@ -161,11 +161,6 @@
   --diff-insane-fond: var(--color-hc-diff-extreme-12);
   --diff-insane-bord: var(--color-hc-diff-extreme-25);
 
-  /* Hors charte : les couleurs d'equipe viennent de l'API, la feuille ne les
-     regle pas. Le texte pose dessus est blanc, et c'est un JETON pour que le
-     controleur le mesure. */
-  --sur-couleur-imposee: #ffffff;
-
   --grille: var(--color-hc-grille);
   /* Butee de masque, pas une couleur : seul son canal alpha compte. Elle est
      nommee parce que la regle « aucune couleur ecrite en clair » porte sur la
@@ -405,9 +400,14 @@ kbd {
   white-space: nowrap;
 }
 
+/* La teinte vient des donnees, l'idiome vient de la charte : fond a 12 %,
+   bordure a 25 %. Le libelle reste en blanc — sur une teinte a 12 % posee sur la
+   carte, c'est le meme contraste que du texte ordinaire, et le controleur le
+   mesure comme tel. */
 .badge--equipe {
-  color: var(--sur-couleur-imposee);
-  border-color: transparent;
+  color: var(--texte);
+  background: color-mix(in srgb, var(--couleur-equipe) 12%, transparent);
+  border-color: color-mix(in srgb, var(--couleur-equipe) 25%, transparent);
 }
 
 .badge--neutre {

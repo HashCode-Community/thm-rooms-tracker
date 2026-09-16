@@ -199,7 +199,9 @@ const REGLAGES: Reglages = {
     ["equipe Purple", "#6b3fa0"],
     ["equipe inconnue (repli)", "#555555"],
   ],
-  surCouleursExternes: "--sur-couleur-imposee",
+  surCouleursExternes: "--texte",
+  opaciteExterne: 0.12,
+  fondExterne: "--fond-doux",
   teintes: ["--diff-info", "--diff-easy", "--diff-medium", "--diff-hard", "--diff-insane"],
   /**
    * Marques, pas arriere-plans : ces tokens sont peints en `background` sur des
