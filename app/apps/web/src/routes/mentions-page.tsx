@@ -12,12 +12,12 @@ import { useTitre } from "../titre.js";
  * Une page de mentions que personne ne relit vieillit en mensonge ; celle-ci ne
  * peut pas vieillir sans que quelque chose casse.
  *
- * CE QUI N'Y EST TOUJOURS PAS : l'HEBERGEUR. Il ne se deduit ni du code ni des
- * données, et il n'existera qu'une fois le site en ligne. Mieux vaut une ligne
- * absente qu'une ligne remplie au hasard — celle-la est due le jour du premier
- * deploiement public.
+ * L'HEBERGEUR est arrive le 2026-09-17, jour de la premiere mise en ligne : il
+ * ne se deduisait ni du code ni des données, et il n'existait pas avant. Aucune
+ * adresse postale n'est recopiee ici : elles n'ont pas ete verifiees, et une
+ * mention legale fausse est pire qu'une mention incomplete.
  *
- * La licence, l'editeur et le contact, eux, sont arrives le 2026-09-17.
+ * La licence, l'editeur et le contact sont arrives le meme jour.
  */
 
 /** Extrait de `data/datasets/rooms.v1.json`, section `meta`. */
@@ -152,7 +152,10 @@ export default function Mentions(): ReactNode {
             à ses auteurs.
           </li>
           <li>
-            <strong>Hébergeur</strong> : à renseigner à la mise en ligne.
+            <strong>Hébergeur</strong> : le site est servi par Cloudflare, Inc. (Cloudflare Pages),
+            l'API par Render Services, Inc., et la base de données par Neon, Inc. L'API et la base
+            sont dans la région <strong>Europe (Francfort)</strong>. Ces trois sociétés sont
+            établies aux États-Unis ; leurs coordonnées complètes figurent sur leurs sites.
           </li>
         </ul>
       </Section>
