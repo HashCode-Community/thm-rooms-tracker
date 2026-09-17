@@ -61,6 +61,18 @@ services:
     buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build
     staticPublishPath: ./app/apps/web/dist
     rootDir: ./app
+    envVars:
+      # LUE A LA CONSTRUCTION, PAS AU DEMARRAGE. Le front n'ecrit aucune adresse
+      # d'API en dur : sans cette variable il demande /api/... a sa propre
+      # origine, la regle de repli ci-dessous rend index.html en 200, et le site
+      # affiche "Unexpected token '<'" a la place des donnees. Aucune erreur CORS
+      # n'apparait, puisque aucun appel n'a quitte l'origine.
+      #
+      # `sync: false` et pas `fromService` : il faut l'origine COMPLETE avec son
+      # schema (https://...), or `fromService` ne rend que l'hote, et render.yaml
+      # ne sait pas concatener. A poser a la main, une fois l'API deployee.
+      - key: VITE_API_BASE_URL
+        sync: false
     routes:
       # Le repli de l'application a page unique. Sans lui, un rechargement sur
       # /roadmap/fondamentaux rend un 404 de l'hebergeur.
