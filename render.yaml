@@ -11,7 +11,12 @@
 # 502 ou un 503, et `api.ts` a un message pour ce cas precis — mais le premier
 # visiteur de la journee attend.
 #
-# Deployer : Render > New > Blueprint, pointer sur ce depot.
+# CE FICHIER DOIT RESTER A LA RACINE DU DEPOT : Render ne cherche `render.yaml`
+# nulle part ailleurs. Range dans `app/deploy/`, il etait invisible, et la page
+# Blueprint repondait « aucun render.yaml trouve ».
+#
+# Deployer : Render > New > Blueprint, pointer sur ce depot, choisir la branche
+# `feat/refonte-ui` — `main` a 61 commits de retard.
 
 services:
   - type: web

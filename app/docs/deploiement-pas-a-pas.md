@@ -1,51 +1,106 @@
-# Déploiement, pas à pas
+# Mettre le site en ligne, pas à pas
 
-Ce guide met le site en ligne **gratuitement**, en trois services. Il suppose que vous avez lu
-[`deploiement.md`](deploiement.md), qui dit **ce que l'hébergeur doit poser et que le code ne peut
-pas** : ce document-ci dit **comment**, avec des commandes.
+Ce guide part du principe que **c'est la première fois**. Chaque étape dit où cliquer, quoi coller,
+et **comment savoir que ça a marché**. Comptez une heure la première fois.
 
-Tous les fichiers cités vivent dans [`../deploy/`](../deploy).
+Il n'y a **rien à payer** : les trois services utilisés ont un palier gratuit.
+
+> Vous cherchez le raisonnement plutôt que les clics ? [`deploiement.md`](deploiement.md) dit ce que
+> l'hébergeur doit poser et pourquoi. Ce document-ci dit comment.
 
 ---
 
-## Le découpage, et pourquoi il est en trois
+## Avant de commencer
 
-| Ce qui tourne | Où | Pourquoi là |
+**Ce qu'il vous faut** : un compte GitHub (vous l'avez), et de quoi recevoir un courriel de
+confirmation. Aucune carte bancaire pour le chemin décrit ici.
+
+**Trois services, trois rôles.** Un site comme celui-ci n'est pas un seul programme :
+
+| Ce que c'est | Où ça va | Pourquoi pas ailleurs |
 |---|---|---|
-| **Base PostgreSQL** | **Neon** | palier gratuit qui **n'expire pas**, 0,5 Go — la base pèse **12 Mo** |
-| **API Node** | **Render** ou **Koyeb** | Fastify est un processus qui tourne, pas une fonction : Cloudflare Workers ne convient pas |
-| **Front statique** | **Cloudflare Pages** | bande passante illimitée, en-têtes et repli d'application à page unique en deux fichiers |
+| **La base de données** — les 714 rooms, les parcours | **Neon** | le palier gratuit n'expire jamais, contrairement à celui de Render |
+| **L'API** — le programme qui lit la base et répond | **Render** | Fastify est un programme qui tourne en permanence, pas une fonction |
+| **Le site** — les pages que le visiteur voit | **Cloudflare Pages** | des fichiers à servir, rien à exécuter |
 
-**Le piège à éviter d'emblée** : le Postgres gratuit de Render **expire au bout de 30 jours**. Le
-site tomberait un mois après la mise en ligne, sans prévenir. La base va chez Neon, quel que soit
-l'hébergeur de l'API.
+**L'ordre compte** : base → la remplir → API → site → rebrancher les deux. Si vous inversez, vous
+tournerez en rond sur des erreurs qui n'ont pas l'air liées.
 
----
-
-## 1. La base, chez Neon
-
-1. Créer un compte, puis un projet — région **Europe** (Francfort ou Amsterdam), PostgreSQL 16.
-2. Copier la chaîne de connexion **« pooled »**, celle dont l'hôte contient `-pooler`. Elle supporte
-   les connexions courtes et nombreuses d'un service qui se rendort. Elle finit par
-   `?sslmode=require` : garder ce paramètre.
-3. La garder de côté : c'est `DATABASE_URL`.
-
-Neon met la base en veille au bout de cinq minutes sans requête et la réveille en moins d'une
-seconde. Ce n'est pas le même sommeil que celui de l'API.
+**Une branche, pas l'autre.** Tout le travail est sur **`feat/refonte-ui`**. La branche `main` a
+**61 commits de retard** : déployer `main` mettrait en ligne une version d'il y a une semaine.
+Partout où un service demande une branche, répondez `feat/refonte-ui`.
 
 ---
 
-## 2. Remplir la base, depuis votre machine
+## Étape 1 — La base de données, chez Neon
 
-Les migrations, le semis et l'import tournent avec `tsx` et les sources : ils ne sont **pas** dans
-l'image de production, et c'est voulu — une image qui embarque de quoi réécrire sa propre base est
-une image qui peut le faire par accident.
+### 1.1 Créer le compte
+
+1. Ouvrir **<https://neon.com>** puis **Sign up**.
+2. Choisir **Continue with GitHub** : un compte de moins à gérer.
+3. Neon propose de créer un projet. Remplir :
+
+   | Champ | Valeur |
+   |---|---|
+   | Project name | `thm-roadmap` |
+   | Postgres version | **16** |
+   | Region | **Europe (Frankfurt)** — le plus proche de vos visiteurs |
+
+4. **Create project**.
+
+### 1.2 Récupérer la chaîne de connexion
+
+Neon affiche tout de suite un encadré **Connection string**. C'est une longue ligne qui ressemble à :
+
+```
+postgresql://neondb_owner:UnMotDePasse@ep-quelque-chose-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=require
+```
+
+**Vérifiez que l'adresse contient `-pooler`.** S'il y a un sélecteur **Pooled connection** ou
+**Connection pooling**, activez-le. Cette version supporte les connexions courtes et nombreuses d'un
+service qui se rendort ; l'autre lâcherait au réveil.
+
+Copiez cette ligne et gardez-la de côté — un fichier texte, pas un message public. **C'est un mot de
+passe** : qui l'a peut lire et écrire toute la base.
+
+> **Ce qui vient de se passer** : vous avez une base PostgreSQL vide, accessible depuis internet,
+> chiffrée. Elle ne contient encore aucune room.
+
+---
+
+## Étape 2 — Remplir la base, depuis votre ordinateur
+
+Les 714 rooms ne sont pas dans la base : elles sont dans un fichier du dépôt, et quatre commandes
+les y mettent. **Ces commandes tournent depuis votre machine**, pas depuis un serveur.
+
+### 2.1 Ouvrir un terminal au bon endroit
+
+Ouvrez **PowerShell** (ou Git Bash) et placez-vous dans le dossier `app` du projet :
+
+```powershell
+cd C:\Users\N\Projets\thm-roadmap\app
+```
+
+### 2.2 Donner l'adresse de la base au terminal
+
+**PowerShell** — collez votre chaîne Neon entre les guillemets :
+
+```powershell
+$env:DATABASE_URL = 'postgresql://…-pooler….neon.tech/neondb?sslmode=require'
+```
+
+**Git Bash**, si vous préférez :
 
 ```bash
-cd app
-# La chaine de Neon, le temps de ces quatre commandes seulement.
-export DATABASE_URL='postgresql://…-pooler…/neondb?sslmode=require'
+export DATABASE_URL='postgresql://…-pooler….neon.tech/neondb?sslmode=require'
+```
 
+Cette valeur ne vit que dans **cette** fenêtre de terminal. Si vous la fermez, il faudra la
+redonner. C'est voulu : elle n'est écrite nulle part.
+
+### 2.3 Les quatre commandes, dans cet ordre
+
+```powershell
 pnpm install --frozen-lockfile
 pnpm build
 
@@ -55,126 +110,231 @@ pnpm data:import -- --apply-mappings --apply
 pnpm --filter @thm/api run roadmap:seed -- --apply
 ```
 
-**`--apply` sur les deux dernières lignes.** Sans le drapeau, elles sortent en **code 0 sans rien
-écrire** : la base reste vide, et la panne se manifeste bien plus loin sous une forme qui n'a aucun
-rapport.
+**Le `--apply` des deux dernières lignes n'est pas décoratif.** Sans lui, elles font une simulation :
+elles affichent ce qu'elles feraient, se terminent **sans erreur**, et n'écrivent rien. La base reste
+vide, et la panne apparaît beaucoup plus tard sous une forme qui n'a aucun rapport.
 
-Vérifier :
+### 2.4 Vérifier
 
-```bash
-psql "$DATABASE_URL" -c 'select count(*) from rooms;'   # 714
-psql "$DATABASE_URL" -c 'select count(*) from tracks;'  # 3
+La dernière commande doit finir par `APPLIQUE. 3 parcours en base.`
+
+Pour en être sûr, dans la console Neon, onglet **SQL Editor**, collez :
+
+```sql
+select count(*) from rooms;
+select count(*) from tracks;
 ```
 
----
-
-## 3. L'API
-
-### Option A — Render (sans carte bancaire)
-
-1. **New > Blueprint**, pointer sur ce dépôt : [`deploy/render.yaml`](../deploy/render.yaml) est lu
-   automatiquement.
-2. Renseigner les deux variables marquées `sync: false` dans l'interface :
-   - `DATABASE_URL` — la chaîne Neon ;
-   - `CORS_ORIGINS` — l'origine du front, **exacte, sans barre oblique finale**. Elle n'existe pas
-     encore : y revenir après l'étape 4.
-3. Déployer. Le premier build compile l'image Docker : comptez quelques minutes.
-
-Le service gratuit **se rendort après 15 minutes** sans trafic et met **30 à 60 secondes** à se
-réveiller. Le front sait l'afficher proprement — l'API rend alors un 502 ou un 503, et
-`apps/web/src/api.ts` a un message pour ce cas précis — mais le premier visiteur attend.
-
-### Option B — Koyeb (pas de plafond d'heures, carte demandée pour vérification)
-
-Créer un service depuis le dépôt GitHub, type **Dockerfile**, chemin
-`app/deploy/api/Dockerfile`, contexte `app`. Mêmes variables qu'au-dessus, port **3000**.
-
-### Dans les deux cas
-
-| Variable | Valeur | Ce qui casse sans elle |
-|---|---|---|
-| `NODE_ENV` | `production` | `/docs` publie toute la surface d'API, et le détail des erreurs 500 part dans les réponses |
-| `API_HOST` | `0.0.0.0` | dans un conteneur, la valeur par défaut `127.0.0.1` veut dire « joignable par personne » |
-| `API_PORT` | celui qu'impose la plateforme | le service ne répond pas au contrôle de santé |
-| `TRUST_PROXY` | `true` | derrière un proxy, toutes les requêtes semblent venir de la même adresse : la limite de débit devient une limite globale |
-| `DATABASE_URL` | la chaîne Neon | l'API ne démarre pas |
-| `CORS_ORIGINS` | l'origine du front | le navigateur refuse tous les appels |
-
-`TRUST_PROXY` n'a **aucune valeur par défaut sûre** : à `true` sans proxy, n'importe qui usurpe son
-adresse via `x-forwarded-for` et contourne la limite de débit. Le mettre à `true` **parce qu'il y a
-un proxy**, pas par habitude.
+**Attendu : 714 et 3.** Si vous voyez 0, une des commandes n'a pas tourné ou le `--apply` manque.
 
 ---
 
-## 4. Le front, chez Cloudflare Pages
+## Étape 3 — L'API, chez Render
 
-1. **Workers & Pages > Create > Pages > Connect to Git**, choisir ce dépôt.
-2. Réglages de construction :
+### 3.1 Créer le compte
+
+1. Ouvrir **<https://render.com>** puis **Get Started**.
+2. **Sign in with GitHub**, et autoriser Render à voir le dépôt
+   **`HashCode-Community/thm-rooms-tracker`**.
+
+### 3.2 Créer le service
+
+1. Dans le tableau de bord : **New +** (en haut à droite) → **Web Service**.
+2. Choisir le dépôt **`thm-rooms-tracker`** → **Connect**.
+3. Remplir le formulaire :
+
+   | Champ | Valeur | Pourquoi |
+   |---|---|---|
+   | Name | `thm-roadmap-api` | il donnera l'adresse `thm-roadmap-api.onrender.com` |
+   | Region | **Frankfurt (EU Central)** | la même que la base |
+   | Branch | **`feat/refonte-ui`** | `main` a 61 commits de retard |
+   | Language / Runtime | **Docker** | la recette de construction est dans le dépôt |
+   | Dockerfile Path | `./app/deploy/api/Dockerfile` | |
+   | Docker Build Context Directory | `./app` | |
+   | Instance Type | **Free** | |
+
+### 3.3 Les variables d'environnement
+
+Toujours dans le même formulaire, section **Environment Variables** → **Add Environment Variable**,
+six fois :
+
+| Key | Value |
+|---|---|
+| `DATABASE_URL` | votre chaîne Neon complète |
+| `NODE_ENV` | `production` |
+| `API_HOST` | `0.0.0.0` |
+| `API_PORT` | `10000` |
+| `TRUST_PROXY` | `true` |
+| `CORS_ORIGINS` | `https://exemple.invalid` — **valeur provisoire**, corrigée à l'étape 5 |
+
+**Ce que chacune évite**, parce qu'aucune n'est là par habitude :
+
+- `NODE_ENV=production` : sans elle, l'API publie sa documentation interne et le détail technique
+  de ses erreurs.
+- `API_HOST=0.0.0.0` : la valeur par défaut, `127.0.0.1`, signifie « joignable seulement depuis
+  l'intérieur du conteneur », c'est-à-dire par personne.
+- `API_PORT=10000` : le port que Render écoute. S'il ne correspond pas, Render déclare le service en
+  échec sans autre explication.
+- `TRUST_PROXY=true` : il y a un serveur intermédiaire devant. Sans cela, toutes les requêtes
+  semblent venir de la même adresse et la limite anti-abus devient une limite globale.
+
+### 3.4 Déployer et attendre
+
+**Create Web Service**. Render construit l'image — **5 à 10 minutes la première fois**, c'est
+normal. Les journaux défilent en direct ; la ligne qui compte est :
+
+```
+Your service is live 🎉
+```
+
+### 3.5 Vérifier
+
+Render affiche l'adresse en haut de la page, du type
+`https://thm-roadmap-api.onrender.com`. Ouvrez, **en ajoutant `/health`** :
+
+```
+https://thm-roadmap-api.onrender.com/health
+```
+
+**Attendu**, mot pour mot : `{"status":"ok","db":"ok"}`. Le second `ok` dit que l'API a bien
+joint la base — s'il manque, c'est `DATABASE_URL` qui est en cause, pas Render. Ouvrez ensuite :
+
+```
+https://thm-roadmap-api.onrender.com/api/stats
+```
+
+**Attendu** : un long JSON qui commence par `{"rooms":{"total":714,…`. Si `total` vaut 0, la base
+n'a pas été remplie — retour à l'étape 2.
+
+**Notez cette adresse**, elle sert deux fois dans la suite.
+
+> **Le service gratuit se rendort** après 15 minutes sans visite, et met 30 à 60 secondes à se
+> réveiller. Ce n'est pas une panne. Le site affiche un message clair pendant ce temps.
+
+---
+
+## Étape 4 — Le site, chez Cloudflare Pages
+
+### 4.1 Dire au site où est l'API
+
+Le navigateur interdit à une page d'appeler un domaine qui n'a pas été **déclaré à l'avance**. Cette
+déclaration est dans un fichier du dépôt, et elle contient encore une adresse d'exemple.
+
+1. Ouvrir `app/deploy/cloudflare/_headers`.
+2. Y remplacer **`https://api.exemple.fr`** par votre adresse Render, sans barre oblique finale :
+   `https://thm-roadmap-api.onrender.com`.
+3. Copier les **deux** fichiers `_headers` et `_redirects` depuis `app/deploy/cloudflare/` vers
+   `app/apps/web/public/`.
+
+```powershell
+cd C:\Users\N\Projets\thm-roadmap\app
+copy deploy\cloudflare\_headers apps\web\public\
+copy deploy\cloudflare\_redirects apps\web\public\
+git add apps/web/public/_headers apps/web/public/_redirects
+git commit -m "chore(deploy): en-tetes et repli du front"
+git push origin feat/refonte-ui
+```
+
+**Pourquoi copier et non pointer** : Cloudflare ne lit ces fichiers que s'ils sont dans le dossier
+publié. Vite recopie tout ce qui est dans `public/` tel quel.
+
+### 4.2 Créer le projet
+
+1. Ouvrir **<https://dash.cloudflare.com>**, créer un compte si besoin (**Sign up**, gratuit).
+2. Menu de gauche : **Workers & Pages** → **Create** → onglet **Pages** → **Connect to Git**.
+3. Autoriser Cloudflare à accéder au dépôt **`HashCode-Community/thm-rooms-tracker`**, le choisir,
+   **Begin setup**.
+4. Remplir :
 
    | Champ | Valeur |
    |---|---|
-   | Répertoire racine | `app` |
-   | Commande | `corepack enable && pnpm install --frozen-lockfile && pnpm build` |
-   | Dossier de sortie | `apps/web/dist` |
-   | Version de Node | `24` (variable `NODE_VERSION`) |
+   | Project name | `thm-roadmap` |
+   | Production branch | **`feat/refonte-ui`** |
+   | Framework preset | **None** |
+   | Build command | `corepack enable && pnpm install --frozen-lockfile && pnpm build` |
+   | Build output directory | `apps/web/dist` |
+   | Root directory (advanced) | `app` |
 
-3. Copier [`deploy/cloudflare/_headers`](../deploy/cloudflare/_headers) et
-   [`deploy/cloudflare/_redirects`](../deploy/cloudflare/_redirects) dans `apps/web/public/`. Vite
-   les recopie tels quels dans `dist`, et Cloudflare les lit là.
+5. Dérouler **Environment variables (advanced)** et ajouter :
 
-   **Avant de les copier, remplacer `https://api.exemple.fr`** dans `_headers` par l'origine réelle
-   de l'API. C'est le `connect-src` : s'il est faux, le front n'a le droit d'appeler personne et la
-   page reste vide sans message d'erreur lisible.
+   | Variable | Value |
+   |---|---|
+   | `NODE_VERSION` | `24` |
 
-4. Retourner dans l'API renseigner `CORS_ORIGINS` avec l'adresse que Cloudflare vient d'attribuer
-   (`https://….pages.dev`), puis redéployer l'API.
+   Sans elle, Cloudflare construit avec une version de Node trop ancienne et la construction échoue
+   sur une erreur de syntaxe incompréhensible.
 
-Le repli `/* /index.html 200` n'est pas un détail : sans lui, un rechargement direct sur
-`/roadmap/fondamentaux` rend un 404 de l'hébergeur. C'est le premier symptôme que remonte quelqu'un
-à qui on a partagé un lien.
+6. **Save and Deploy**. Comptez 3 à 5 minutes.
+
+### 4.3 Vérifier
+
+Cloudflare donne une adresse du type `https://thm-roadmap.pages.dev`. Ouvrez-la.
+
+**Attendu** : la page d'accueil, avec le graphe des trois parcours. Si le graphe reste vide, c'est
+que le site n'arrive pas à parler à l'API — c'est l'étape 5 qui règle cela.
 
 ---
 
-## 5. Vérifier, une fois en ligne
+## Étape 5 — Rebrancher les deux
 
-```bash
-API=https://votre-api.onrender.com
-SITE=https://votre-site.pages.dev
+L'API refuse encore les appels du site : à l'étape 3 vous lui avez donné une adresse provisoire.
 
-curl -s -o /dev/null -w '%{http_code}\n' "$API/health"        # 200
-curl -s -o /dev/null -w '%{http_code}\n' "$API/docs"          # 404
-curl -s -o /dev/null -w '%{http_code}\n' "$API/docs/json"     # 404
-curl -sD - -o /dev/null "$API/api/stats" | grep -i strict-transport-security
-curl -sD - -o /dev/null "$SITE/" | grep -i content-security-policy
+1. Retourner sur **Render**, votre service, onglet **Environment**.
+2. Modifier `CORS_ORIGINS` : mettre l'adresse Cloudflare **exacte**, sans barre oblique finale :
+
+   ```
+   https://thm-roadmap.pages.dev
+   ```
+
+3. **Save, rebuild, and deploy**. Render redémarre le service, une minute environ.
+
+### Vérifier, cette fois pour de bon
+
+Sur `https://thm-roadmap.pages.dev` :
+
+- l'accueil affiche **714**, **890 heures**, et le graphe des trois parcours ;
+- **Catalogue** affiche des rooms et les filtres répondent ;
+- ouvrir un parcours, cocher une room : la progression se met à jour ;
+- **coller directement** `https://thm-roadmap.pages.dev/roadmap/fondamentaux` dans la barre
+  d'adresse et valider — la page doit s'afficher, **pas** une erreur 404. C'est le test du fichier
+  `_redirects`.
+
+---
+
+## Étape 6 — La dernière ligne à écrire
+
+La page **Mentions** porte encore « Hébergeur : à renseigner à la mise en ligne ». Maintenant vous
+le savez. Dans `app/apps/web/src/routes/mentions-page.tsx`, remplacer cette ligne par :
+
+```
+Hébergeur : Cloudflare, Inc. (site) et Render Services, Inc. (API).
 ```
 
-Les quatre premières sont **déjà vérifiées à chaque commit** par la CI, sur une construction de
-production réelle. Les rejouer ici vérifie **la plateforme**, pas le code.
-
-À vérifier en plus, et seulement là :
-
-- un rechargement direct sur `$SITE/roadmap/fondamentaux` rend la page, pas un 404 ;
-- la page `/progression` d'un visiteur à plus de 200 rooms terminées se charge — c'est le test de la
-  ligne de requête : `/api/rooms/batch` envoie jusqu'à **1 895 octets** d'URL, un proxy réglé sous
-  2 ko rendrait **414** sur cette page et sur elle seule ;
-- les en-têtes du front sont bien ceux de `_headers`.
+Puis `git commit` et `git push` : Cloudflare redéploie tout seul à chaque poussée.
 
 ---
 
-## 6. Ce qui reste à faire, et qui n'est pas technique
+## Quand ça ne marche pas
 
-La page `/mentions` porte désormais l'éditeur, le contact et la licence. **L'hébergeur y est encore
-« à renseigner à la mise en ligne »** : c'est la dernière des quatre informations, et elle ne peut
-être écrite qu'une fois ces étapes faites. La remplir dans
-`apps/web/src/routes/mentions-page.tsx`.
+| Ce que vous voyez | Ce que c'est | Quoi faire |
+|---|---|---|
+| Le site s'affiche mais **vide**, sans room | l'API refuse les appels du site | `CORS_ORIGINS` sur Render doit être **exactement** l'adresse du site, sans `/` final. Et `connect-src` dans `_headers` doit nommer l'API |
+| **404** en rechargeant `/roadmap/…` | le fichier `_redirects` n'est pas dans `apps/web/public/` | étape 4.1, puis repousser |
+| La première visite met **une minute** | le service gratuit se réveillait | normal. Rien à corriger |
+| `/api/stats` répond `"total":0` | la base est vide | étape 2, en vérifiant le `--apply` |
+| Render : **Build failed** | souvent la branche ou le chemin du Dockerfile | vérifier `feat/refonte-ui`, `./app/deploy/api/Dockerfile`, contexte `./app` |
+| Cloudflare : erreur de syntaxe à la construction | version de Node trop ancienne | ajouter `NODE_VERSION=24` |
+
+Les journaux sont vos amis : **Render → Logs**, **Cloudflare → Deployments → View build log**. Le
+message utile est presque toujours la **première** ligne rouge, pas la dernière.
 
 ---
 
-## Ce dont le site n'a pas besoin
+## Ce que le site n'a pas besoin de faire
 
-**Aucun bandeau de consentement.** Ce n'est pas une omission, c'est une mesure : le site ne pose
-**aucun cookie** — vérifié à vide sur trois pages, `document.cookie` reste vide et le navigateur
-n'enregistre rien. Il écrit deux clés dans le navigateur, et aucune n'appelle le consentement :
+**Aucun bandeau de consentement.** Ce n'est pas un oubli, c'est une mesure : le site ne pose
+**aucun cookie** — vérifié navigateur vide sur trois pages. Il écrit deux clés, et aucune n'appelle
+le consentement :
 
 | Clé | Où | Pourquoi elle est exemptée |
 |---|---|---|
@@ -182,13 +342,13 @@ n'enregistre rien. Il écrit deux clés dans le navigateur, et aucune n'appelle 
 | `tsr-scroll-restoration-v1_3` | stockage de session | confort d'interface — la position de défilement — effacée à la fermeture de l'onglet |
 
 L'article 82 de la loi Informatique et Libertés exempte les traceurs strictement nécessaires au
-service demandé par l'utilisateur, et le bandeau n'est obligatoire que si l'on dépose un traceur qui
-exige le consentement : publicité, mesure d'audience non exemptée, traceur tiers. Il n'y en a aucun
-ici — ni régie, ni analytique, ni police servie par un tiers.
+service demandé, et le bandeau n'est obligatoire que si l'on dépose un traceur qui exige le
+consentement : publicité, mesure d'audience non exemptée, traceur tiers. Il n'y en a aucun ici — ni
+régie, ni analytique, ni police servie par un tiers.
 
 Afficher un bandeau quand même serait **affirmer une surveillance qui n'existe pas**, et habituer un
-visiteur de plus à cliquer « accepter » sans lire. Ce qui reste dû, en revanche, c'est
-l'**information** : c'est le rôle de `/mentions`, atteignable depuis le pied de chaque page.
+visiteur de plus à cliquer « accepter » sans lire. Ce qui reste dû, c'est l'**information** : c'est
+le rôle de `/mentions`, atteignable depuis le pied de chaque page.
 
 Cette analyse n'est pas un avis juridique. Elle est vraie tant que la liste ci-dessus l'est : le
 jour où une mesure d'audience ou une police tierce entre dans le site, la question se repose

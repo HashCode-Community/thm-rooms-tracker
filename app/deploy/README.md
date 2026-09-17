@@ -1,7 +1,8 @@
 # `deploy/` — ce qu'il faut pour mettre en ligne
 
-Le guide est dans [`../docs/deploiement-pas-a-pas.md`](../docs/deploiement-pas-a-pas.md). Ce dossier
-ne contient que les fichiers que les plateformes lisent.
+Le guide est dans [`../docs/deploiement-pas-a-pas.md`](../docs/deploiement-pas-a-pas.md) — écrit
+pour quelqu'un qui déploie pour la première fois, avec chaque lien et chaque champ à remplir. Ce
+dossier ne contient que les fichiers que les plateformes lisent.
 
 | Fichier | Pour qui | Ce qu'il fait |
 |---|---|---|
@@ -9,7 +10,7 @@ ne contient que les fichiers que les plateformes lisent.
 | [`api/.dockerignore`](api/.dockerignore) | Docker | tient `node_modules`, `.env` et le jeu de données hors du contexte de construction |
 | [`cloudflare/_redirects`](cloudflare/_redirects) | Cloudflare Pages | repli de l'application à page unique sur `index.html` |
 | [`cloudflare/_headers`](cloudflare/_headers) | Cloudflare Pages | politique de sécurité du front et durées de cache |
-| [`render.yaml`](render.yaml) | Render | déclare l'API et le front d'un coup |
+| [`../../render.yaml`](../../render.yaml) | Render | déclare l'API et le front d'un coup. **À la racine du dépôt** : Render ne le cherche nulle part ailleurs |
 | [`.env.production.example`](.env.production.example) | vous | la liste des variables, et **ce qui casse sans chacune** |
 
 ## Trois choses à ne pas manquer
