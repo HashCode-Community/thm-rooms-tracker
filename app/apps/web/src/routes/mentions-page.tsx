@@ -101,6 +101,14 @@ export default function Mentions(): ReactNode {
             sur le réseau.
           </li>
           <li>
+            Le site écrit <strong>deux clés</strong> dans ce navigateur, et aucune autre :
+            <code>thm-roadmap.progression</code>, votre progression ; et une clé de session qui
+            retient la position de défilement d'une page à l'autre, effacée à la fermeture de
+            l'onglet. Aucune ne vous identifie, aucune n'est lue par un tiers — c'est pourquoi ce
+            site n'affiche <strong>aucun bandeau de consentement</strong> : il n'a rien à faire
+            accepter.
+          </li>
+          <li>
             Ce n'est pas une intention, c'est une impossibilité : l'API ne sait que{" "}
             <strong>lire</strong>. Elle n'expose aucune route capable de recevoir quoi que ce soit,
             et un test le vérifie a chaque construction.

@@ -1,0 +1,31 @@
+# Ce qui n'entre pas dans le contexte de construction.
+#
+# LE NOM EST IMPOSE : docker cherche `.dockerignore` a la racine du CONTEXTE, pas
+# a cote du Dockerfile. `Dockerfile.dockerignore` est la convention qui permet de
+# le ranger ici. Sans ce fichier, le `node_modules` de la machine hote — des
+# liens Windows, inutilisables dans une image Linux — recouvre celui que
+# l'installation vient de poser, et la compilation echoue sur un module pourtant
+# installe.
+
+node_modules
+**/node_modules
+**/dist
+.git
+.env
+.env.*
+!.env.example
+
+# Le jeu de donnees ne sert qu'a l'import, qui tourne depuis la machine de
+# developpement, jamais depuis l'image.
+data
+
+# Le front ne fait pas partie de cette image. Son manifeste, si : pnpm refuse un
+# espace de travail dont un membre declare manque.
+apps/web/*
+!apps/web/package.json
+
+docs
+deploy
+**/tests
+**/*.test.ts
+.playwright-mcp

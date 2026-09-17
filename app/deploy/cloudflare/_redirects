@@ -1,0 +1,10 @@
+# REPLI SUR index.html, et rien d'autre.
+#
+# Le front est une application a page unique : toute route inconnue de
+# l'hebergeur doit rendre `index.html`, sinon un rechargement direct sur
+# /roadmap/fondamentaux donne un 404 de l'hebergeur. C'est le premier symptome
+# que remonte quelqu'un a qui on a partage un lien.
+#
+# Le code 200 et non 301 : l'adresse ne change pas, c'est le routeur du
+# navigateur qui prend la main.
+/*    /index.html   200

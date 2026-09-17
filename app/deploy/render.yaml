@@ -1,0 +1,78 @@
+# Plan de deploiement Render.
+#
+# A LIRE AVANT DE S'EN SERVIR : le Postgres gratuit de Render EXPIRE AU BOUT DE
+# 30 JOURS. Ce fichier ne declare donc pas de base : elle est prise chez Neon,
+# dont le palier gratuit n'expire pas, et son adresse est posee a la main dans
+# `DATABASE_URL`. Declarer ici une base qui disparaitra dans un mois serait
+# preparer une panne.
+#
+# Le service gratuit se rendort apres 15 minutes sans trafic, et se reveille en
+# 30 a 60 secondes. Le front sait l'afficher proprement — l'API rend alors un
+# 502 ou un 503, et `api.ts` a un message pour ce cas precis — mais le premier
+# visiteur de la journee attend.
+#
+# Deployer : Render > New > Blueprint, pointer sur ce depot.
+
+services:
+  - type: web
+    name: thm-roadmap-api
+    runtime: docker
+    dockerfilePath: ./app/deploy/api/Dockerfile
+    dockerContext: ./app
+    plan: free
+    region: frankfurt
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Render impose le port par la variable PORT. L'API lit API_PORT : les
+      # deux doivent dire la meme chose.
+      - key: API_PORT
+        value: "10000"
+      - key: PORT
+        value: "10000"
+      - key: API_HOST
+        value: 0.0.0.0
+      # Il y a un proxy devant : sans cela, toutes les requetes semblent venir
+      # de la meme adresse et la limite de debit devient une limite globale.
+      - key: TRUST_PROXY
+        value: "true"
+      # A renseigner dans l'interface, pas ici : ce fichier est versionne.
+      - key: DATABASE_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: RATE_LIMIT_MAX
+        value: "120"
+      - key: LOG_LEVEL
+        value: info
+
+  # Le front en statique. Render sert aussi des sites statiques ; Cloudflare
+  # Pages reste preferable pour la bande passante et les en-tetes, mais tout
+  # tenir au meme endroit a sa valeur le premier jour.
+  - type: web
+    name: thm-roadmap-web
+    runtime: static
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build
+    staticPublishPath: ./app/apps/web/dist
+    rootDir: ./app
+    routes:
+      # Le repli de l'application a page unique. Sans lui, un rechargement sur
+      # /roadmap/fondamentaux rend un 404 de l'hebergeur.
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: no-referrer
+      # REMPLACER l'origine de l'API avant le premier deploiement.
+      - path: /*
+        name: Content-Security-Policy
+        value: "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; connect-src 'self' https://thm-roadmap-api.onrender.com; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
