@@ -1572,7 +1572,7 @@ label {
   padding: calc(var(--pas) * 4) 0;
 }
 
-@media (min-width: 901px) {
+@media (min-width: 1024px) {
   .hero__colonnes {
     grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
     align-items: center;
@@ -1592,16 +1592,86 @@ label {
   }
 }
 
+/* --- Apparitions au defilement ------------------------------------------
+
+   L'element est DANS le document des le depart : seule son opacite change.
+   Rien ne depend du JavaScript pour etre lisible, imprimable ou indexable. */
+
+.apparition {
+  opacity: 0;
+  transform: translateY(12px);
+  transition:
+    opacity 320ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    transform 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.apparition.apparu {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .apparition {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  /* La transition entre routes est posee par le navigateur : c'est ici qu'on la
+     coupe, pas dans le routeur. */
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
 /* --- Graphe des parcours -------------------------------------------------
 
    Le trace est orthogonal a angles arrondis : vocabulaire du plan de metro et
    du circuit imprime. Les courbes libres auraient dit « schema de
    presentation » ; ce produit est un outil. */
 
+/* PLAFONNE EN HAUTEUR, ET LA LARGEUR SUIT. Le rapport est tenu par les deux
+   bornes a la fois : sans la borne de largeur, la boite resterait large, le
+   dessin se centrerait dedans et les libelles — poses en pourcentage — ne
+   tomberaient plus sur le trace.
+
+   Mesure a 882 px avant plafond : graphe 1 200 px de haut, hero 1 530 px, soit
+   trois ecrans pour une accroche et six liens. */
 .graphe {
+  --plafond-graphe: min(420px, 55svh);
+  /* Les libelles sont du HTML pose sur un dessin qui, lui, se met a l'echelle.
+     Sans requete de conteneur, un texte de 15 px sur un graphe reduit a 313 px
+     de large chevauche le voisin — mesure a 882x535. Ils suivent maintenant la
+     largeur du graphe, pas celle de la fenetre. */
+  container-type: inline-size;
   position: relative;
   width: 100%;
+  max-width: calc(var(--plafond-graphe) * var(--largeur-graphe) / var(--hauteur-graphe));
+  max-height: var(--plafond-graphe);
   aspect-ratio: var(--largeur-graphe) / var(--hauteur-graphe);
+  margin-inline: auto;
+}
+
+@media (min-width: 768px) {
+  .graphe {
+    /* En large, le graphe partage la hauteur avec le reste du hero. */
+    --plafond-graphe: min(420px, 55svh);
+    margin-inline: 0;
+  }
+}
+
+/* Fenetre courte — un portable en paysage : le hero resserre ses marges plutot
+   que d'ecraser le graphe. */
+@media (max-height: 700px) {
+  .hero__colonnes {
+    padding-block: calc(var(--pas) * 2);
+  }
+
+  .hero {
+    min-height: 0;
+  }
 }
 
 .graphe--attente {
@@ -1693,22 +1763,33 @@ label {
   list-style: none;
 }
 
+/* Le libelle se pose AU-DESSUS DU TRACE, pas dessus : dix pixels de garde, et
+   un fond translucide derriere le texte pour les largeurs ou la garde ne suffit
+   pas. Un titre qui traverse une ligne se lit deux fois moins vite. */
 .graphe__noeud {
   position: absolute;
   left: var(--x);
   top: var(--y);
-  transform: translate(-10px, -100%);
-  max-width: 40%;
+  transform: translate(-10px, calc(-100% - 10px));
+  max-width: 44%;
+}
+
+/* En colonne, les deux branches sont cote a cote : le libelle de gauche doit
+   s'arreter avant le trace de droite, pose a 55 % de la largeur. Mesure a
+   375 px avant reglage : une paire de libelles se chevauchait. */
+.graphe--colonne .graphe__noeud {
+  max-width: 38%;
 }
 
 .graphe__noeud a {
   display: inline-flex;
   flex-direction: column;
   gap: 1px;
-  padding: 6px 10px 10px;
+  padding: 6px 10px;
   border-radius: var(--rayon);
   text-decoration: none;
   border: 1px solid transparent;
+  background: color-mix(in srgb, var(--fond) 82%, transparent);
 }
 
 .graphe__noeud a:hover {
@@ -1720,13 +1801,13 @@ label {
 .graphe__titre {
   font-family: var(--police-display);
   font-weight: 700;
-  font-size: 0.9375rem;
+  font-size: clamp(0.6875rem, 2.9cqw, 0.9375rem);
   line-height: 1.2;
 }
 
 .graphe__meta {
   color: var(--texte-eteint);
-  font-size: 0.75rem;
+  font-size: clamp(0.5625rem, 2.2cqw, 0.75rem);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1853,8 +1934,15 @@ label {
   --hauteur-commande: 44px;
   align-items: center;
   flex-wrap: wrap;
-  flex: 1 1 320px;
-  justify-content: flex-end;
+  flex: 1 1 100%;
+  justify-content: flex-start;
+}
+
+@media (min-width: 1024px) {
+  .entete-page__actions {
+    flex: 0 1 auto;
+    justify-content: flex-end;
+  }
 }
 
 @media print {
@@ -2056,16 +2144,25 @@ label {
 
 /* --- Comment ca marche --------------------------------------------------- */
 
+/* --- « Comment ca marche » ------------------------------------------------
+
+   TROIS ETAPES RELIEES. En colonne sous 768 px, en ligne au-dessus : la liaison
+   dit que c'est une sequence, ce que trois cartes posees cote a cote ne disent
+   pas. Le trait se remplit quand la section entre dans la fenetre — c'est la
+   seule animation declenchee par le defilement qui porte du sens, les autres ne
+   font qu'apparaitre. */
+
 .marche {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
   gap: calc(var(--pas) * 2);
-  max-width: 70ch;
+  counter-reset: marche;
 }
 
 .marche__etape {
+  position: relative;
   display: grid;
   grid-template-columns: 32px minmax(0, 1fr);
   gap: calc(var(--pas) * 1.5);
@@ -2080,9 +2177,13 @@ label {
   display: flex;
   align-items: center;
   justify-content: center;
+  font-family: var(--police-display);
   font-weight: 700;
   font-size: 0.875rem;
   color: var(--texte-doux);
+  background: var(--fond);
+  position: relative;
+  z-index: 1;
 }
 
 .marche__etape h3 {
@@ -2092,6 +2193,66 @@ label {
 
 .marche__etape p {
   margin: 0;
+}
+
+/* Le trait de liaison, une seule fois par etape sauf la derniere. */
+.marche__etape::after {
+  content: "";
+  position: absolute;
+  /* `--bord` vaut 8 % de blanc : invisible sur un trait de deux pixels. Le
+     controleur l'a signale comme fond non mesure, et il avait raison deux fois
+     — la regle manquait, et la couleur ne se voyait pas. */
+  background: var(--bord-fort);
+  transform-origin: top left;
+  transform: scaleY(0);
+  transition: transform 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition-delay: calc(var(--rang, 0) * 120ms);
+  left: 15px;
+  top: 32px;
+  width: 2px;
+  bottom: calc(var(--pas) * -2);
+}
+
+.marche__etape:last-child::after {
+  display: none;
+}
+
+.apparu .marche__etape::after {
+  transform: scaleY(1);
+}
+
+@media (min-width: 768px) {
+  .marche {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: calc(var(--pas) * 3);
+  }
+
+  .marche__etape {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--pas);
+  }
+
+  .marche__etape::after {
+    transform-origin: left center;
+    transform: scaleX(0);
+    left: 40px;
+    top: 15px;
+    width: auto;
+    height: 2px;
+    right: calc(var(--pas) * -3);
+    bottom: auto;
+  }
+
+  .apparu .marche__etape::after {
+    transform: scaleX(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marche__etape::after {
+    transition: none;
+    transform: none;
+  }
 }
 
 /* --- En-tete -------------------------------------------------------------

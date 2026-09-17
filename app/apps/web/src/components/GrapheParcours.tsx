@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import type { TrackSummary } from "@thm/shared";
 import type { CSSProperties, ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import type { AvancementParcours } from "../avancement.js";
 import { formatDuration } from "./badges.js";
 
@@ -136,14 +136,17 @@ function geometrieHaute(
     hauteur: 460,
     segments: [
       segment(tronc, "M 48 40 V 168", 48, repartir(40, 158, tronc.stepCount), 0),
+      // La branche du milieu DESCEND TOUT DROIT, celle d'apres part a droite :
+      // en colonne, on lit de gauche a droite, et l'ordre lu doit etre celui du
+      // document et celui des cartes.
+      segment(haute, "M 48 168 V 436", 48, repartir(268, 428, haute.stepCount), 1),
       segment(
-        haute,
+        basse,
         "M 48 168 V 184 Q 48 204 68 204 H 156 Q 176 204 176 224 V 436",
         176,
-        repartir(268, 428, haute.stepCount),
-        1,
+        repartir(268, 428, basse.stepCount),
+        2,
       ),
-      segment(basse, "M 48 168 V 436", 48, repartir(268, 428, basse.stepCount), 2),
     ],
   };
 }
@@ -151,11 +154,11 @@ function geometrieHaute(
 /** Vrai en dessous du palier ou le graphe passe en colonne. */
 function useColonne(): boolean {
   const [colonne, setColonne] = useState(
-    () => typeof window !== "undefined" && window.matchMedia("(max-width: 900px)").matches,
+    () => typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches,
   );
 
   useEffect(() => {
-    const requete = window.matchMedia("(max-width: 900px)");
+    const requete = window.matchMedia("(max-width: 767px)");
     const suivre = (evenement: MediaQueryListEvent): void => {
       setColonne(evenement.matches);
     };
@@ -194,6 +197,8 @@ export function GrapheParcours({
   avancements: ReadonlyMap<string, AvancementParcours>;
 }): ReactNode {
   const colonne = useColonne();
+  const idTitre = useId();
+  const idDescription = useId();
   const [tronc, haute, basse] = tracks;
   if (tronc === undefined || haute === undefined || basse === undefined) return null;
 
@@ -202,9 +207,16 @@ export function GrapheParcours({
     : geometrieLarge(tronc, haute, basse, avancements);
   const actuel = pointActuel(geometrie.segments, avancements);
 
+  // La description dit CE QUE LE DESSIN MONTRE, avec les vrais chiffres : un
+  // tronc commun, deux branches, et le nombre d'etapes de chacune.
+  const description =
+    `${tronc.title} ouvre le chemin en ${tronc.stepCount} étapes, ` +
+    `puis il se sépare en deux : ${haute.title} en ${haute.stepCount} étapes, ` +
+    `et ${basse.title} en ${basse.stepCount} étapes.`;
+
   return (
     <div
-      className="graphe"
+      className={`graphe${colonne ? " graphe--colonne" : ""}`}
       style={
         {
           "--largeur-graphe": geometrie.largeur,
@@ -212,12 +224,20 @@ export function GrapheParcours({
         } as CSSProperties
       }
     >
+      {/* LE DESSIN EST DECRIT, PAS MASQUE. Il portait `aria-hidden` : correct
+          tant qu'il ne disait rien de plus que les liens poses dessus, faux des
+          qu'il montre une structure — un tronc commun et deux branches. Il
+          devient une image titree et decrite ; `role="img"` rend son contenu
+          interne presentationnel, donc les cercles ne sont pas enumeres. */}
       <svg
         className="graphe__dessin"
         viewBox={`0 0 ${geometrie.largeur} ${geometrie.hauteur}`}
-        aria-hidden="true"
+        role="img"
+        aria-labelledby={`${idTitre} ${idDescription}`}
         focusable="false"
       >
+        <title id={idTitre}>Les trois parcours et leurs étapes</title>
+        <desc id={idDescription}>{description}</desc>
         {geometrie.segments.map((segment) => (
           <g key={segment.slug}>
             {/* `pathLength="1"` : la longueur du trace devient 1 quelle que soit

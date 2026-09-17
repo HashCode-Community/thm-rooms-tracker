@@ -91,17 +91,25 @@ export function FilterPanel(props: Props): ReactNode {
 }
 
 /**
- * Vrai en dessous du point de rupture du catalogue.
+ * Vrai quand la colonne de filtres n'a pas la place de tenir.
+ *
+ * DEUX CONDITIONS, PAS UNE. La largeur ne suffit pas : mesure a 882x535, une
+ * fenetre de portable en paysage, la colonne demande 726 px pour 451
+ * disponibles et retrouve son propre ascenseur — le defaut que le repliement
+ * des facettes avait chasse. Sous 700 px de haut, le panneau redevient donc un
+ * `<details>`, et il ne reste qu'un seul defilement sur la page.
  *
  * La valeur est lue a l'initialisation ET suivie : passer en paysage ou
  * redimensionner une fenetre ne doit pas laisser un panneau replie sur un ecran
  * large, ou l'on ne comprendrait pas pourquoi les filtres ont disparu.
  */
+const SANS_PLACE = "(max-width: 860px), (max-height: 700px)";
+
 function useIsCompact(): boolean {
-  const [compact, setCompact] = useState(() => window.matchMedia("(max-width: 860px)").matches);
+  const [compact, setCompact] = useState(() => window.matchMedia(SANS_PLACE).matches);
 
   useEffect(() => {
-    const query = window.matchMedia("(max-width: 860px)");
+    const query = window.matchMedia(SANS_PLACE);
     const update = (event: MediaQueryListEvent): void => {
       setCompact(event.matches);
     };

@@ -1,10 +1,12 @@
 import { createRoute, Link } from "@tanstack/react-router";
 import type { StatsResponse, TrackListResponse } from "@thm/shared";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { useMemo } from "react";
 import { urls, useResource } from "../api.js";
+import { useApparition } from "../apparition.js";
 import { type AvancementParcours, useAvancement } from "../avancement.js";
 import { formatDuration } from "../components/badges.js";
+import { CarteParcours } from "../components/CarteParcours.js";
 import { Compteur } from "../components/Compteur.js";
 import { GrapheParcours } from "../components/GrapheParcours.js";
 import { ErrorState } from "../components/states.js";
@@ -45,6 +47,7 @@ function Home(): ReactNode {
   );
   const avancements = useAvancement(slugs, codes);
   const reprise = premiereRepriseUtile(slugs, avancements);
+  const apparition = useApparition();
 
   return (
     <>
@@ -80,7 +83,7 @@ function Home(): ReactNode {
                   params={{ slug: reprise.slug }}
                   className="bouton bouton--principal"
                 >
-                  Reprendre {reprise.titre}, étape {reprise.etape}
+                  Reprendre — {reprise.titre}, étape {reprise.etape}
                 </Link>
               )}
               <Link to="/rooms" className="bouton">
@@ -115,7 +118,10 @@ function Home(): ReactNode {
         </ul>
       )}
       {stats.data !== null && (
-        <ul className={`chiffres${stats.status === "loading" ? " perime" : ""}`}>
+        <ul
+          ref={apparition}
+          className={`chiffres apparition${stats.status === "loading" ? " perime" : ""}`}
+        >
           <Chiffre valeur={stats.data.rooms.total} libelle="rooms gratuites" />
           <Chiffre
             valeur={Math.round(stats.data.durationMinutes.total / 60)}
@@ -134,10 +140,10 @@ function Home(): ReactNode {
         </ul>
       )}
 
-      <section className="section-accueil">
+      <section className="section-accueil apparition" ref={apparition}>
         <div className="section-accueil__entete">
           <h2>Les trois parcours</h2>
-          <Link to="/roadmap">Voir le détail</Link>
+          <Link to="/roadmap">Tous les parcours →</Link>
         </div>
 
         {tracks.data === null && tracks.status === "loading" && (
@@ -152,39 +158,25 @@ function Home(): ReactNode {
         )}
 
         {tracks.data !== null && (
-          <ul className="apercu-parcours">
-            {tracks.data.data.map((track) => (
-              <li key={track.slug} className="apercu-parcours__carte">
-                {/* Le fil : la marque verticale qui identifie un parcours dans
-                    tout le produit. Decorative ici, le titre porte le sens. */}
-                <span className="apercu-parcours__fil" aria-hidden="true" />
-                <h3 className="apercu-parcours__titre">
-                  <Link to="/roadmap/$slug" params={{ slug: track.slug }}>
-                    {track.title}
-                  </Link>
-                </h3>
-                <div className="rang">
-                  <Badge>{NIVEAUX[track.level] ?? track.level}</Badge>
-                  <Badge>
-                    {track.stepCount} étape{track.stepCount > 1 ? "s" : ""}
-                  </Badge>
-                  <Badge>{formatDuration(track.estimatedMinutes)}</Badge>
-                </div>
-                {track.summary !== null && (
-                  <p className="petit doux apercu-parcours__resume">{track.summary}</p>
-                )}
-              </li>
+          <ul className="parcours-liste">
+            {tracks.data.data.map((track, rang) => (
+              <CarteParcours
+                key={track.slug}
+                track={track}
+                avancement={avancements.get(track.slug)}
+                large={rang === 0}
+              />
             ))}
           </ul>
         )}
       </section>
 
-      <section className="section-accueil">
+      <section className="section-accueil apparition" ref={apparition}>
         <h2>Comment ça marche</h2>
         {/* Le meme fil que sur un parcours, en trois temps. La page d'accueil
             explique le produit avec la forme du produit. */}
         <ol className="marche">
-          <li className="marche__etape">
+          <li className="marche__etape" style={{ "--rang": 0 } as CSSProperties}>
             <span className="marche__marque" aria-hidden="true">
               1
             </span>
@@ -196,7 +188,7 @@ function Home(): ReactNode {
               </p>
             </div>
           </li>
-          <li className="marche__etape">
+          <li className="marche__etape" style={{ "--rang": 1 } as CSSProperties}>
             <span className="marche__marque" aria-hidden="true">
               2
             </span>
@@ -208,7 +200,7 @@ function Home(): ReactNode {
               </p>
             </div>
           </li>
-          <li className="marche__etape">
+          <li className="marche__etape" style={{ "--rang": 2 } as CSSProperties}>
             <span className="marche__marque" aria-hidden="true">
               3
             </span>
