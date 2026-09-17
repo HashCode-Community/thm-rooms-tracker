@@ -1,3 +1,22 @@
+# Les six variables de l API
+
+A coller dans Render : votre service, onglet **Environment**, puis **Add Environment Variable**.
+Une ligne par variable, la cle a gauche, la valeur a droite.
+
+| Cle | Valeur |
+|---|---|
+| `DATABASE_URL` | votre chaine Neon complete |
+| `NODE_ENV` | `production` |
+| `API_HOST` | `0.0.0.0` |
+| `API_PORT` | `10000` |
+| `TRUST_PROXY` | `true` |
+| `CORS_ORIGINS` | l adresse du site, **sans barre oblique finale** |
+
+**Aucune n est la par habitude.** Le detail de ce que chacune evite est en commentaire ci-dessous,
+dans le format d un fichier `.env` — c est celui que la plupart des plateformes acceptent en
+copier-coller groupe.
+
+```dotenv
 # Variables de l'API en production.
 #
 # A REPORTER DANS L'INTERFACE DE L'HEBERGEUR, pas dans un fichier versionne. Ce
@@ -44,3 +63,4 @@ CORS_ORIGINS=https://thm-roadmap.pages.dev
 RATE_LIMIT_MAX=120
 RATE_LIMIT_WINDOW_MS=60000
 LOG_LEVEL=info
+```

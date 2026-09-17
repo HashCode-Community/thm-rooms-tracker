@@ -22,7 +22,7 @@ services:
   - type: web
     name: thm-roadmap-api
     runtime: docker
-    dockerfilePath: ./app/deploy/api/Dockerfile
+    dockerfilePath: ./deploiement/2-api/Dockerfile
     dockerContext: ./app
     plan: free
     region: frankfurt
