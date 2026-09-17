@@ -45,8 +45,11 @@ NODE_ENV=production
 # le monde.
 API_HOST=0.0.0.0
 # La plupart des plateformes imposent le port par la variable PORT : reporter
-# ici la valeur qu'elles attendent.
-API_PORT=3000
+# ici la valeur qu'elles attendent. Chez Render c'est 10000, et le tableau plus
+# haut dit la meme chose. Laisser 3000 ici fait echouer le deploiement sur
+# « No open ports detected » : Render sonde le port qu'il a impose, l'API ecoute
+# ailleurs, et rien dans le message ne dit lequel des deux a tort.
+API_PORT=10000
 
 # AUCUNE VALEUR PAR DEFAUT N'EST SURE. A `false` derriere un proxy, toutes les
 # requetes semblent venir de la meme adresse et la limite de debit devient une

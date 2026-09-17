@@ -11,11 +11,14 @@ la bonne, pas la dernière :
 
 ## Le site s'affiche, mais il est vide
 
-C'est le symptôme le plus fréquent, et il a deux causes possibles. Les deux se voient dans la
-**console du navigateur** : `F12`, onglet **Console**.
+C'est le symptôme le plus fréquent, et il a trois causes possibles. Les trois se voient dans la
+**console du navigateur** : `F12`, onglet **Console**. **Lisez-la avant de toucher à quoi que ce
+soit** : les trois corrections sont différentes, et deux d'entre elles ne peuvent rien contre la
+première cause.
 
 | Ce que dit la console | Cause | Correction |
 |---|---|---|
+| `Unexpected token '<'` (ou `SyntaxError` sur du JSON) | **le site n'a jamais appelé l'API.** Sans `VITE_API_BASE_URL` à la construction, il demande `/api/...` à sa propre adresse ; `_redirects` rend `index.html` en **200**, et le site essaie de lire du HTML comme du JSON | reposer `VITE_API_BASE_URL` et **reconstruire**. L'adresse est compilée dans le site : la changer sans reconstruire ne fait rien. Aucune erreur CORS n'apparaît ici, puisque aucun appel n'a quitté l'origine |
 | `blocked by CORS policy` | l'API ne reconnaît pas le site | `CORS_ORIGINS` sur Render doit être **exactement** l'adresse du site, **sans barre oblique finale** |
 | `Refused to connect… Content Security Policy` | le site n'a pas le droit d'appeler l'API | le `connect-src` de `_headers` doit nommer l'adresse de l'API. Le script `preparer-le-site.ps1` s'en charge |
 | `502` ou `503` | l'API se réveille | attendre 60 secondes et recharger. C'est normal sur le palier gratuit |

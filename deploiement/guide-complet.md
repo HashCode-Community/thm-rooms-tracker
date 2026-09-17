@@ -256,26 +256,37 @@ l'autre chemin, celui où Cloudflare reconstruit tout seul à chaque poussée.
 
 ### 4.1 Dire au site où est l'API
 
-Le navigateur interdit à une page d'appeler un domaine qui n'a pas été **déclaré à l'avance**. Cette
-déclaration est dans un fichier du dépôt, et elle contient encore une adresse d'exemple.
+**Cette section ne concerne que le chemin « Cloudflare reconstruit depuis Git ».** Si vous avez
+suivi le raccourci 4.0, le script a déjà tout fait et vous pouvez passer à 4.2.
+
+Le site doit savoir **deux** choses, et elles ne se règlent pas au même endroit.
+
+**a) L'adresse de l'API, compilée dans le site.** Le code n'écrit aucune adresse en dur : il lit
+`VITE_API_BASE_URL` **au moment de la construction**. Sans elle, le site demande `/api/stats` à sa
+propre adresse ; Cloudflare, ne trouvant aucun fichier à ce chemin, applique la règle de repli et
+renvoie `index.html` avec un code **200**. Le site s'affiche donc normalement et montre
+`Unexpected token '<'` à la place des données, **sans aucune erreur CORS** pour mettre sur la voie.
+Cette variable se pose à l'étape 4.2, à côté de `NODE_VERSION`.
+
+**b) Les deux fichiers `_headers` et `_redirects`**, que Cloudflare ne lit que s'ils sont dans le
+dossier publié. Vite recopie tel quel tout ce qui se trouve dans `public/`.
 
 1. Ouvrir `deploiement/3-site/_headers`.
 2. Y remplacer **`https://api.exemple.fr`** par votre adresse Render, sans barre oblique finale :
    `https://thm-roadmap-api.onrender.com`.
-3. Copier les **deux** fichiers `_headers` et `_redirects` depuis `deploiement/3-site/` vers
-   `app/apps/web/public/`.
+3. Copier les deux fichiers vers `app/apps/web/public/` :
 
 ```powershell
-cd C:\Users\N\Projets\thm-roadmap\app
-copy deploy\cloudflare\_headers apps\web\public\
-copy deploy\cloudflare\_redirects apps\web\public\
-git add apps/web/public/_headers apps/web/public/_redirects
+cd C:\Users\N\Projets\thm-roadmap
+copy deploiement\3-site\_headers app\apps\web\public\
+copy deploiement\3-site\_redirects app\apps\web\public\
+git add app/apps/web/public/_headers app/apps/web/public/_redirects
 git commit -m "chore(deploy): en-tetes et repli du front"
 git push origin feat/refonte-ui
 ```
 
-**Pourquoi copier et non pointer** : Cloudflare ne lit ces fichiers que s'ils sont dans le dossier
-publié. Vite recopie tout ce qui est dans `public/` tel quel.
+**Attendu** : deux fois `1 fichier(s) copié(s).`. Si vous lisez « Le fichier spécifié est
+introuvable », vous n'êtes pas à la racine du dépôt — le `cd` ci-dessus y mène.
 
 ### 4.2 Créer le projet
 
@@ -299,9 +310,14 @@ publié. Vite recopie tout ce qui est dans `public/` tel quel.
    | Variable | Value |
    |---|---|
    | `NODE_VERSION` | `24` |
+   | `VITE_API_BASE_URL` | votre adresse Render, **sans barre oblique finale** |
 
-   Sans elle, Cloudflare construit avec une version de Node trop ancienne et la construction échoue
-   sur une erreur de syntaxe incompréhensible.
+   `NODE_VERSION` : sans elle, Cloudflare construit avec une version de Node trop ancienne et la
+   construction échoue sur une erreur de syntaxe incompréhensible.
+
+   `VITE_API_BASE_URL` : sans elle, la construction **réussit** et le site appelle sa propre adresse
+   au lieu de l'API. Voir 4.1 (a). C'est la panne la plus difficile à diagnostiquer de tout ce
+   guide, parce qu'elle ne produit ni erreur CORS, ni erreur de sécurité, ni code d'erreur HTTP.
 
 6. **Save and Deploy**. Comptez 3 à 5 minutes.
 
@@ -357,7 +373,9 @@ Puis `git commit` et `git push` : Cloudflare redéploie tout seul à chaque pous
 
 | Ce que vous voyez | Ce que c'est | Quoi faire |
 |---|---|---|
-| Le site s'affiche mais **vide**, sans room | l'API refuse les appels du site | `CORS_ORIGINS` sur Render doit être **exactement** l'adresse du site, sans `/` final. Et `connect-src` dans `_headers` doit nommer l'API |
+| Le site s'affiche et montre **`Unexpected token '<'`** au lieu des données | le site appelle sa **propre** adresse au lieu de l'API : `VITE_API_BASE_URL` manquait pendant la construction | la poser et **reconstruire**. La corriger après coup ne suffit pas : l'adresse est compilée dans le site. Étape 4.1 (a) |
+| Le site est **vide** et la console dit `blocked by CORS policy` | l'API refuse les appels du site | `CORS_ORIGINS` sur Render doit être **exactement** l'adresse du site, sans `/` final |
+| La console dit `Refused to connect… Content Security Policy` | le site n'a pas le droit d'appeler l'API | `connect-src` dans `_headers` doit nommer l'adresse de l'API |
 | **404** en rechargeant `/roadmap/…` | le fichier `_redirects` n'est pas dans `apps/web/public/` | étape 4.1, puis repousser |
 | La première visite met **une minute** | le service gratuit se réveillait | normal. Rien à corriger |
 | `/api/stats` répond `"total":0` | la base est vide | étape 2, en vérifiant le `--apply` |
