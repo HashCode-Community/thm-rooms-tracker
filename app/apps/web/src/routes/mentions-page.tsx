@@ -12,10 +12,12 @@ import { useTitre } from "../titre.js";
  * Une page de mentions que personne ne relit vieillit en mensonge ; celle-ci ne
  * peut pas vieillir sans que quelque chose casse.
  *
- * CE QUI N'Y EST PAS : l'editeur, l'hebergeur, le contact, la licence. Ces
- * informations ne se deduisent ni du code ni des données. Elles sont attendues
- * de Nel, et elles manquent — voir la dette. Mieux vaut une section absente
- * qu'une section remplie au hasard.
+ * CE QUI N'Y EST TOUJOURS PAS : l'HEBERGEUR. Il ne se deduit ni du code ni des
+ * données, et il n'existera qu'une fois le site en ligne. Mieux vaut une ligne
+ * absente qu'une ligne remplie au hasard — celle-la est due le jour du premier
+ * deploiement public.
+ *
+ * La licence, l'editeur et le contact, eux, sont arrives le 2026-09-17.
  */
 
 /** Extrait de `data/datasets/rooms.v1.json`, section `meta`. */
@@ -123,15 +125,47 @@ export default function Mentions(): ReactNode {
         </p>
       </Section>
 
+      <Section titre="Éditeur, licence et contact">
+        <ul className="mentions__liste">
+          <li>
+            <strong>Éditeur</strong> : Nel, pour HashCode Community.
+          </li>
+          <li>
+            <strong>Contact</strong> :{" "}
+            <a href="https://github.com/neltolofon-dot" target="_blank" rel="noopener noreferrer">
+              github.com/neltolofon-dot
+              <span className="visuellement-cache"> (nouvel onglet)</span>
+            </a>
+            . Une remarque sur une room, un parcours ou cette page se dépose là.
+          </li>
+          <li>
+            <strong>Licence</strong> : le code et les parcours sont publiés sous licence MIT. Les
+            métadonnées TryHackMe affichées ici ne le sont pas : elles appartiennent à TryHackMe et
+            à ses auteurs.
+          </li>
+          <li>
+            <strong>Hébergeur</strong> : à renseigner à la mise en ligne.
+          </li>
+        </ul>
+      </Section>
+
       <Section titre="Accessibilité">
         <p>
-          Les contrastes sont <strong>mesurés</strong>, pas estimés : la construction échoue si une
-          seule paire de couleurs passe sous le seuil AA. La couleur n'est jamais le seul porteur
-          d'information — chaque badge porte son libellé, et les niveaux de difficulté restent
-          distinguables en niveaux de gris.
+          Les contrastes sont <strong>mesurés</strong>, pas estimés : 37 paires de couleurs, et la
+          construction échoue si une seule passe sous le seuil AA.
+        </p>
+        <p>
+          La couleur n'est jamais le seul porteur d'information :{" "}
+          <strong>chaque badge porte son libellé en toutes lettres</strong>. Les niveaux de
+          difficulté sont en revanche codés par la teinte, et deux d'entre eux ne se distinguent
+          plus en niveaux de gris — c'est le libellé qui les sépare, pas la couleur.
+        </p>
+        <p>
+          Les animations sont coupées, pas raccourcies, lorsque le système demande moins de
+          mouvement.
         </p>
         <p className="petit doux">
-          Un manquement remarqué est une erreur a corriger, pas un arbitrage a défendre.
+          Un manquement remarqué est une erreur à corriger, pas un arbitrage à défendre.
         </p>
       </Section>
     </div>
