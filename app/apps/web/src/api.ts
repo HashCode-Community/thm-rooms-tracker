@@ -171,10 +171,11 @@ export const BATCH_CHUNK_BYTES = 1900;
 /**
  * Longueur de la partie fixe de l'adresse, DERIVEE du constructeur d'URL.
  *
- * Jamais ecrite en dur : si une base d'API est posee un jour (`VITE_API_BASE_URL`,
- * un prefixe de deploiement), elle apparait dans ce que `roomBatch` produit, donc
- * elle entre dans le budget sans que personne ait a y penser. Une constante
- * recopiee, elle, resterait a 17 et le budget deviendrait faux en silence.
+ * Jamais ecrite en dur : la base d'API posee a la construction
+ * (`VITE_API_BASE_URL`, cf. `urls.ts`) apparait dans ce que `roomBatch` produit,
+ * donc elle entre dans le budget sans que personne ait a y penser. Une constante
+ * recopiee, elle, resterait a 17 et le budget deviendrait faux en silence des le
+ * jour ou le front a cesse d'appeler sa propre origine.
  */
 export const BATCH_URL_BASE = urls.roomBatch([]).length;
 
