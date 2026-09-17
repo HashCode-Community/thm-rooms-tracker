@@ -23,10 +23,23 @@ export function Loading({ label }: { label: string }): ReactNode {
   );
 }
 
-export function Empty({ title, children }: { title: string; children?: ReactNode }): ReactNode {
+export function Empty({
+  title,
+  titrePrincipal = false,
+  children,
+}: {
+  title: string;
+  /** Vrai quand cet etat EST la page : le titre devient le `<h1>`. */
+  titrePrincipal?: boolean;
+  children?: ReactNode;
+}): ReactNode {
   return (
     <div className="etat">
-      <div className="etat__titre">{title}</div>
+      {titrePrincipal ? (
+        <h1 className="etat__titre">{title}</h1>
+      ) : (
+        <div className="etat__titre">{title}</div>
+      )}
       {children}
     </div>
   );

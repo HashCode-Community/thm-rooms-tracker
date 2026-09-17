@@ -34,6 +34,11 @@ function Layout(): ReactNode {
  * ELLE PORTE UN `<h1>`. Sans lui, un lecteur d'ecran arrive sur une page sans
  * point d'entree — et c'est precisement la page ou l'on est deja perdu.
  *
+ * Ce commentaire a ete FAUX pendant onze commits : le passage au composant
+ * commun avait remplace le `<h1>` par un `<p>` sans que personne le voie. Le
+ * composant sait desormais porter le titre de la page, et trois pages
+ * « introuvable » le demandent.
+ *
  * Elle propose plusieurs sorties, pas une seule : quelqu'un qui se trompe
  * d'adresse ne cherche pas forcement le catalogue.
  */
@@ -41,6 +46,7 @@ function NotFound(): ReactNode {
   useTitre("Page introuvable");
   return (
     <EmptyState
+      titrePrincipal
       titre="Cette page n'existe pas"
       icone={
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">

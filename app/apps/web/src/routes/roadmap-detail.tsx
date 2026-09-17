@@ -27,7 +27,9 @@ export function ancreEtape(position: number): string {
 function RoadmapDetail(): ReactNode {
   const { slug } = roadmapDetailRoute.useParams();
   const track = useResource<TrackDetailResponse>(urls.track(slug));
-  useTitre(track.data?.data.title ?? null);
+  const introuvable =
+    track.status === "error" && track.error instanceof ApiError && track.error.status === 404;
+  useTitre(introuvable ? "Parcours introuvable" : (track.data?.data.title ?? null));
   const progression = useProgression();
 
   const completedCodes = useMemo(
@@ -40,7 +42,7 @@ function RoadmapDetail(): ReactNode {
   if (track.status === "error" && track.data === null) {
     if (track.error instanceof ApiError && track.error.status === 404) {
       return (
-        <Empty title={`Aucun parcours publié sous « ${slug} »`}>
+        <Empty titrePrincipal title={`Aucun parcours publié sous « ${slug} »`}>
           <p style={{ marginTop: 8 }}>
             <Link to="/roadmap">Retour aux parcours</Link>
           </p>

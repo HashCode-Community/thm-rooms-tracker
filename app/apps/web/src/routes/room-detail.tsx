@@ -22,9 +22,13 @@ import { rootRoute } from "./root.js";
 function RoomDetail(): ReactNode {
   const { code } = roomDetailRoute.useParams();
   const room = useResource<RoomDetailPayload>(urls.room(code));
+  const introuvable =
+    room.status === "error" && room.error instanceof ApiError && room.error.status === 404;
   // Le titre vient de la reponse : tant qu'elle n'est pas la, on garde celui de
-  // la page precedente plutot que d'annoncer un gabarit vide.
-  useTitre(room.data?.title ?? null);
+  // la page precedente plutot que d'annoncer un gabarit vide. Une room qui
+  // n'existe pas n'aura jamais de reponse : elle porte son propre titre, sinon
+  // l'onglet annonce encore la page d'ou l'on vient.
+  useTitre(introuvable ? "Room introuvable" : (room.data?.title ?? null));
 
   if (room.status === "loading" && room.data === null) {
     return <Loading label="Chargement de la room" />;
@@ -35,7 +39,7 @@ function RoomDetail(): ReactNode {
     // l'utilisateur qui a suivi un lien perime.
     if (room.error instanceof ApiError && room.error.status === 404) {
       return (
-        <Empty title={`Aucune room ne porte le code « ${code} »`}>
+        <Empty titrePrincipal title={`Aucune room ne porte le code « ${code} »`}>
           <p className="petit doux">
             Le code est sensible a la casse : <code>{code}</code> n'existe pas tel quel.
           </p>

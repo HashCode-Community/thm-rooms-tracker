@@ -14,9 +14,19 @@ type Props = {
   titre: string;
   icone?: ReactNode;
   children?: ReactNode;
+  /**
+   * Vrai quand cet etat EST la page.
+   *
+   * Sur une page introuvable, le titre de l'etat est le seul titre : sans
+   * `<h1>`, un lecteur d'ecran arrive sur une page sans point d'entree, et c'est
+   * precisement la page ou l'on est deja perdu. Ailleurs — un catalogue sans
+   * resultat, un parcours sans room terminee — la page a deja son `<h1>` et cet
+   * etat n'est qu'un bloc.
+   */
+  titrePrincipal?: boolean;
 };
 
-export function EmptyState({ titre, icone, children }: Props): ReactNode {
+export function EmptyState({ titre, icone, children, titrePrincipal = false }: Props): ReactNode {
   return (
     <div className="etat etat--vide">
       {icone !== undefined && (
@@ -24,7 +34,11 @@ export function EmptyState({ titre, icone, children }: Props): ReactNode {
           {icone}
         </div>
       )}
-      <p className="etat__titre">{titre}</p>
+      {titrePrincipal ? (
+        <h1 className="etat__titre">{titre}</h1>
+      ) : (
+        <p className="etat__titre">{titre}</p>
+      )}
       {children}
     </div>
   );
