@@ -7,7 +7,7 @@ dossier ne contient que les fichiers que les plateformes lisent.
 | Fichier | Pour qui | Ce qu'il fait |
 |---|---|---|
 | [`api/Dockerfile`](api/Dockerfile) | Render, Koyeb, Fly, n'importe quel hébergeur d'images | construit l'API en trois étages ; le dernier n'a ni TypeScript ni outil de test |
-| [`api/.dockerignore`](api/.dockerignore) | Docker | tient `node_modules`, `.env` et le jeu de données hors du contexte de construction |
+| [`api/Dockerfile.dockerignore`](api/Dockerfile.dockerignore) | Docker | tient `node_modules`, `.env` et le jeu de données hors du contexte. **Le nom long est imposé** : docker cherche `.dockerignore` à la racine du contexte, pas à côté du Dockerfile |
 | [`cloudflare/_redirects`](cloudflare/_redirects) | Cloudflare Pages | repli de l'application à page unique sur `index.html` |
 | [`cloudflare/_headers`](cloudflare/_headers) | Cloudflare Pages | politique de sécurité du front et durées de cache |
 | [`../../render.yaml`](../../render.yaml) | Render | déclare l'API et le front d'un coup. **À la racine du dépôt** : Render ne le cherche nulle part ailleurs |
