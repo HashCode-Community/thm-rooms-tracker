@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { loadConfig } from "../../src/config.js";
+import { type AppConfig, loadConfig, readTrustProxy } from "../../src/config.js";
 import { parseOrigines } from "../../src/http/origines.js";
 import { assertDatabaseReady, buildTestApp, closeDatabase } from "./harness.js";
 
@@ -194,5 +194,92 @@ describe("lecture de CORS_ORIGINS", () => {
   it("refuse ce qui n'est pas une origine", () => {
     expect(() => parseOrigines("thm.example")).toThrow(/invalide/);
     expect(() => parseOrigines("https://thm.example/chemin")).toThrow(/invalide/);
+  });
+});
+
+describe("une adresse fabriquee n'ouvre pas de seau neuf", () => {
+  // TOPOLOGIE REELLE REPRODUITE. L'hebergeur ajoute l'adresse reelle du client
+  // A DROITE de ce que l'appelant a envoye : l'application recoit donc
+  // `X-Forwarded-For: <fabrique>, <reel>` des que quelqu'un essaie de choisir
+  // l'adresse sur laquelle il sera compte. La derniere entree est la seule que
+  // l'appelant ne peut pas ecrire.
+  const REEL = "203.0.113.200";
+  const FABRIQUEES = ["198.51.100.1", "198.51.100.2", "198.51.100.3"];
+
+  async function codesAvecEntetes(
+    trustProxy: AppConfig["trustProxy"],
+    entetes: readonly string[],
+    max: number,
+  ): Promise<number[]> {
+    const app = await buildTestApp({ rateLimitMax: max, rateLimitWindowMs: 60000, trustProxy });
+    try {
+      const codes: number[] = [];
+      for (const valeur of entetes) {
+        const reponse = await app.inject({
+          method: "GET",
+          url: "/api/stats",
+          headers: { "x-forwarded-for": valeur },
+        });
+        codes.push(reponse.statusCode);
+      }
+      return codes;
+    } finally {
+      await app.close();
+    }
+  }
+
+  it("trois adresses fabriquees differentes tombent dans le MEME seau", async () => {
+    const codes = await codesAvecEntetes(
+      readTrustProxy("1"),
+      FABRIQUEES.map((f) => `${f}, ${REEL}`),
+      2,
+    );
+    expect(codes).toEqual([200, 200, 429]);
+  });
+
+  it("LE MEME SCENARIO passe avec l'ancien reglage : le test ci-dessus mord donc bien", async () => {
+    // Sans ce controle, le test precedent passerait aussi avec `false`, ou avec
+    // le nombre brut — deux reglages qui mettent tout le monde dans un seul
+    // seau et ne prouvent rien. Ici on reproduit la faille pour montrer que le
+    // test sait la voir : `true` rend trois seaux neufs, donc trois 200.
+    const codes = await codesAvecEntetes(
+      true,
+      FABRIQUEES.map((f) => `${f}, ${REEL}`),
+      2,
+    );
+    expect(codes).toEqual([200, 200, 200]);
+  });
+
+  it("deux clients REELS distincts gardent chacun leur seau", async () => {
+    // Le controle symetrique, sans lequel le premier test ne prouverait rien :
+    // un reglage qui mettrait tout le monde dans un seau unique le passerait.
+    const codes = await codesAvecEntetes(readTrustProxy("1"), ["203.0.113.10", "203.0.113.11"], 1);
+    expect(codes).toEqual([200, 200]);
+  });
+});
+
+describe("lecture de TRUST_PROXY", () => {
+  it("REFUSE `true`, la valeur qui a ouvert la faille", () => {
+    expect(() => readTrustProxy("true")).toThrow(/tous les sauts/i);
+  });
+
+  it("rend une fonction pour un nombre d'intermediaires", () => {
+    const confiance = readTrustProxy("1");
+    expect(typeof confiance).toBe("function");
+    // `hop < 1` : seul le saut 0, celui du proxy, est cru.
+    expect((confiance as (a: string, h: number) => boolean)("10.0.0.7", 0)).toBe(true);
+    expect((confiance as (a: string, h: number) => boolean)("10.0.0.7", 1)).toBe(false);
+  });
+
+  it("absente, vide, `false` ou `0` : aucune confiance", () => {
+    expect(readTrustProxy(undefined)).toBe(false);
+    expect(readTrustProxy("")).toBe(false);
+    expect(readTrustProxy("false")).toBe(false);
+    expect(readTrustProxy("0")).toBe(false);
+  });
+
+  it("refuse ce qui n'est ni un nombre ni `false`", () => {
+    expect(() => readTrustProxy("oui")).toThrow(/nombre d'intermediaires/);
+    expect(() => readTrustProxy("-1")).toThrow(/nombre d'intermediaires/);
   });
 });

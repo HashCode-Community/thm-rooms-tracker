@@ -38,10 +38,12 @@ services:
         value: "10000"
       - key: API_HOST
         value: 0.0.0.0
-      # Il y a un proxy devant : sans cela, toutes les requetes semblent venir
-      # de la meme adresse et la limite de debit devient une limite globale.
+      # LE NOMBRE d'intermediaires devant l'application, pas un booleen.
+      # `true` signifiait « fais confiance a tous les sauts » : l'appelant
+      # choisissait alors l'adresse sur laquelle il etait compte, et la limite
+      # de debit ne limitait personne. L'application refuse desormais `true`.
       - key: TRUST_PROXY
-        value: "true"
+        value: "1"
       # A renseigner dans l'interface, pas ici : ce fichier est versionne.
       - key: DATABASE_URL
         sync: false

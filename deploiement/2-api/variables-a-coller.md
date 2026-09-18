@@ -9,7 +9,7 @@ Une ligne par variable, la cle a gauche, la valeur a droite.
 | `NODE_ENV` | `production` |
 | `API_HOST` | `0.0.0.0` |
 | `API_PORT` | `10000` |
-| `TRUST_PROXY` | `true` |
+| `TRUST_PROXY` | `1` — le NOMBRE d'intermédiaires, jamais `true` |
 | `CORS_ORIGINS` | l adresse du site, **sans barre oblique finale** |
 
 **Aucune n est la par habitude.** Le detail de ce que chacune evite est en commentaire ci-dessous,
@@ -51,11 +51,19 @@ API_HOST=0.0.0.0
 # ailleurs, et rien dans le message ne dit lequel des deux a tort.
 API_PORT=10000
 
-# AUCUNE VALEUR PAR DEFAUT N'EST SURE. A `false` derriere un proxy, toutes les
-# requetes semblent venir de la meme adresse et la limite de debit devient une
-# limite globale. A `true` sans proxy, n'importe qui peut usurper son adresse
-# via `x-forwarded-for` et contourner cette limite. Voir docs/deploiement.md.
-TRUST_PROXY=true
+# LE NOMBRE D'INTERMEDIAIRES DEVANT L'APPLICATION. Sur Render : 1.
+#
+# `true` EST REFUSE PAR L'APPLICATION, et ce n'est pas de la pedanterie : c'est
+# la valeur qui a ouvert une faille en production le 2026-09-18. Elle signifie
+# « fais confiance a TOUS les sauts », donc l'appelant choisit lui-meme
+# l'adresse sur laquelle il est compte. Mesure faite ce jour-la sur le service
+# en ligne : trois requetes portant chacune un `X-Forwarded-For` different ont
+# obtenu trois compteurs neufs, pendant que le compteur reel continuait de
+# descendre. La limite de debit ne limitait personne.
+#
+# A l'inverse, `0` ou l'absence mettent tous les visiteurs dans un seul seau :
+# genant, mais sur. Des deux erreurs, c'est celle qui degrade au lieu d'ouvrir.
+TRUST_PROXY=1
 
 # L'origine EXACTE du front, protocole compris, sans barre oblique finale. Sans
 # elle, le navigateur refusera tous les appels a l'API depuis un autre domaine.

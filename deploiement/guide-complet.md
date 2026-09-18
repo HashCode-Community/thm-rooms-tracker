@@ -185,7 +185,7 @@ six fois :
 | `NODE_ENV` | `production` |
 | `API_HOST` | `0.0.0.0` |
 | `API_PORT` | `10000` |
-| `TRUST_PROXY` | `true` |
+| `TRUST_PROXY` | `1` |
 | `CORS_ORIGINS` | `https://exemple.invalid` — **valeur provisoire**, corrigée à l'étape 5 |
 
 **Ce que chacune évite**, parce qu'aucune n'est là par habitude :
@@ -196,7 +196,9 @@ six fois :
   l'intérieur du conteneur », c'est-à-dire par personne.
 - `API_PORT=10000` : le port que Render écoute. S'il ne correspond pas, Render déclare le service en
   échec sans autre explication.
-- `TRUST_PROXY=true` : il y a un serveur intermédiaire devant. Sans cela, toutes les requêtes
+- `TRUST_PROXY=1` : le **nombre** d'intermédiaires devant l'application, et jamais `true` —
+  l'application refuse désormais cette valeur, qui laissait l'appelant choisir l'adresse sur
+  laquelle il était compté. Sans cette variable, toutes les requêtes
   semblent venir de la même adresse et la limite anti-abus devient une limite globale.
 
 ### 3.4 Déployer et attendre
