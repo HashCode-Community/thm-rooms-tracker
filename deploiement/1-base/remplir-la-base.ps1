@@ -40,31 +40,62 @@ Write-Host ""
 
 $env:DATABASE_URL = $DatabaseUrl
 
+# ---------------------------------------------------------------------------
+# DEUX GARDES QUI MANQUAIENT, ET LE DEFAUT QU'ILS FERMENT.
+#
+# `$LASTEXITCODE` n'est PAS mis a jour quand la commande n'existe pas. Sous
+# `$ErrorActionPreference = "Continue"`, une CommandNotFoundException n'arrete
+# pas le script et laisse la VALEUR PRECEDENTE en place - 0, le plus souvent.
+# Chaque `if ($LASTEXITCODE -ne 0)` voyait donc 0 et laissait passer.
+#
+# Constate sur une machine ou pnpm n'etait pas sur le PATH : le script affichait
+# ses etapes, se terminait par "Termine." en vert, code de sortie 0, et
+# proposait d'aller verifier 714 lignes dans une base ou rien n'avait ete ecrit.
+#
+# Deux mesures, et les deux sont necessaires :
+#   1. exiger l'outil AVANT la premiere etape ;
+#   2. remettre $LASTEXITCODE a $null avant chaque appel, pour qu'une commande
+#      qui n'a pas tourne se distingue d'une commande qui a reussi.
+# ---------------------------------------------------------------------------
+
+if (-not (Get-Command pnpm -ErrorAction SilentlyContinue)) {
+  throw "pnpm est introuvable sur le PATH. Installez-le (corepack enable) et rouvrez le terminal."
+}
+
+function Invoquer {
+  param(
+    [Parameter(Mandatory = $true)][string]$Etape,
+    [Parameter(Mandatory = $true)][scriptblock]$Commande
+  )
+  $global:LASTEXITCODE = $null
+  & $Commande
+  if ($null -eq $global:LASTEXITCODE) {
+    throw "$Etape : la commande n'a pas ete executee du tout. Rien n'a ete fait."
+  }
+  if ($global:LASTEXITCODE -ne 0) {
+    throw "$Etape : echec, code $global:LASTEXITCODE."
+  }
+}
+
 Write-Host "1/6  Installation des dependances..." -ForegroundColor Cyan
-pnpm install --frozen-lockfile
-if ($LASTEXITCODE -ne 0) { throw "L'installation a echoue." }
+Invoquer "1/6 installation" { pnpm install --frozen-lockfile }
 
 Write-Host "2/6  Construction..." -ForegroundColor Cyan
-pnpm build
-if ($LASTEXITCODE -ne 0) { throw "La construction a echoue." }
+Invoquer "2/6 construction" { pnpm build }
 
 Write-Host "3/6  Creation des tables..." -ForegroundColor Cyan
-pnpm --filter @thm/api run db:migrate
-if ($LASTEXITCODE -ne 0) { throw "Les migrations ont echoue. Verifiez la chaine de connexion." }
+Invoquer "3/6 migrations" { pnpm --filter @thm/api run db:migrate }
 
 Write-Host "4/6  Referentiels (difficultes, types, equipes)..." -ForegroundColor Cyan
-pnpm --filter @thm/api run db:seed
-if ($LASTEXITCODE -ne 0) { throw "Le semis des referentiels a echoue." }
+Invoquer "4/6 referentiels" { pnpm --filter @thm/api run db:seed }
 
 # LE `--apply` N'EST PAS DECORATIF. Sans lui, ces deux commandes affichent ce
 # qu'elles feraient, se terminent sans erreur, et n'ecrivent rien.
 Write-Host "5/6  Import des 714 rooms..." -ForegroundColor Cyan
-pnpm data:import -- --apply-mappings --apply
-if ($LASTEXITCODE -ne 0) { throw "L'import a echoue." }
+Invoquer "5/6 import des rooms" { pnpm data:import -- --apply-mappings --apply }
 
 Write-Host "6/6  Parcours editoriaux..." -ForegroundColor Cyan
-pnpm --filter @thm/api run roadmap:seed -- --apply
-if ($LASTEXITCODE -ne 0) { throw "Le semis des parcours a echoue." }
+Invoquer "6/6 parcours" { pnpm --filter @thm/api run roadmap:seed -- --apply }
 
 Write-Host ""
 Write-Host "Termine." -ForegroundColor Green
