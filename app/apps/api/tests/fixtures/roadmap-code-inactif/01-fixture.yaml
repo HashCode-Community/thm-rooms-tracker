@@ -1,0 +1,18 @@
+# FIXTURE DE TEST — le seed doit la REFUSER, code INACTIF.
+# La room existe en base mais a disparu du dernier scrape. Le message doit etre
+# DISTINCT de celui du code absent : une faute de frappe se corrige, une room
+# retiree par TryHackMe se remplace.
+# La room `fixture-room-inactive` est inseree puis supprimee par le test.
+slug: fixture-code-inactif
+title: Fixture code inactif
+level: beginner
+position: 1
+provenance:
+  method: "Fixture de test : le code cite existe mais est inactif."
+  sources:
+    - "aucune : contenu fabrique"
+  validated_by_completion: false
+steps:
+  - title: "Etape citant une room inactive"
+    rooms:
+      - { code: fixture-room-inactive, requirement: core }

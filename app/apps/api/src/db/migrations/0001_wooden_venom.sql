@@ -1,0 +1,1 @@
+ALTER TABLE "tracks" ADD COLUMN "provenance" jsonb NOT NULL;

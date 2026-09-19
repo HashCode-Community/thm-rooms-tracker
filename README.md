@@ -17,7 +17,7 @@
 | Base de données | 15 tables, 296 tags, opérationnelle |
 | Restitution | API documentée + site web avec recherche à facettes |
 | Parcours d'apprentissage rédigés | 3 (61 rooms) — *initialement prévu en « pistes futures »* |
-| Tests automatisés | 121 |
+| Tests automatisés | 168 |
 
 ---
 
@@ -296,6 +296,7 @@ qu'il ne répond pas à l'objectif écrit en tête de ce document.
 | 10/09/2026 | Reconnaissance technique (phase 2) : API interne JSON identifiée, champs documentés. Extraction de 1 321 rooms, dont 714 gratuites, intégrité vérifiée. | — | Aucun | Modèle de données |
 | 11/09/2026 | Modèle de données (phase 4) : 15 tables, migrations, index de recherche. Persistance (phase 7) : import idempotent avec garde-fou anti-vidage. | — | Aucun | API de restitution |
 | 12/09/2026 | Restitution (phase 8) : API documentée + site web avec recherche à facettes. Rédaction de 3 parcours d'apprentissage (61 rooms). Cadrage légal (phase 1) : 3 points sur 5 vérifiés. | Intégration des parcours | **Rôle scraping non démarré** : le scraper automatisé de la phase 5 reste à écrire. **Workflow Git non conforme** : deux dépôts séparés, aucune PR croisée. | Trancher le dépôt unique · démarrer le scraper (Malick) · ajouter le niveau normalisé français |
+| 13/09/2026 | **Intégration des parcours terminée** : 3 parcours en base, 22 étapes, 62 rooms recommandées dont 53 sur le chemin principal. Le contrat de provenance de chaque parcours est devenu strict — une clé inconnue est refusée au lieu d'être ignorée en silence. **Dépôt unique tranché et appliqué** : la plateforme est remontée sous `app/`, `scraper/` reste libre. 168 tests verts. | Relecture de la PR par Malick | **Rôle scraping non démarré**, inchangé. `docs/data-contract.md` toujours en attente de ratification. | Relire et fusionner la PR · démarrer le scraper (Malick) · ajouter le niveau normalisé français |
 
 ## 🌱 Pistes d'évolution futures
 

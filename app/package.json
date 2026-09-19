@@ -1,0 +1,39 @@
+{
+  "name": "thm-roadmap",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Plateforme d'apprentissage cybersecurite basee sur les rooms gratuites TryHackMe",
+  "packageManager": "pnpm@12.3.4",
+  "engines": {
+    "node": ">=24 <25",
+    "pnpm": ">=12 <13"
+  },
+  "scripts": {
+    "dev": "pnpm -r --parallel run dev",
+    "build": "pnpm -r run build",
+    "typecheck": "pnpm -r run typecheck",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:logs": "docker compose logs -f postgres",
+    "data:audit": "node --import tsx apps/api/src/scripts/audit-dataset.ts",
+    "data:csv": "node --import tsx apps/api/src/scripts/export-csv.ts",
+    "db:generate": "pnpm --filter @thm/api run db:generate",
+    "db:migrate": "pnpm --filter @thm/api run db:migrate",
+    "db:seed": "pnpm --filter @thm/api run db:seed",
+    "typecheck:guard": "pnpm --filter @thm/api run typecheck:guard",
+    "data:import": "node --env-file=.env --import tsx apps/api/src/scripts/import-dataset.ts",
+    "test": "pnpm -r run test",
+    "roadmap:seed": "pnpm --filter @thm/api roadmap:seed",
+    "roadmap:candidates": "pnpm --filter @thm/api roadmap:candidates"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.12",
+    "@types/node": "^24.13.4",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2"
+  }
+}

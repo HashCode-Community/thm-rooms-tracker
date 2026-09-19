@@ -1,0 +1,18 @@
+# FIXTURE DE TEST — elle doit ECHOUER au chargement.
+# Tout y est valide SAUF `review_after`, une cle qui n'est pas au contrat.
+# C'est la reproduction exacte du defaut reel : le bloc `provenance` etait un
+# `z.object`, qui supprimait la cle en silence au lieu de la refuser.
+slug: fixture-cle-inconnue
+title: Fixture cle inconnue
+level: beginner
+position: 1
+provenance:
+  method: "Fixture de test : la cle suivante ne doit pas passer."
+  sources:
+    - "aucune : contenu fabrique"
+  validated_by_completion: false
+  review_after: "premiers retours utilisateurs"
+steps:
+  - title: "Etape valide"
+    rooms:
+      - { code: picklerick, requirement: core }
