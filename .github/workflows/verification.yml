@@ -1,0 +1,197 @@
+# ---------------------------------------------------------------------------
+# Verification continue.
+#
+# Ce fichier ferme les quatre dettes de CI contractees depuis la phase 5. Chaque
+# etape nomme le mode de defaillance qu'elle empeche : une CI dont on a oublie
+# pourquoi une etape existe finit par la voir supprimee comme « lente ».
+#
+# L'ORDRE N'EST PAS DECORATIF. La verification du sidecar passe AVANT toute
+# installation, parce que le mode de defaillance qu'elle attrape se declenche au
+# checkout et qu'une etape ulterieure pourrait masquer le probleme.
+# ---------------------------------------------------------------------------
+name: Verification
+
+on:
+  push:
+    branches: [main, "feature/**"]
+  pull_request:
+
+# Une nouvelle poussee annule la verification en cours sur la meme branche :
+# personne n'attend le resultat d'un commit deja remplace.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    # DETTE 1 — Service PostgreSQL.
+    # Sans lui, `pnpm test` ne lancerait que l'unitaire. Une CI verte qui ne
+    # teste pas les 212 tests d'API est PIRE que pas de CI : elle donne une
+    # garantie qui n'existe pas. Le harnais de test refuse de se sauter en
+    # silence quand la base manque — il echoue — et c'est ce qui rend cette
+    # ligne verifiable.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: thm
+          POSTGRES_PASSWORD: thm_ci_only
+          POSTGRES_DB: thm_roadmap
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U thm -d thm_roadmap"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgres://thm:thm_ci_only@localhost:5432/thm_roadmap
+      NODE_ENV: test
+      LOG_LEVEL: silent
+
+    defaults:
+      run:
+        working-directory: app
+
+    steps:
+      - name: Cloner
+        uses: actions/checkout@v7
+
+      # DETTE 3 — Sidecar SHA-256, sur un CLONE NEUF, avant tout le reste.
+      #
+      # `rooms.v1.json` est verifie sur ses OCTETS BRUTS. Une regle
+      # `.gitattributes` cassee ferait convertir ses fins de ligne par git AU
+      # CHECKOUT : le fichier reste intact sur le poste qui l'a produit, et
+      # devient faux partout ailleurs. C'est exactement ce qu'un clone neuf
+      # revele, et rien d'autre ne le revele.
+      - name: Verifier l'integrite du dataset
+        run: |
+          cd data/datasets
+          sha256sum -c rooms.v1.json.sha256
+
+      # La version de pnpm vient du champ `packageManager` d'app/package.json.
+      # L'action est lancee a la racine du depot : sans ce chemin, elle lirait
+      # un package.json qui n'existe pas et retomberait sur sa valeur par defaut.
+      - name: Installer pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          package_json_file: app/package.json
+
+      - name: Installer Node
+        uses: actions/setup-node@v7
+        with:
+          # `.nvmrc` plutot que `engines.node` : ce dernier porte une PLAGE
+          # (`>=24 <25`), et une CI doit installer une version, pas negocier un
+          # intervalle. `engines` reste la contrainte qui fait foi ; `.nvmrc`
+          # dit laquelle on execute, et sert aussi a nvm et fnm en local.
+          node-version-file: app/.nvmrc
+          cache: pnpm
+          cache-dependency-path: app/pnpm-lock.yaml
+
+      # `--frozen-lockfile` : la CI ne resout jamais de versions. Une
+      # installation qui modifierait le lockfile testerait un arbre de
+      # dependances que personne n'a relu.
+      - name: Installer les dependances
+        run: pnpm install --frozen-lockfile
+
+      # Biome ET le controleur de contraste : `pnpm lint` enchaine les deux.
+      # Le second fait echouer la construction si une paire de couleurs passe
+      # sous le seuil AA, si la rampe de difficulte cesse d'etre monotone, ou si
+      # une couleur est ecrite en clair hors du bloc de tokens.
+      - name: Lint et contrastes
+        run: pnpm lint
+
+      - name: Types
+        run: pnpm typecheck
+
+      # DETTE 2 — La sonde d'inference doit MORDRE.
+      #
+      # Elle peut cesser de mordre en silence : il suffit de vider ses
+      # assertions et tout reste vert. Ce garde exige que `tsc` echoue sur la
+      # fixture empoisonnee ; il sort en code 0 quand c'est le cas, et en code 1
+      # quand la sonde ne prouve plus rien.
+      - name: Le garde de la sonde garde
+        run: pnpm typecheck:guard
+
+      # `--apply` sur les DEUX ecritures. La simulation est le defaut de ces deux
+      # scripts, volontairement : sans le drapeau, la base resterait vide, les
+      # scripts sortiraient en code 0, et les tests des parcours echoueraient
+      # plus loin sur une cause sans rapport avec ce qui a ete casse.
+      - name: Preparer la base
+        run: |
+          pnpm --filter @thm/api run db:migrate
+          pnpm --filter @thm/api run db:seed
+          pnpm data:import -- --apply-mappings --apply
+          pnpm --filter @thm/api run roadmap:seed -- --apply
+
+      - name: Tests
+        run: pnpm test
+
+      # DETTES 5 et 6 — la PRODUCTION demarre vraiment, et `/docs` y est ferme.
+      #
+      # Trouve le 2026-09-16 en essayant : le build de production ne DEMARRAIT
+      # PAS. `@thm/shared` exportait son source TypeScript, que `tsx` transpile a
+      # la volee en developpement et que rien ne transpile en production. Rien ne
+      # l'attrapait parce que la CI ne construisait jamais et ne lancait jamais
+      # l'artefact construit — `lint`, `typecheck` et `test` passent tous les
+      # trois sur un depot dont la production est cassee.
+      #
+      # Les deux dettes qui suivaient depuis la phase 5 se fermaient sur
+      # « verifier a la main apres deploiement ». Elles sont verifiees ici, a
+      # chaque commit : `NODE_ENV=production` reellement pose, et `/docs` a 404.
+      - name: La production demarre, et /docs y est ferme
+        env:
+          NODE_ENV: production
+          API_PORT: "3099"
+          LOG_LEVEL: warn
+        run: |
+          pnpm build
+          node --env-file-if-exists=.env apps/api/dist/server.js &
+          serveur=$!
+          trap 'kill $serveur 2>/dev/null || true' EXIT
+
+          for tentative in $(seq 1 30); do
+            if curl -sf -o /dev/null http://127.0.0.1:3099/health; then break; fi
+            sleep 1
+          done
+
+          sante=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3099/health)
+          docs=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3099/docs)
+          json=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3099/docs/json)
+          hsts=$(curl -s -D - -o /dev/null http://127.0.0.1:3099/api/stats | grep -ci strict-transport-security || true)
+
+          echo "  /health           $sante   (attendu 200)"
+          echo "  /docs             $docs   (attendu 404)"
+          echo "  /docs/json        $json   (attendu 404)"
+          echo "  HSTS present      $hsts     (attendu 1)"
+
+          test "$sante" = "200" || { echo "ECHEC : la production ne repond pas"; exit 1; }
+          test "$docs" = "404" || { echo "ECHEC : /docs est expose en production"; exit 1; }
+          test "$json" = "404" || { echo "ECHEC : /docs/json est expose en production"; exit 1; }
+          test "$hsts" = "1" || { echo "ECHEC : HSTS absent en production"; exit 1; }
+
+      # DETTE 4 — `data:audit` en simulation.
+      #
+      # Sans elle, un dataset remplace sans que ses chiffres de controle soient
+      # reverifies passerait. Le script n'applique aucune correction, par
+      # construction.
+      - name: Audit du dataset
+        run: pnpm data:audit
+
+      # Le rapport d'audit est ecrit dans `data/reports/`. Il n'est pas commite
+      # par la CI — il est conserve comme trace de l'execution.
+      - name: Conserver le rapport d'audit
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: rapport-audit
+          path: app/data/reports/audit-*.md
+          if-no-files-found: ignore
+          retention-days: 14

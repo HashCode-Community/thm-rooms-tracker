@@ -5,39 +5,84 @@
  * hierarchie par la taille et le poids du texte, bordures plutot qu'ombres.
  * Pas de degrade, pas de grande banniere, pas d'ombre portee sur chaque carte.
  *
- * Contrastes verifies au ratio WCAG (texte principal 16:1, texte secondaire
- * 7,2:1, badges d'equipe 6,5:1 minimum en blanc sur fond colore). La couleur
- * n'est JAMAIS le seul porteur d'information : chaque badge porte son libelle.
+ * THEME SOMBRE UNIQUE, sans selecteur. `prefers-color-scheme: light` n'est PAS
+ * gere, et c'est une decision, pas un oubli : un theme clair a moitie fait est
+ * pire que pas de theme clair. Voir ADR-0005 et la dette de la phase 10.
+ *
+ * Les contrastes ne sont pas affirmes ici, ils sont MESURES : `pnpm contrast`
+ * calcule le ratio WCAG de chaque paire employee et sort en code 1 sous le seuil.
+ * La couleur n'est jamais le seul porteur d'information — chaque badge porte son
+ * libelle, et les cinq difficultes restent distinctes en niveaux de gris, ce que
+ * le meme script verifie.
  */
 
 :root {
-  --fond: #ffffff;
-  --fond-doux: #f8fafc;
-  --fond-appuye: #f1f5f9;
-  --bord: #d8dee6;
-  --bord-fort: #94a3b8;
-  --texte: #111827;
-  /* Gris NEUTRE et non ardoise : #4b5563 tire sur le bleu et se confond
-     visuellement avec un lien. Contraste 7,73 sur blanc. */
-  --texte-doux: #52525b;
-  --lien: #1d4ed8;
-  --lien-visite: #6b21a8;
-  --focus: #1d4ed8;
-  --alerte: #9f1239;
-  --alerte-fond: #fff1f2;
+  /* --- Fonds (3) : page, surface, surface elevee ----------------------
+     Ni noir pur ni blanc pur. `#000` sous `#fff` provoque du halo sur les
+     ecrans OLED et fatigue a la lecture longue ; le contraste maximal n'est
+     pas le plus lisible. */
+  --fond: #0f1115;
+  --fond-doux: #16181d;
+  --fond-appuye: #1e2128;
 
-  --diff-info: #e0f2fe;
-  --diff-easy: #dcfce7;
-  --diff-medium: #fef3c7;
-  --diff-hard: #ffe4e6;
-  --diff-insane: #ede9fe;
+  /* --- Bordures (2) : discrete, marquee ------------------------------- */
+  --bord: #2b303a;
+  --bord-fort: #626c80;
+
+  /* --- Textes (3) : principal, secondaire, desactive ------------------- */
+  --texte: #e6e8eb;
+  --texte-doux: #a7b0bd;
+  --texte-eteint: #79828f;
+
+  /* --- Accent (3) : base, survol, visite -------------------------------
+     ECART ASSUME avec le decoupage a deux accents : « visite » n'est pas un
+     survol, c'est un etat persistant du lien, et le catalogue s'explore. Le
+     retirer forcerait l'utilisateur a se souvenir de ce qu'il a deja ouvert. */
+  --lien: #79b0ff;
+  --lien-survol: #a8caff;
+  --lien-visite: #c9a6f5;
+
+  /* --- Difficulte (5) --------------------------------------------------
+     Employees en TEXTE ET BORDURE sur `--fond-appuye`, jamais en aplat : en
+     sombre, cinq pastilles pleines saturees deviennent cinq taches. Le libelle
+     reste present en toutes circonstances, et les cinq clartes sont espacees
+     pour rester separables en niveaux de gris. */
+  /* HORS RAMPE. `info` n'est pas un cran de difficulte : 18 rooms sur 714, et
+     une room d'information n'est ni plus facile ni plus dure qu'une `easy`,
+     elle est d'une autre nature. Teinte neutre, contour tirete : une autre
+     famille, pas une extremite de l'echelle. Voir ADR-0005. */
+  --diff-info: #a9b6c6;
+  --diff-easy: #93e6b1;
+  --diff-medium: #f0b01b;
+  --diff-hard: #fb7f71;
+  --diff-insane: #b46be7;
+
+  /* --- Etats (4) : succes, alerte, erreur, focus ----------------------- */
+  --succes: #57d68b;
+  --alerte: #f0b429;
+  --erreur: #ff8f85;
+  --focus: #79b0ff;
+
+  /* --- Surfaces d'etat (3) ---------------------------------------------
+     ECART ASSUME avec le decoupage a quatre etats secs : un bandeau a besoin
+     d'un fond ET d'une couleur. Les deriver a l'execution par `color-mix` les
+     rendrait invisibles au controleur de contraste, qui lit des tokens. Le
+     focus n'a pas de fond : c'est un anneau. */
+  --succes-fond: #10241a;
+  --alerte-fond: #2b1f06;
+  --erreur-fond: #2c1517;
+
+  /* --- Hors palette (1) : impose par les donnees ------------------------
+     Les couleurs d'equipe viennent de l'API, la feuille ne les regle pas. Le
+     texte pose dessus est blanc, et c'est un TOKEN pour que le controleur le
+     mesure et que la regle « aucune couleur en clair » reste absolue. */
+  --sur-couleur-imposee: #ffffff;
 
   --rayon: 4px;
   --pas: 8px;
 
-  color-scheme: light;
+  color-scheme: dark;
 }
-
 *,
 *::before,
 *::after {
@@ -113,8 +158,9 @@ kbd {
   position: absolute;
   left: -9999px;
   top: 0;
-  background: var(--texte);
-  color: #fff;
+  background: var(--fond-appuye);
+  color: var(--texte);
+  outline: 2px solid var(--focus);
   padding: var(--pas) calc(var(--pas) * 2);
   z-index: 10;
 }
@@ -255,7 +301,7 @@ kbd {
 }
 
 .badge--equipe {
-  color: #fff;
+  color: var(--sur-couleur-imposee);
   border-color: transparent;
 }
 
@@ -265,20 +311,39 @@ kbd {
   font-weight: 500;
 }
 
+/* La difficulte est portee par la COULEUR DU TEXTE et la bordure, sur un fond
+   commun. Cinq aplats satures cote a cote deviennent cinq taches en theme
+   sombre, et le libelle y perd en lisibilite exactement la ou il compte. Les
+   cinq clartes sont espacees d'au moins 8 en L*, verifie par `pnpm contrast` :
+   un lecteur qui ne distingue pas les teintes lit quand meme cinq gris. */
+.badge--info,
+.badge--easy,
+.badge--medium,
+.badge--hard,
+.badge--insane {
+  background: var(--fond-appuye);
+}
+
 .badge--info {
-  background: var(--diff-info);
+  color: var(--diff-info);
+  border-color: var(--diff-info);
+  border-style: dashed;
 }
 .badge--easy {
-  background: var(--diff-easy);
+  color: var(--diff-easy);
+  border-color: var(--diff-easy);
 }
 .badge--medium {
-  background: var(--diff-medium);
+  color: var(--diff-medium);
+  border-color: var(--diff-medium);
 }
 .badge--hard {
-  background: var(--diff-hard);
+  color: var(--diff-hard);
+  border-color: var(--diff-hard);
 }
 .badge--insane {
-  background: var(--diff-insane);
+  color: var(--diff-insane);
+  border-color: var(--diff-insane);
 }
 
 .bouton {
@@ -299,6 +364,12 @@ kbd {
   color: var(--texte-doux);
   border-color: var(--bord);
   cursor: not-allowed;
+}
+
+.bouton--actif {
+  border-color: var(--succes);
+  background: var(--succes-fond);
+  color: var(--texte);
 }
 
 .bouton--lien {
@@ -335,9 +406,9 @@ label {
 }
 
 .etat--erreur {
-  border-color: var(--alerte);
-  background: var(--alerte-fond);
-  color: var(--alerte);
+  border-color: var(--erreur);
+  background: var(--erreur-fond);
+  color: var(--erreur);
 }
 
 .etat__titre {
@@ -617,6 +688,22 @@ label {
   border-color: var(--bord-fort);
 }
 
+/* Une room deja faite se repere sans lire : le liseré gauche suffit au balayage,
+   le libelle « Terminee » porte l'information pour tout le monde. */
+.carte--faite {
+  border-left: 3px solid var(--succes);
+}
+
+.carte__etat {
+  align-self: flex-start;
+  border: 1px solid var(--succes);
+  border-radius: var(--rayon);
+  padding: 1px 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--succes);
+}
+
 .carte__titre {
   font-size: 0.9375rem;
   font-weight: 650;
@@ -729,7 +816,7 @@ label {
 
 .lien-sortant:hover {
   background: var(--lien);
-  color: #fff;
+  color: var(--fond);
 }
 
 .lien-sortant:visited {
@@ -737,7 +824,51 @@ label {
 }
 
 .lien-sortant:visited:hover {
-  color: #fff;
+  color: var(--fond);
+}
+
+/* Cible tactile minimale : 24x24 px CSS, WCAG 2.2 AA (critere 2.5.8).
+   Mesure au navigateur a 360 px de large AVANT correction : 6 cibles sous le
+   seuil, dont les liens de tags a 20 px et le fil d'Ariane a 17. Les liens
+   places en pleine phrase sont exemptes par la norme, et le restent.
+   La bascule de completion, elle, atteint 44 px par extension de zone : voir
+   `.progression-case::before`. */
+.fil a,
+.groupe-tags a,
+.pied__lien,
+.chemin-room__titre,
+.carte__titre a,
+.parcours-carte__titre a,
+.progression-case,
+.progression-parcours__ligne a,
+.progression-room__titre,
+.etat a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+}
+
+/* La case elle-meme, pas seulement son etiquette : sur un ecran tactile, c'est
+   le carre que le doigt vise. 18 px par defaut du navigateur, porte a 20 avec
+   l'etiquette a 24. */
+/* CIBLE TACTILE DE 44 px, obtenue en etendant la zone et non en grossissant le
+   dessin. La zone cliquable n'a pas a avoir la taille de ce qu'on voit : c'est
+   ce qui permet de tenir le minimum recommande sans toucher a la densite. */
+.progression-case {
+  position: relative;
+}
+
+.progression-case::before {
+  content: "";
+  position: absolute;
+  inset-block: -10px;
+  inset-inline: -8px;
+}
+
+.progression-case input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--succes);
 }
 
 .groupe-tags {
@@ -819,108 +950,272 @@ label {
  * Etapes verticales numerotees. Ici la numerotation encode une SEQUENCE : le
  * trait vertical relie les etapes pour le dire visuellement.
  */
-.etapes {
+/* --- Le chemin ---------------------------------------------------------
+
+   MOBILE D'ABORD. Colonne verticale a TOUTES les largeurs : epine a gauche,
+   etapes empilees. Les paliers superieurs elargissent, ils ne reorganisent
+   pas — une carte horizontale casse a 360 px, et le public vise est
+   majoritairement sur mobile.
+
+   La variable visuelle principale est l'ETAT DE PROGRESSION, pas la
+   difficulte : 87,7 % du catalogue est easy ou medium, donc un chemin colore
+   par la difficulte serait quasi monochrome. */
+
+.chemin {
   list-style: none;
   margin: calc(var(--pas) * 3) 0 0;
   padding: 0;
   max-width: 80ch;
 }
 
-.etape {
+.chemin__etape {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr);
-  gap: calc(var(--pas) * 2);
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: var(--pas);
   padding-bottom: calc(var(--pas) * 3);
   position: relative;
 }
 
-.etape:not(:last-child)::before {
+/* L'EPINE. Chaque segment est colore par l'etat de SON etape, donc le trait se
+   remplit de lui-meme jusqu'au point ou l'utilisateur en est. Aucun calcul de
+   hauteur, aucune seconde barre a superposer. */
+.chemin__etape:not(:last-child)::before {
   content: "";
   position: absolute;
-  left: 16px;
-  top: 34px;
+  left: 15px;
+  top: 32px;
   bottom: 0;
   width: 2px;
-  background: var(--bord);
+  background: var(--bord-fort);
 }
 
-.etape__puce {
-  width: 34px;
-  height: 34px;
+.chemin__etape--faite:not(:last-child)::before {
+  background: var(--succes);
+}
+
+/* La marque porte l'etat par sa FORME autant que par sa couleur : pleine et
+   cochee quand c'est fait, cerclee quand c'est la suite, vide sinon. */
+.chemin__marque {
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  border: 2px solid var(--bord-fort);
-  background: var(--fond);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  z-index: 1;
+  font-size: 0.875rem;
+  border: 2px solid var(--bord-fort);
+  background: var(--fond);
+  color: var(--texte-doux);
 }
 
-.etape__corps {
+.chemin__etape--faite .chemin__marque {
+  border-color: var(--succes);
+  color: var(--succes);
+}
+
+.chemin__etape--prochaine .chemin__marque {
+  border-color: var(--focus);
+  color: var(--texte);
+  box-shadow: 0 0 0 3px var(--fond-appuye);
+}
+
+.chemin__corps {
+  min-width: 0;
+  padding-bottom: var(--pas);
+}
+
+/* LA PROCHAINE ETAPE EST L'ELEMENT LE PLUS VISIBLE DE LA PAGE. Surface elevee,
+   bordure accentuee, et elle seule porte un marqueur ecrit. */
+.chemin__etape--prochaine .chemin__corps {
+  background: var(--fond-appuye);
+  border: 1px solid var(--focus);
+  border-radius: var(--rayon);
+  padding: calc(var(--pas) * 1.5);
+  margin-top: -6px;
+}
+
+.chemin__etape--a-venir .chemin__corps {
+  opacity: 0.82;
+}
+
+.chemin__entete {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--pas);
+}
+
+.chemin__titre {
+  font-size: 1.0625rem;
+  line-height: 1.3;
+  margin: 4px 0 0;
+}
+
+.chemin__etape--prochaine .chemin__titre {
+  font-size: 1.1875rem;
+}
+
+.chemin__etape--faite .chemin__titre {
+  color: var(--texte-doux);
+}
+
+.chemin__marqueur {
+  border: 1px solid var(--focus);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--focus);
+  white-space: nowrap;
+}
+
+.chemin__compteur {
+  margin-top: 4px;
+}
+
+.chemin__rooms {
+  list-style: none;
+  margin: var(--pas) 0 0;
+  padding: 0;
+  display: grid;
   gap: 6px;
-  padding-top: 4px;
+}
+
+.chemin-room {
+  border: 1px solid var(--bord);
+  border-left: 3px solid var(--bord-fort);
+  border-radius: var(--rayon);
+  background: var(--fond-doux);
+  padding: var(--pas);
+}
+
+.chemin-room--faite {
+  border-left-color: var(--succes);
+}
+
+.chemin-room__ligne {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--pas);
+}
+
+.chemin-room__titre {
+  font-weight: 600;
   min-width: 0;
 }
 
-.etape__titre {
-  font-size: 1.0625rem;
+.chemin-room--faite .chemin-room__titre {
+  color: var(--texte-doux);
 }
 
-.etape__rooms {
-  list-style: none;
-  margin: 6px 0 0;
-  padding: 0;
+/* Difficulte, type et duree : PASTILLES SECONDAIRES, sur leur propre ligne.
+   Elles ne disputent plus la place au titre ni a la bascule. */
+.chemin-room__meta {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.etape-room {
-  border: 1px solid var(--bord);
-  border-radius: var(--rayon);
-  padding: calc(var(--pas) * 1.25);
-}
-
-/* Une room recommandee compte dans la progression ; une optionnelle non. La
-   difference se voit par le fond ET par le badge, jamais par la couleur seule. */
-.etape-room--optional,
-.etape-room--bonus {
-  background: var(--fond-doux);
-  border-style: dashed;
-}
-
-.etape-room__ligne {
-  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  flex-wrap: wrap;
+  margin-top: 6px;
 }
 
-.etape-room__titre {
-  font-weight: 600;
-  text-decoration: none;
-  margin-right: 2px;
-}
-
-.etape-room__titre:hover {
-  text-decoration: underline;
-}
-
-.badge--core {
-  background: var(--diff-easy);
-}
-
-/* La note est destinee a l'utilisateur final : plusieurs signalent que la suite
-   d'une serie est payante. Jamais repliee, jamais en petit gris illisible. */
-.etape-room__note {
+.chemin-room__note {
   margin-top: 6px;
   padding-left: var(--pas);
   border-left: 3px solid var(--bord-fort);
   font-size: 0.8125rem;
+}
+
+/* --- Avancement -------------------------------------------------------- */
+
+.avancement {
+  margin-top: calc(var(--pas) * 2);
+  max-width: 48ch;
+}
+
+.avancement__ligne {
+  display: flex;
+  align-items: baseline;
+  gap: var(--pas);
+}
+
+.avancement__chiffre {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.avancement__barre {
+  width: 100%;
+  height: 8px;
+  margin-top: 6px;
+  accent-color: var(--succes);
+}
+
+/* --- Squelettes AUX DIMENSIONS DU CONTENU REEL ------------------------- */
+
+.squelette {
+  background: var(--fond-appuye);
+  border-radius: var(--rayon);
+}
+
+.squelette--titre {
+  height: 22px;
+  width: 60%;
+  margin-top: 4px;
+}
+
+.squelette--ligne {
+  height: 17px;
+  width: 85%;
+  margin-top: 8px;
+}
+
+.squelette--room {
+  height: 74px;
+  margin-top: 6px;
+}
+
+/* Dimensions des VRAIS chiffres de l'accueil : la valeur puis son libelle. */
+.squelette--chiffre {
+  height: 34px;
+  width: 4ch;
+}
+
+.squelette--libelle {
+  height: 15px;
+  width: 12ch;
+  margin-top: 6px;
+}
+
+/* Dimensions d'une VRAIE carte du catalogue : titre, rangee de badges, resume
+   sur trois lignes, pied. */
+.squelette--carte {
+  height: 172px;
+}
+
+/* --- Mentions ----------------------------------------------------------- */
+
+.mentions {
+  max-width: 68ch;
+}
+
+.mentions__section {
+  margin-top: calc(var(--pas) * 3);
+  display: grid;
+  gap: var(--pas);
+}
+
+.mentions__section h2 {
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--bord);
+}
+
+.mentions__liste {
+  margin: 0;
+  padding-left: calc(var(--pas) * 2.5);
+  display: grid;
+  gap: 6px;
 }
 
 .provenance {
@@ -940,4 +1235,214 @@ label {
 .provenance ul {
   margin: 4px 0 0;
   padding-left: 20px;
+}
+
+/* --- Progression ------------------------------------------------------- */
+
+/* Bandeau deplie. Il n'a pas de croix : son bouton REPLIE vers l'indicateur
+   ci-dessous, il ne fait pas taire. Le texte occupe toute la largeur. */
+.alerte-stockage {
+  border: 1px solid var(--erreur);
+  border-radius: var(--rayon);
+  background: var(--erreur-fond);
+  color: var(--erreur);
+  padding: var(--pas) calc(var(--pas) * 1.5);
+  margin-bottom: calc(var(--pas) * 2);
+  display: grid;
+  gap: 4px;
+}
+
+.alerte-stockage__titre {
+  font-weight: 600;
+}
+
+/* Indicateur replie. Discret, mais JAMAIS absent tant que la panne dure :
+   c'est le seul rappel qu'aura l'utilisateur que rien n'est enregistre. */
+.indicateur-stockage {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--erreur);
+  border-radius: 999px;
+  background: var(--erreur-fond);
+  color: var(--erreur);
+  padding: 4px 12px;
+  margin-bottom: calc(var(--pas) * 2);
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.indicateur-stockage:hover {
+  background: var(--erreur);
+  color: var(--erreur-fond);
+}
+
+.indicateur-stockage__point {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+
+.alerte-disparues {
+  border: 1px solid var(--bord-fort);
+  background: var(--fond-doux);
+  border-radius: var(--rayon);
+  padding: var(--pas) calc(var(--pas) * 1.5);
+  margin-bottom: calc(var(--pas) * 2);
+  display: grid;
+  gap: var(--pas);
+  justify-items: start;
+}
+
+.alerte-disparues ul {
+  margin: 0;
+  padding-left: calc(var(--pas) * 2);
+}
+
+.alerte-disparues code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9em;
+}
+
+.progression-case {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  margin-left: auto;
+  padding: 2px 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.progression-case input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+
+.progression-entete {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: calc(var(--pas) * 2);
+  margin-bottom: calc(var(--pas) * 3);
+}
+
+.progression-entete .intro {
+  margin-bottom: 0;
+}
+
+.progression-chiffres {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 220px));
+  gap: var(--pas);
+}
+
+.progression-chiffres li {
+  border: 1px solid var(--bord);
+  border-radius: var(--rayon);
+  padding: calc(var(--pas) * 1.5);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.progression-chiffres strong {
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.progression-chiffres span {
+  color: var(--texte-doux);
+  font-size: 0.8125rem;
+}
+
+.progression-section {
+  margin-top: calc(var(--pas) * 3);
+}
+
+.progression-section > h2 {
+  margin-bottom: var(--pas);
+}
+
+.progression-parcours,
+.progression-rooms {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.progression-parcours {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--pas);
+}
+
+.progression-parcours li {
+  border: 1px solid var(--bord);
+  border-radius: var(--rayon);
+  padding: calc(var(--pas) * 1.5);
+}
+
+.progression-parcours__ligne {
+  justify-content: space-between;
+}
+
+.progression-parcours progress {
+  width: 100%;
+  height: 10px;
+  margin: var(--pas) 0 2px;
+  accent-color: var(--succes);
+}
+
+.progression-rooms {
+  border-top: 1px solid var(--bord);
+}
+
+.progression-room {
+  border-bottom: 1px solid var(--bord);
+  padding: calc(var(--pas) * 1.5) 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--pas) * 2);
+}
+
+.progression-room__corps {
+  min-width: 0;
+}
+
+.progression-room__titre {
+  font-weight: 600;
+}
+
+.badge--retiree {
+  border-color: var(--alerte);
+  background: var(--alerte-fond);
+  color: var(--alerte);
+}
+
+@media (max-width: 600px) {
+  .progression-entete,
+  .progression-room,
+  .alerte-stockage {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .progression-entete .bouton,
+  .progression-room > .bouton {
+    width: 100%;
+  }
+
+  .progression-chiffres {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }

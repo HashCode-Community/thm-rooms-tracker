@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import type { RoomSummary } from "@thm/shared";
 import type { ReactNode } from "react";
+import { useProgression } from "../progression.js";
 import { DifficultyBadge, formatDuration, formatUsers, TeamBadge, TypeBadge } from "./badges.js";
 
 /**
@@ -11,13 +12,25 @@ import { DifficultyBadge, formatDuration, formatUsers, TeamBadge, TypeBadge } fr
  * `.toLowerCase()` ici donnerait un 404 sur une room qui existe.
  */
 export function RoomCard({ room }: { room: RoomSummary }): ReactNode {
+  const progression = useProgression();
+  const terminee = progression.isCompleted(room.code);
+
   return (
-    <li className="carte">
+    <li className={`carte${terminee ? " carte--faite" : ""}`}>
       <h3 className="carte__titre">
         <Link to="/rooms/$code" params={{ code: room.code }}>
           {room.title}
         </Link>
       </h3>
+
+      {/*
+        L'ETAT DE PROGRESSION AVANT LA DIFFICULTE. C'est la variable principale
+        du produit, et le catalogue etait le dernier endroit a ne pas la montrer :
+        on pouvait parcourir 714 rooms sans voir lesquelles etaient deja faites.
+        Un LIBELLE, pas seulement une bordure coloree — la couleur ne porte jamais
+        seule une information.
+      */}
+      {terminee && <p className="carte__etat">Terminee</p>}
 
       <div className="rang">
         <DifficultyBadge difficulty={room.difficulty} />

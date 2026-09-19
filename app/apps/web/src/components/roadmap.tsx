@@ -1,7 +1,5 @@
-import { Link } from "@tanstack/react-router";
-import type { Provenance as ProvenanceData, TrackRoom } from "@thm/shared";
+import type { Provenance as ProvenanceData } from "@thm/shared";
 import type { ReactNode } from "react";
-import { DifficultyBadge, formatDuration, TypeBadge } from "./badges.js";
 
 /**
  * Elements propres aux parcours.
@@ -80,38 +78,5 @@ export function Provenance({
         </strong>
       </p>
     </section>
-  );
-}
-
-const REQUIREMENT_LABELS: Readonly<Record<TrackRoom["requirement"], string>> = {
-  core: "Recommandee",
-  optional: "Optionnelle",
-  bonus: "Bonus",
-};
-
-/**
- * Une room dans une etape.
- *
- * `note` s'affiche SOUS la room, jamais repliee. Plusieurs notes signalent que la
- * suite d'une serie est payante : c'est souvent l'information la plus utile de
- * l'etape, et la masquer serait la pire chose a en faire.
- */
-export function StepRoom({ room }: { room: TrackRoom }): ReactNode {
-  return (
-    <li className={`etape-room etape-room--${room.requirement}`}>
-      <div className="etape-room__ligne">
-        <Link to="/rooms/$code" params={{ code: room.code }} className="etape-room__titre">
-          {room.title}
-        </Link>
-        <span className={`badge badge--${room.requirement === "core" ? "core" : "neutre"}`}>
-          {REQUIREMENT_LABELS[room.requirement]}
-        </span>
-        <DifficultyBadge difficulty={room.difficulty} />
-        <TypeBadge type={room.type} />
-        <span className="petit doux">{formatDuration(room.durationMinutes)}</span>
-      </div>
-
-      {room.note !== null && <p className="etape-room__note">{room.note}</p>}
-    </li>
   );
 }

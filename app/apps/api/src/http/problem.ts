@@ -96,6 +96,21 @@ export function registerProblemHandlers(app: FastifyInstance, exposeDetail: bool
 
     const status = typeof error.statusCode === "number" ? error.statusCode : 500;
 
+    // 3. Limite de debit. Un 429 n'est PAS une « requete invalide » : la requete
+    //    est parfaitement valable, il y en a seulement trop. Sans cette branche,
+    //    la reponse porterait un titre qui ment sur ce qui s'est passe, et le
+    //    client n'aurait aucun moyen de distinguer « corrige ta requete » de
+    //    « ralentis ». L'en-tete `Retry-After`, lui, est deja pose par le greffon.
+    if (status === 429) {
+      return sendProblem(reply, {
+        type: "/problems/rate-limit",
+        title: "Trop de requetes",
+        status,
+        detail: error.message,
+        instance: request.url,
+      });
+    }
+
     if (status >= 500) {
       request.log.error({ err: error }, "erreur non geree");
       return sendProblem(reply, {

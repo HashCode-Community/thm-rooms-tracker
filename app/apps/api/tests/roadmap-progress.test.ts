@@ -1,4 +1,9 @@
-import { computeTrackProgress, type TrackRoom, type TrackStep } from "@thm/shared";
+import {
+  computeTrackProgress,
+  nextStepPosition,
+  type TrackRoom,
+  type TrackStep,
+} from "@thm/shared";
 import { describe, expect, it } from "vitest";
 
 /**
@@ -145,5 +150,54 @@ describe("cas limites", () => {
     expect(computeTrackProgress(steps, new Set(["AIforcyber-aoc2025-y9wWQ1zRgB"])).coreDone).toBe(
       1,
     );
+  });
+});
+
+describe("la prochaine etape est la variable visuelle principale", () => {
+  const parcours = [step(1, [room("a"), room("b")]), step(2, [room("c")]), step(3, [room("d")])];
+
+  it("designe la premiere etape non terminee", () => {
+    const progress = computeTrackProgress(parcours, new Set(["a", "b"]));
+    expect(nextStepPosition(progress)).toBe(2);
+  });
+
+  it("une etape ENTAMEE mais pas finie reste la prochaine", () => {
+    // Le contraire donnerait « prochaine : etape 2 » alors qu'il reste une room
+    // a faire a l'etape 1 : l'utilisateur sauterait ce qu'il a commence.
+    const progress = computeTrackProgress(parcours, new Set(["a"]));
+    expect(nextStepPosition(progress)).toBe(1);
+  });
+
+  it("vaut la premiere etape quand rien n'est commence", () => {
+    expect(nextStepPosition(computeTrackProgress(parcours, new Set()))).toBe(1);
+  });
+
+  it("vaut `null` quand tout est termine", () => {
+    const progress = computeTrackProgress(parcours, new Set(["a", "b", "c", "d"]));
+    expect(nextStepPosition(progress)).toBeNull();
+  });
+
+  it("SAUTE une etape sans aucune room recommandee", () => {
+    // `complete` vaut faux pour une telle etape, par definition. La retenir
+    // comme prochaine arreterait le parcours sur une etape ou l'utilisateur ne
+    // peut rien cocher : il n'en sortirait jamais.
+    const avecEtapeVide = [
+      step(1, [room("a")]),
+      step(2, [room("lecture", "optional")]),
+      step(3, [room("b")]),
+    ];
+    const progress = computeTrackProgress(avecEtapeVide, new Set(["a"]));
+
+    expect(progress.steps[1]?.complete).toBe(false);
+    expect(nextStepPosition(progress)).toBe(3);
+  });
+
+  it("l'ordre des etapes fait foi, pas leur ordre d'arrivee", () => {
+    const desordre = [step(3, [room("d")]), step(1, [room("a")]), step(2, [room("c")])];
+    const progress = computeTrackProgress(desordre, new Set(["d"]));
+    // `computeTrackProgress` conserve l'ordre recu : la premiere non terminee
+    // de CETTE liste est l'etape 1. C'est a l'appelant de fournir les etapes
+    // triees, ce que fait l'API.
+    expect(nextStepPosition(progress)).toBe(1);
   });
 });

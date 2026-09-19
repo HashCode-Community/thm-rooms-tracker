@@ -157,10 +157,38 @@ export const TagQuerySchema = z.object({
  * Le motif reprend la verification du jeu de tests : les 714 codes du dataset sont
  * tous dans `[A-Za-z0-9._~-]`.
  */
+export const RoomCodeSchema = z
+  .string()
+  .min(1)
+  .max(120)
+  .regex(/^[A-Za-z0-9._~-]+$/, "code de room invalide");
+
 export const RoomCodeParamsSchema = z.object({
+  code: RoomCodeSchema,
+});
+
+/**
+ * Nombre maximal de codes acceptes par `/api/rooms/batch`.
+ *
+ * 200 et pas 25 comme les filtres : ce n'est pas un filtre, c'est la
+ * progression d'une personne, et elle peut legitimement depasser les 61 rooms
+ * des trois parcours. 200 bornes la requete sans brider un usage reel ; au-dela,
+ * c'est 400, pas une troncature silencieuse.
+ */
+export const MAX_BATCH_CODES = 200;
+
+/**
+ * `GET /api/rooms/batch?code=a&code=b`.
+ *
+ * Parametre REPETE, jamais `code[]` : `parseQueryString` accepte les deux, mais
+ * la forme repetee est celle que produit `URLSearchParams` sans configuration
+ * particuliere. Ne rien faire dependre du reglage d'un analyseur.
+ *
+ * L'union accepte aussi la valeur unique, parce qu'un seul `?code=a` n'est pas
+ * un tableau apres analyse.
+ */
+export const RoomBatchQuerySchema = z.object({
   code: z
-    .string()
-    .min(1)
-    .max(120)
-    .regex(/^[A-Za-z0-9._~-]+$/, "code de room invalide"),
+    .union([RoomCodeSchema, z.array(RoomCodeSchema).min(1).max(MAX_BATCH_CODES)])
+    .transform((value): string[] => (Array.isArray(value) ? value : [value])),
 });

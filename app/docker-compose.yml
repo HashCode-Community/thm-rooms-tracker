@@ -1,3 +1,5 @@
+name: thm-roadmap
+
 # Postgres local uniquement. Aucun autre service : l'API et le front tournent
 # sur le poste, pas dans Docker (cf. brief - pas de Docker en prod).
 services:

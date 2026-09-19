@@ -9,7 +9,10 @@ import {
   validatorCompiler,
 } from "fastify-type-provider-zod";
 import type { AppConfig } from "./config.js";
+import { registerRateLimit } from "./http/debit.js";
+import { registerCors } from "./http/origines.js";
 import { registerProblemHandlers } from "./http/problem.js";
+import { registerSecurityHeaders } from "./http/securite.js";
 import { catalogRoutes } from "./routes/catalog.js";
 import { healthRoutes } from "./routes/health.js";
 import { trackRoutes } from "./routes/tracks.js";
@@ -29,9 +32,35 @@ import { trackRoutes } from "./routes/tracks.js";
  * `buildApp` ne fait qu'assembler. Elle n'ecoute pas : c'est `server.ts` qui
  * decide d'ouvrir un port.
  */
+/**
+ * L'ADRESSE IP NE PART PAS DANS LES JOURNAUX.
+ *
+ * Le serialiseur par defaut de pino ecrit `remoteAddress` a chaque requete.
+ * C'est une donnee personnelle, et ce produit n'a ni compte, ni cookie, ni
+ * traceur : conserver l'IP de chaque visiteur serait la seule chose qui
+ * permettrait de le suivre, et elle n'aurait servi a rien.
+ *
+ * `request.ip` reste disponible A L'EXECUTION — la limite de debit s'en sert
+ * pour compter. Ce qui est retire, c'est la TRACE ECRITE.
+ *
+ * EXPORTEE pour etre testable sur l'objet reel. Un test qui reconstruirait la
+ * liste des chemins de son cote verifierait sa propre copie, et resterait vert
+ * le jour ou celle-ci divergerait de celle employee ici.
+ */
+export const REDACTION_JOURNAL: { paths: string[]; remove: boolean } = {
+  paths: ["req.remoteAddress", "req.remotePort", 'req.headers["x-forwarded-for"]'],
+  remove: true,
+};
+
 export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
   const app = Fastify({
-    logger: { level: config.logLevel },
+    logger: {
+      level: config.logLevel,
+      redact: REDACTION_JOURNAL,
+    },
+    // Decide si `request.ip` lit `X-Forwarded-For`. C'est la MEME question que
+    // celle de la limite de debit, et elle se repond a un seul endroit.
+    trustProxy: config.trustProxy,
     routerOptions: {
       // Rend `?tech[]=a` et `?tech=a` equivalents.
       // Convention partagee avec le front : packages/shared/src/querystring.ts.
@@ -55,6 +84,26 @@ export async function buildApp(config: AppConfig): Promise<FastifyInstance> {
     encodings: ["br", "gzip", "deflate"],
     threshold: 1024,
   });
+
+  // En-tetes de securite, poses sur TOUTE reponse — y compris les erreurs et les
+  // 404. Un crochet `onSend` global est le seul endroit qui le garantisse :
+  // l'oublier sur une route est alors impossible.
+  registerSecurityHeaders(app, {
+    hsts: config.hsts,
+    // `/docs` sert du HTML et a besoin d'une politique plus large. Le prefixe
+    // est nomme ici, pas devine.
+    prefixesHtml: ["/docs"],
+  });
+
+  // La limite de debit AVANT les routes : une requete refusee ne doit pas avoir
+  // touche la base.
+  await registerRateLimit(app, {
+    max: config.rateLimitMax,
+    fenetreMs: config.rateLimitWindowMs,
+    trustProxy: config.trustProxy,
+  });
+
+  await registerCors(app, { autorisees: config.corsOrigins });
 
   registerProblemHandlers(app, config.exposeErrorDetail);
 

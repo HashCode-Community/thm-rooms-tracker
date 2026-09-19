@@ -2,6 +2,9 @@ import {
   CategoryListResponseSchema,
   FacetQuerySchema,
   FacetsResponseSchema,
+  MAX_BATCH_CODES,
+  RoomBatchQuerySchema,
+  RoomBatchResponseSchema,
   RoomCodeParamsSchema,
   RoomDetailSchema,
   RoomListQuerySchema,
@@ -16,6 +19,7 @@ import { computeFacets } from "../queries/facets.js";
 import { resolveSearchStrategy } from "../queries/room-filters.js";
 import {
   computeStats,
+  findRoomBriefsByCodes,
   findRoomByCode,
   listCategories,
   listRooms,
@@ -82,6 +86,34 @@ export const catalogRoutes: FastifyPluginAsyncZod = async (app) => {
     async (request) => {
       const { sort, page, limit, ...filters } = request.query;
       return listRooms(filters, { sort, page, limit });
+    },
+  );
+
+  // Declaree AVANT `/api/rooms/:code` par lisibilite. L'ordre n'y change rien :
+  // le routeur de Fastify fait passer un segment statique avant un segment
+  // parametre. Verifie par un test, parce qu'une priorite de routeur est une
+  // dependance a un comportement de bibliotheque, pas une evidence.
+  app.get(
+    "/api/rooms/batch",
+    {
+      schema: {
+        tags: ["catalogue"],
+        summary: "Plusieurs rooms par leur code, en une requete",
+        description:
+          "Parametre `code` REPETE : `?code=a&code=b`. Jusqu'a " +
+          `${MAX_BATCH_CODES} codes, au-dela c'est un 400. ` +
+          "Un code inconnu n'est PAS une erreur : il ressort dans `missing` et le " +
+          "statut reste 200, meme si aucun code n'est connu. Une seule requete SQL, " +
+          "`code = ANY($1)`, comparaison sensible a la casse. Les rooms desactivees " +
+          "sont retournees avec `isActive: false` : une room retiree du catalogue ne " +
+          "doit pas disparaitre de la progression de qui l'a terminee.",
+        querystring: RoomBatchQuerySchema,
+        response: { 200: RoomBatchResponseSchema, 400: ProblemSchema },
+      },
+    },
+    async (request, reply) => {
+      reply.header("cache-control", QUERY_CACHE_CONTROL);
+      return findRoomBriefsByCodes(request.query.code);
     },
   );
 

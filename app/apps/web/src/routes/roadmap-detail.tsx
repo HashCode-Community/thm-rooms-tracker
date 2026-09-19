@@ -1,22 +1,31 @@
 import { createRoute, Link } from "@tanstack/react-router";
-import type { TrackDetailResponse } from "@thm/shared";
+import { computeTrackProgress, nextStepPosition, type TrackDetailResponse } from "@thm/shared";
 import type { ReactNode } from "react";
+import { useMemo } from "react";
 import { ApiError, urls, useResource } from "../api.js";
 import { formatDuration } from "../components/badges.js";
-import { Disclaimer, Provenance, StepRoom } from "../components/roadmap.js";
-import { Empty, ErrorState, Loading } from "../components/states.js";
+import {
+  AvancementParcours,
+  CheminEnChargement,
+  EtapeDuChemin,
+  etatDeLEtape,
+} from "../components/chemin.js";
+import { Disclaimer, Provenance } from "../components/roadmap.js";
+import { Empty, ErrorState } from "../components/states.js";
+import { useProgression } from "../progression.js";
 import { rootRoute } from "./root.js";
-
-const coreCount = (step: { rooms: ReadonlyArray<{ requirement: string }> }): number =>
-  step.rooms.filter((room) => room.requirement === "core").length;
 
 function RoadmapDetail(): ReactNode {
   const { slug } = roadmapDetailRoute.useParams();
   const track = useResource<TrackDetailResponse>(urls.track(slug));
+  const progression = useProgression();
 
-  if (track.status === "loading" && track.data === null) {
-    return <Loading label="Chargement du parcours" />;
-  }
+  const completedCodes = useMemo(
+    () => new Set(progression.completedRooms.map((room) => room.code)),
+    [progression.completedRooms],
+  );
+
+  if (track.status === "loading" && track.data === null) return <CheminEnChargement />;
 
   if (track.status === "error" && track.data === null) {
     if (track.error instanceof ApiError && track.error.status === 404) {
@@ -34,6 +43,10 @@ function RoadmapDetail(): ReactNode {
   if (track.data === null) return null;
   const { data, disclaimer } = track.data;
 
+  const progress = computeTrackProgress(data.steps, completedCodes);
+  const prochaine = nextStepPosition(progress);
+  const parPosition = new Map(progress.steps.map((step) => [step.position, step]));
+
   return (
     <div className={track.status === "loading" ? "perime" : undefined}>
       <p className="fil">
@@ -47,13 +60,17 @@ function RoadmapDetail(): ReactNode {
         </p>
       )}
 
+      {/* L'avancement passe AVANT les chiffres du parcours : « ou j'en suis »
+          prime sur « combien ca pese ». */}
+      <AvancementParcours
+        faits={progress.coreDone}
+        total={progress.coreTotal}
+        pourcent={progress.percent}
+      />
+
       <div className="rang" style={{ marginTop: 12 }}>
         <span className="badge badge--neutre">
           {data.stepCount} etape{data.stepCount > 1 ? "s" : ""}
-        </span>
-        <span className="badge badge--neutre">
-          {data.coreRoomCount} room{data.coreRoomCount > 1 ? "s" : ""} recommandee
-          {data.coreRoomCount > 1 ? "s" : ""}
         </span>
         <span className="badge badge--neutre">{formatDuration(data.estimatedMinutes)}</span>
       </div>
@@ -61,38 +78,19 @@ function RoadmapDetail(): ReactNode {
       <Disclaimer text={disclaimer} />
 
       {/*
-        Etapes VERTICALES ET NUMEROTEES. Ici la numerotation encode une vraie
-        sequence : l'etape 3 se lit apres l'etape 2. C'est l'inverse du catalogue,
-        ou l'ordre n'est qu'un tri et ne porte aucune recommandation.
+        Le chemin. La numerotation encode ici une vraie SEQUENCE : l'etape 3 se
+        lit apres l'etape 2. C'est l'inverse du catalogue, ou l'ordre n'est qu'un
+        tri et ne porte aucune recommandation.
       */}
-      <ol className="etapes">
+      <ol className="chemin">
         {data.steps.map((step) => (
-          <li key={step.position} className="etape">
-            <div className="etape__puce" aria-hidden="true">
-              {step.position}
-            </div>
-
-            <div className="etape__corps">
-              <h2 className="etape__titre">
-                <span className="visuellement-cache">Etape {step.position} : </span>
-                {step.title}
-              </h2>
-
-              {step.objective !== null && <p className="doux">{step.objective}</p>}
-
-              <p className="petit doux">
-                {coreCount(step)} room{coreCount(step) > 1 ? "s" : ""} recommandee
-                {coreCount(step) > 1 ? "s" : ""}
-                {step.estimatedMinutes !== null && ` — ${formatDuration(step.estimatedMinutes)}`}
-              </p>
-
-              <ul className="etape__rooms">
-                {step.rooms.map((room) => (
-                  <StepRoom key={room.code} room={room} />
-                ))}
-              </ul>
-            </div>
-          </li>
+          <EtapeDuChemin
+            key={step.position}
+            step={step}
+            progress={parPosition.get(step.position)}
+            etat={etatDeLEtape(parPosition.get(step.position), prochaine)}
+            completedCodes={completedCodes}
+          />
         ))}
       </ol>
 

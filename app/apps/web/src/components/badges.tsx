@@ -9,8 +9,13 @@ import type { ReactNode } from "react";
  * qui la percoivent ; elle ne conditionne jamais la comprehension, ni pour un
  * daltonien, ni en impression noir et blanc, ni pour un lecteur d'ecran.
  *
- * Contrastes verifies : blanc sur les trois couleurs d'equipe donne 6,54 / 6,68 /
- * 7,38 (AA exige 4,5). Texte #111827 sur les fonds de difficulte : 14,8 a 16,2.
+ * Les contrastes ne sont PAS affirmes ici. `pnpm contrast` les mesure et fait
+ * echouer la construction sous le seuil : recopier des chiffres dans un
+ * commentaire, c'est produire une affirmation qui vieillit sans prevenir, et
+ * celle qui occupait ces deux lignes decrivait encore le theme clair.
+ *
+ * `info` n'est pas un cran de difficulte, c'est une autre nature : contour
+ * tirete, hors de la rampe de clarte. Voir ADR-0005.
  */
 
 export function DifficultyBadge({
@@ -33,10 +38,19 @@ export function TeamBadge({ team }: { team: RoomSummary["teams"][number] }): Rea
   );
 }
 
-/** Duree lisible. `null` n'est pas « 0 min », c'est une absence. */
+/**
+ * Duree lisible. `null` n'est pas « 0 min », c'est une absence.
+ *
+ * BASCULE A 120 MINUTES, pas a 60. « 90 min » se compare sans effort a « 45 min »
+ * et a « 2 h » ; « 1 h 30 » oblige a reconvertir pour faire la meme comparaison.
+ * Au-dela de deux heures l'inverse devient vrai : personne ne se represente
+ * « 53 426 minutes », alors que « 890 heures » se saisit d'un coup.
+ */
+const BASCULE_EN_HEURES = 120;
+
 export function formatDuration(minutes: number | null): string {
   if (minutes === null) return "duree inconnue";
-  if (minutes < 60) return `${minutes} min`;
+  if (minutes <= BASCULE_EN_HEURES) return `${minutes} min`;
   const hours = Math.floor(minutes / 60);
   const rest = minutes % 60;
   return rest === 0 ? `${hours} h` : `${hours} h ${rest.toString().padStart(2, "0")}`;

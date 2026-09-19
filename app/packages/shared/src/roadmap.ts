@@ -151,6 +151,28 @@ export type TrackProgress = {
 };
 
 /**
+ * La PROCHAINE etape : la premiere qui reste a faire.
+ *
+ * C'est la variable visuelle principale du parcours, pas la difficulte. Mesure
+ * sur le dataset : 87,7 % des rooms sont `easy` ou `medium`, donc un chemin
+ * colore par la difficulte serait quasi monochrome et n'informerait de rien. Ce
+ * que le debutant demande est « ou j'en suis, c'est quoi la suite ».
+ *
+ * UNE ETAPE SANS AUCUNE ROOM RECOMMANDEE EST SAUTEE. `complete` vaut faux pour
+ * elle — c'est voulu, `core.length > 0` est dans sa definition — mais elle n'a
+ * rien a faire, donc la bloquer comme « prochaine etape » arreterait le parcours
+ * sur une etape ou l'utilisateur ne peut rien cocher. Ce cas n'existe pas dans
+ * les trois parcours d'aujourd'hui ; il tiendra le jour ou une etape purement
+ * documentaire sera ecrite.
+ *
+ * Rend `null` quand tout est termine.
+ */
+export function nextStepPosition(progress: TrackProgress): number | null {
+  const next = progress.steps.find((step) => step.coreTotal > 0 && !step.complete);
+  return next?.position ?? null;
+}
+
+/**
  * Progression d'un parcours a partir des CODES de rooms terminees.
  *
  * DEUX REGLES, et se tromper sur l'une ou l'autre ne se voit pas.

@@ -5,7 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>THM Roadmap — catalogue et parcours TryHackMe</title>
     <meta name="description" content="Catalogue filtrable des 714 rooms TryHackMe gratuites, et parcours d'apprentissage ecrits a la main. Projet independant, non affilie a TryHackMe." />
-    <meta name="color-scheme" content="light" />
+    <!--
+      SOMBRE DES LA PREMIERE PEINTURE, avant que la feuille de style arrive.
+
+      Cette balise portait `light` — heritage du theme clair. Consequence : le
+      navigateur peint un fond blanc jusqu'au chargement du CSS, soit un flash
+      blanc a chaque ouverture de page dans une application entierement sombre.
+      Elle doit dire la meme chose que `:root { color-scheme: dark }`.
+    -->
+    <meta name="color-scheme" content="dark" />
+    <!--
+      Barre d'adresse du navigateur mobile. Meme valeur que `--fond`. Sans elle
+      elle reste claire et tranche avec la page, sur le type d'ecran qui est
+      justement majoritaire pour le public vise.
+    -->
+    <meta name="theme-color" content="#0f1115" />
   </head>
   <body>
     <div id="root"></div>

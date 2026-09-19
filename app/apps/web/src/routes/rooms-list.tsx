@@ -6,7 +6,7 @@ import { countActiveFilters, type FilterChange, FilterPanel } from "../component
 import { Pagination } from "../components/pagination.js";
 import { RoomCard } from "../components/room-card.js";
 import { SearchBox } from "../components/search-box.js";
-import { Empty, ErrorState, Loading } from "../components/states.js";
+import { Empty, ErrorState } from "../components/states.js";
 import { type RoomSearch, toApiQuery, toFacetQuery, validateRoomSearch } from "../search.js";
 import { rootRoute } from "./root.js";
 
@@ -95,8 +95,19 @@ function RoomsList(): ReactNode {
             <ErrorState error={rooms.error} onRetry={rooms.reload} />
           )}
 
+          {/*
+            Squelette AUX DIMENSIONS DES VRAIES CARTES, dans la meme grille.
+            Un chargement generique ici fait sauter toute la page au moment ou
+            les cartes arrivent — c'est-a-dire la seule chose qu'un squelette
+            existe pour eviter.
+          */}
           {rooms.status === "loading" && rooms.data === null && (
-            <Loading label="Chargement du catalogue" />
+            <ul className="grille-rooms" aria-busy="true">
+              <span className="visuellement-cache">Chargement du catalogue</span>
+              {[1, 2, 3, 4, 5, 6].map((rang) => (
+                <li key={rang} className="squelette squelette--carte" />
+              ))}
+            </ul>
           )}
 
           {rooms.data !== null && rooms.data.pagination.total === 0 && (

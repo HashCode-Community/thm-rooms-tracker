@@ -72,6 +72,45 @@ export const RoomDetailSchema = RoomSummarySchema.extend({
   ),
 });
 
+/**
+ * Forme BREVE d'une room, pour `/api/rooms/batch`.
+ *
+ * Volontairement plus pauvre que `RoomSummary` : ni description, ni tags, ni
+ * equipes. Deux raisons, et la seconde compte autant que la premiere.
+ *
+ *   1. Une seule requete SQL. Les tags et les equipes sont des jointures
+ *      separees, donc deux requetes de plus a chaque appel — le defaut qu'on
+ *      vient precisement de supprimer.
+ *   2. 200 descriptions pesent plus que tout le reste de la reponse, et la page
+ *      qui consomme ce point d'entree n'en affiche aucune.
+ *
+ * `isActive` est present parce que c'est le seul endroit ou une room desactivee
+ * doit rester visible : une room retiree du catalogue ne doit pas disparaitre
+ * de la progression de quelqu'un qui l'a terminee.
+ */
+export const RoomBriefSchema = z.object({
+  code: z.string(),
+  title: z.string(),
+  difficulty: z.object({ key: z.string(), label: z.string(), level: z.number().int() }),
+  type: z.object({ key: z.string(), label: z.string() }),
+  durationMinutes: z.number().int().nullable(),
+  thmUrl: z.string(),
+  isActive: z.boolean(),
+});
+
+/**
+ * Reponse du lot.
+ *
+ * `missing` n'est PAS une erreur : c'est une donnee de la reponse. Un code
+ * inconnu dans la progression locale de quelqu'un est un fait a lui montrer,
+ * pas un motif pour lui refuser sa page entiere. Le statut reste 200 meme si
+ * tous les codes sont inconnus.
+ */
+export const RoomBatchResponseSchema = z.object({
+  rooms: z.array(RoomBriefSchema),
+  missing: z.array(z.string()),
+});
+
 export const PaginationSchema = z.object({
   page: z.number().int(),
   limit: z.number().int(),
@@ -186,6 +225,8 @@ export const StatsResponseSchema = z.object({
 
 export type RoomSummary = z.infer<typeof RoomSummarySchema>;
 export type RoomDetail = z.infer<typeof RoomDetailSchema>;
+export type RoomBrief = z.infer<typeof RoomBriefSchema>;
+export type RoomBatchResponse = z.infer<typeof RoomBatchResponseSchema>;
 export type RoomListResponse = z.infer<typeof RoomListResponseSchema>;
 export type FacetsResponse = z.infer<typeof FacetsResponseSchema>;
 export type TagListResponse = z.infer<typeof TagListResponseSchema>;

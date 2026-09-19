@@ -9,6 +9,16 @@ export const urls = {
   rooms: (query: string) => `/api/rooms${query}`,
   facets: (query: string) => `/api/facets${query}`,
   room: (code: string) => `/api/rooms/${encodeURIComponent(code)}`,
+  /**
+   * Parametre REPETE, jamais `code[]` : c'est ce que produit `URLSearchParams`
+   * sans reglage, et l'API l'accepte tel quel. Aucun `.toLowerCase()`, ici non
+   * plus.
+   */
+  roomBatch: (codes: readonly string[]) => {
+    const params = new URLSearchParams();
+    for (const code of codes) params.append("code", code);
+    return `/api/rooms/batch?${params.toString()}`;
+  },
   tags: () => "/api/tags",
   categories: () => "/api/categories",
   stats: () => "/api/stats",

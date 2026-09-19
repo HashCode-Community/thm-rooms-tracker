@@ -2,7 +2,7 @@
 
 > 🎓 Projet étudiant en cybersécurité — réalisé en équipe.
 >
-> 📌 **Document mis à jour le 12 septembre 2026.** La roadmap d'origine (cadrage initial de Malick) est
+> 📌 **Document mis à jour le 16 septembre 2026.** La roadmap d'origine (cadrage initial de Malick) est
 > conservée à l'identique ; les cases cochées, les statuts et les sections marquées 🆕 reflètent
 > l'avancement réel. Les écarts par rapport au cadrage initial sont listés et justifiés
 > en section « ⚖️ Écarts assumés ».
@@ -13,11 +13,13 @@
 |---|---|
 | Rooms au catalogue TryHackMe | 1 321 |
 | **Rooms gratuites collectées** | **714** |
-| Phases terminées | **7 sur 10** (voir statuts ci-dessous) |
+| Phases terminées | **8 sur 10** ; la 9 close *hors mentions légales*, la 10 engagée |
 | Base de données | 15 tables, 296 tags, opérationnelle |
-| Restitution | API documentée + site web avec recherche à facettes |
+| Restitution | API documentée + site web sombre, parcours rendu comme un chemin |
 | Parcours d'apprentissage rédigés | 3 (61 rooms) — *initialement prévu en « pistes futures »* |
-| Tests automatisés | 168 |
+| Intégration continue | **12 étapes, vertes sur clone neuf** |
+| Vulnérabilités connues | **0** (`pnpm audit`) |
+| Tests automatisés | **309** |
 
 ---
 
@@ -297,6 +299,8 @@ qu'il ne répond pas à l'objectif écrit en tête de ce document.
 | 11/09/2026 | Modèle de données (phase 4) : 15 tables, migrations, index de recherche. Persistance (phase 7) : import idempotent avec garde-fou anti-vidage. | — | Aucun | API de restitution |
 | 12/09/2026 | Restitution (phase 8) : API documentée + site web avec recherche à facettes. Rédaction de 3 parcours d'apprentissage (61 rooms). Cadrage légal (phase 1) : 3 points sur 5 vérifiés. | Intégration des parcours | **Rôle scraping non démarré** : le scraper automatisé de la phase 5 reste à écrire. **Workflow Git non conforme** : deux dépôts séparés, aucune PR croisée. | Trancher le dépôt unique · démarrer le scraper (Malick) · ajouter le niveau normalisé français |
 | 13/09/2026 | **Intégration des parcours terminée** : 3 parcours en base, 22 étapes, 62 rooms recommandées dont 53 sur le chemin principal. Le contrat de provenance de chaque parcours est devenu strict — une clé inconnue est refusée au lieu d'être ignorée en silence. **Dépôt unique tranché et appliqué** : la plateforme est remontée sous `app/`, `scraper/` reste libre. 168 tests verts. | Relecture de la PR par Malick | **Rôle scraping non démarré**, inchangé. `docs/data-contract.md` toujours en attente de ratification. | Relire et fusionner la PR · démarrer le scraper (Malick) · ajouter le niveau normalisé français |
+| 15/09/2026 | **Progression locale (phase 8a et 8b)** : suivi sans compte, dans le navigateur. Point d'entrée par lot — 12 requêtes pour 714 rooms au lieu de 718. Trois défauts trouvés en mesurant, pas en relisant : le front envoyait 714 codes à un point d'entrée qui en accepte 200, l'écran vide restait muet quand le stockage était saturé, et le badge d'affichage `NEW` était une liste là où il fallait une règle. | Passe visuelle | Aucun | Socle visuel |
+| 16/09/2026 | **Passe visuelle (phase 8c)** : thème sombre, parcours rendu comme un chemin, mobile vérifié à 360 et 390 px. Les contrastes ne sont plus affirmés, ils sont **mesurés** — la construction échoue sous le seuil AA. **Sécurité (phase 9)** : en-têtes sur toute réponse, limite de débit, politique d'origine, adresse IP retirée des journaux. `pnpm audit` : **0 vulnérabilité**, l'exception de septembre fermée par un correctif ciblé. **Intégration continue (phase 10)** : 12 étapes vertes sur clone neuf en 47 s, les quatre dettes de CI closes. | Documentation et déploiement | **Mentions légales incomplètes** : éditeur, hébergeur, contact et licence manquent — le dépôt n'a ni fichier `LICENSE` ni champ `license`. Dus avant toute mise en ligne. **Rôle scraping non démarré**, inchangé. PR #1 sans relecture depuis le 13/09. | Compléter les mentions · déployer · relire la PR |
 
 ## 🌱 Pistes d'évolution futures
 
