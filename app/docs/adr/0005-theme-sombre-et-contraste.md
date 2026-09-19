@@ -1,11 +1,25 @@
-# ADR-0005 — Thème sombre unique, et le contraste devient un garde
+# ADR-0005 — Thème(s) et contraste mesuré
+
+> **Le titre a changé le 2026-09-16.** Il disait « thème sombre unique ». Voir l'amendement
+> en fin de document.
 
 - **Statut** : accepté
 - **Date** : 2026-09-15
 - **Décideur** : Nelkaël
 - **Amende** : la décision de la phase 8b sur le déclenchement de l'avertissement de persistance
+- **Amendé le 2026-09-16** : Q1 est remplacée, deux thèmes au lieu d'un, puis un seul à nouveau
+  sous la charte HashCode — voir les deux amendements en fin de document
 
 ---
+
+## La pile, pour lever une ambiguïté récurrente
+
+`apps/web` n'a **aucun framework CSS** : ni Tailwind, ni CSS-in-JS, ni bibliothèque de
+composants. Une seule feuille, `src/styles.css`, et des propriétés personnalisées déclarées
+dans `:root`. La règle `@theme` appartient à Tailwind 4 et **n'existe pas ici** : une charte
+exprimée avec cette syntaxe se traduit en propriétés personnalisées portant les mêmes noms.
+Ajouter Tailwind pour la syntaxe seule contredirait la contrainte « aucune nouvelle dépendance
+lourde sans justification écrite ».
 
 ## Règle de tenue de ce dossier
 
@@ -19,7 +33,12 @@ Posée par Nel le 2026-09-15, elle vaut pour tous les ADR à venir.
 
 Le premier amendement de ce type est en fin de document.
 
-## Q1 — Un seul thème, sombre, sans sélecteur
+## Q1 — ~~Un seul thème, sombre, sans sélecteur~~ **REMPLACÉE le 2026-09-16**
+
+> Cette section est conservée telle qu'elle a été écrite. Ce qui la remplace est en fin de
+> document, sous « Amendement du 2026-09-16 ». La garder barrée plutôt que la réécrire est
+> délibéré : une décision effacée ne s'apprend plus, et celle-ci portait un raisonnement qui
+> reste vrai.
 
 **Décision.** `color-scheme: dark`. `prefers-color-scheme: light` n'est **pas** géré.
 
@@ -180,3 +199,94 @@ règle ne change pas. Ce qui reste intact : la lecture ne répare jamais, l'écr
 une valeur illisible, et chaque mutation retente.
 
 Commit `e8d6d95`.
+
+---
+
+## Amendement du 2026-09-16 — deux thèmes, clair et sombre
+
+**Décision remplacée** : Q1 ci-dessus, prise le 2026-09-15. Thème sombre unique,
+`prefers-color-scheme: light` non géré, au motif qu'« un thème clair à moitié fait est pire que
+pas de thème clair » et que le coût réel n'est pas la palette mais **la matrice de contraste qui
+double**.
+
+**Raison du remplacement** : décision de Nel, le 2026-09-16, en ouverture de la refonte visuelle.
+
+**Ce que l'argument d'origine avait de juste, et qui est tenu.** Il ne disait pas « le clair est
+une mauvaise idée », il disait « à moitié fait, c'est pire ». Le clair n'est donc pas à moitié
+fait :
+
+- les **64 paires** sont mesurées, 32 par thème, et `pnpm contrast` échoue sur n'importe laquelle ;
+- **la rampe de difficulté est recalculée, pas transposée.** En sombre les quatre crans sont clairs
+  sur un fond sombre ; en clair ils doivent être sombres sur un fond clair. Aucune valeur ne se
+  réutilise. Le sens, lui, ne bouge pas : `easy` reste le cran le plus léger. Clartés en clair :
+  45,3 / 36,1 / 26,8 / 18,0, monotone, écart minimal 8,9 ;
+- **`theme-color` est déclaré deux fois**, une balise par préférence, chacune tenue égale au
+  `--fond` de son thème par le contrôleur ;
+- **la duplication du bloc clair est surveillée.** CSS ne permet pas de réunir
+  `:root[data-theme="light"]` et le bloc sous `@media (prefers-color-scheme: light)` : le bloc est
+  donc écrit deux fois. Le contrôleur compare les deux et échoue s'ils divergent d'un seul token.
+
+**Ce qui change dans la règle des littéraux.** Elle portait sur le bloc `:root`. Avec trois blocs
+de tokens, dont un dans une requête de média, le lieu ne veut plus rien dire : la règle porte
+désormais sur la **forme**. Une couleur nommée est déclarée, une couleur anonyme est un littéral,
+où qu'elle soit.
+
+**Prouvé en le cassant**, trois fois : un token divergeant d'une unité entre les deux blocs clairs,
+la rampe claire rendue non monotone, et un `theme-color` clair désaccordé de `--fond`.
+
+## Amendement du 2026-09-16 — charte HashCode, thème sombre unique
+
+**Décisions remplacées.** L'amendement du 2026-09-16 ci-dessus (« deux thèmes, clair et sombre »)
+et la partie de Q3 qui impose une rampe de clarté monotone.
+
+**Raison.** La refonte était structurelle et pas visuelle : le site ressemblait à un tableau de
+bord gris-bleu générique. Une charte a été arrêtée — lime `#A8FF00` sur noir `#0d0d0d`, difficultés
+codées par la teinte — et elle ne se tient qu'en sombre. Deux palettes à maintenir pour un produit
+qui s'affirme sombre coûtaient deux fois le travail de couleur sans rien affirmer.
+
+**Ce qui est décidé.**
+
+- **Un seul thème.** Le sélecteur, `public/theme.js`, `src/theme.ts` et les deux blocs de tokens
+  clairs disparaissent. `color-scheme: dark`, une seule balise `theme-color`.
+- **Deux étages de jetons.** `--color-hc-*` porte la charte valeur par valeur ; les jetons de rôle
+  (`--fond`, `--texte`, `--accent`) la nomment par l'usage et sont seuls employés par les règles.
+  Le contrôleur suit la chaîne de `var()` : un rôle branché sur le mauvais jeton est mesuré comme
+  tel, pas comme un nom.
+- **La transparence est mesurée.** Les fonds de difficulté sont à 12 %, les bordures à 25 %. Le
+  contrôleur aplatit une couleur translucide sur le fond réel avant de mesurer — la couleur pleine
+  donnerait un ratio qui ne s'affiche nulle part. 37 paires, dont les dix paires de difficulté sur
+  carte et sur page.
+- **Aucun lien au style du navigateur.** Ni bleu, ni violet visité. Un lien est blanc, se souligne
+  au survol, passe au lime quand il est actif. Le soulignement est un signal non coloré : il reste
+  lisible sans percevoir les teintes.
+
+**Ce que cet amendement fait perdre, écrit ici plutôt que tu.** Les cinq crans formaient une rampe
+de clarté monotone, d'écart minimal 8 en L\* : un lecteur qui ne perçoit pas les teintes lisait
+quand même cinq gris distincts. Le codage par teinte rapproche certaines clartés — mesuré :
+info 68,1, facile 77,9, intermédiaire 78,5, difficile 66,1, extrême 59,3. Facile et intermédiaire
+sont désormais indistinguables en niveaux de gris. Ce qui garantit la lisibilité sans la couleur
+reste le **libellé écrit en toutes lettres** sur chaque badge, ce que WCAG 1.4.1 exige ; l'écart de
+gris était un supplément. Le contrôleur continue de mesurer et d'afficher ces clartés, sans
+condition de réussite : la perte doit se voir, pas disparaître avec le contrôle qui la mesurait.
+
+## Amendement du 2026-09-17 — décisions des pages intérieures
+
+Quatre décisions prises pendant la refonte des pages intérieures, dont trois remplacent une
+décision antérieure. Elles sont ici parce qu'elles vivaient dans des commentaires de code, où une
+dérive ne se détecte pas.
+
+1. **La mention obligatoire est repliée par défaut**, et la page d'un parcours la masque une fois
+   qu'elle a été ouverte. Elle s'ouvrait par défaut, au motif qu'« une obligation cachée d'emblée
+   n'en est plus une ». Ce qui a été mesuré depuis : la même phrase, lue sur la liste puis relue en
+   tête de chacun des trois parcours, cesse d'être lue du tout. Elle reste dans le document sur la
+   liste, annoncée et dépliable ; l'état « lue » vit dans le navigateur, pas sur un serveur.
+2. **Le badge « Recommandée » disparaît.** Il s'affichait sur 17 rooms sur 17 des Fondamentaux : un
+   badge que tout le monde porte n'informe personne et repousse la difficulté hors du regard. Seul
+   l'écart est signalé — « Optionnelle », « Bonus ».
+3. **Le badge d'équipe « Mixte » perd sa teinte.** Le violet servi par la base est celui que la
+   charte a retiré des liens visités, et c'est la seule couleur d'équipe sans équivalent dans la
+   palette : au milieu de badges cyan, ambre et orange, il se lisait comme un cran de difficulté de
+   plus. Le libellé porte l'information, comme pour le type.
+4. **Le produit vouvoie, partout**, y compris dans le contenu éditorial des parcours. Douze
+   tutoiements y subsistaient. Le contrôle de langue (`pnpm langue`) lit désormais les fichiers
+   YAML de `data/roadmap` et signale pronoms et possessifs de la deuxième personne du singulier.

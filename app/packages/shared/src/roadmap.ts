@@ -128,9 +128,9 @@ export type TrackDetailResponse = z.infer<typeof TrackDetailResponseSchema>;
  * doit etre identique dans l'API, dans l'UI et dans tout ce qui viendra ensuite.
  */
 export const ROADMAP_DISCLAIMER =
-  "Parcours construits a partir des metadonnees TryHackMe, du nombre de participants " +
-  "par room et d'une progression pedagogique standard. Ils n'ont pas ete integralement " +
-  "suivis par notre equipe.";
+  "Parcours construits à partir des métadonnées TryHackMe, du nombre de participants " +
+  "par room et d'une progression pédagogique standard. Ils n'ont pas été intégralement " +
+  "suivis par notre équipe.";
 
 // --- Progression -----------------------------------------------------------
 

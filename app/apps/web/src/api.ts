@@ -69,7 +69,7 @@ async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
       // Corps illisible : on garde le code HTTP. Ne jamais masquer l'erreur initiale.
     }
     if (PASSERELLE.has(response.status)) {
-      message = `L'API ne repond pas (HTTP ${response.status}). Elle est peut-etre arretee.`;
+      message = `L'API ne répond pas (HTTP ${response.status}). Elle est peut-être arrêtée.`;
     }
     throw new ApiError(response.status, message);
   }
@@ -93,6 +93,28 @@ export function loadTags(): Promise<TagListResponse> {
     throw error;
   });
   return tagsPromise;
+}
+
+/**
+ * Detail d'un parcours, memorise par slug.
+ *
+ * Le contenu est editorial : il ne change qu'a une publication, jamais pendant
+ * une session. L'accueil en a besoin pour savoir quelles etapes sont terminees,
+ * et la page du parcours le redemanderait juste apres — une seule requete sert
+ * les deux.
+ */
+const parcoursEnCours = new Map<string, Promise<TrackDetailResponse>>();
+
+export function loadTrack(slug: string): Promise<TrackDetailResponse> {
+  const memorise = parcoursEnCours.get(slug);
+  if (memorise !== undefined) return memorise;
+
+  const promesse = request<TrackDetailResponse>(urls.track(slug)).catch((error: unknown) => {
+    parcoursEnCours.delete(slug);
+    throw error;
+  });
+  parcoursEnCours.set(slug, promesse);
+  return promesse;
 }
 
 export function loadCategories(): Promise<CategoryListResponse> {
@@ -149,10 +171,11 @@ export const BATCH_CHUNK_BYTES = 1900;
 /**
  * Longueur de la partie fixe de l'adresse, DERIVEE du constructeur d'URL.
  *
- * Jamais ecrite en dur : si une base d'API est posee un jour (`VITE_API_BASE_URL`,
- * un prefixe de deploiement), elle apparait dans ce que `roomBatch` produit, donc
- * elle entre dans le budget sans que personne ait a y penser. Une constante
- * recopiee, elle, resterait a 17 et le budget deviendrait faux en silence.
+ * Jamais ecrite en dur : la base d'API posee a la construction
+ * (`VITE_API_BASE_URL`, cf. `urls.ts`) apparait dans ce que `roomBatch` produit,
+ * donc elle entre dans le budget sans que personne ait a y penser. Une constante
+ * recopiee, elle, resterait a 17 et le budget deviendrait faux en silence des le
+ * jour ou le front a cesse d'appeler sa propre origine.
  */
 export const BATCH_URL_BASE = urls.roomBatch([]).length;
 

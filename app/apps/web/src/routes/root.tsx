@@ -1,7 +1,11 @@
 import { createRootRoute, Link, Outlet } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import { Entete } from "../components/Entete.js";
+import { Pied } from "../components/Pied.js";
 import { ErrorState } from "../components/states.js";
+import { EmptyState } from "../components/ui/index.js";
 import { ProgressionPersistenceWarning } from "../progression.js";
+import { useTitre } from "../titre.js";
 
 function Layout(): ReactNode {
   return (
@@ -12,57 +16,57 @@ function Layout(): ReactNode {
         Aller au contenu
       </a>
 
-      <header className="entete">
-        <div className="entete__interieur">
-          <Link to="/" className="marque">
-            THM Roadmap
-          </Link>
-          <nav className="nav" aria-label="Navigation principale">
-            <Link to="/">Accueil</Link>
-            <Link to="/rooms">Catalogue</Link>
-            <Link to="/roadmap">Parcours</Link>
-            <Link to="/progression">Progression</Link>
-          </nav>
-        </div>
-      </header>
+      <Entete />
 
       <main id="contenu" className="page">
         <ProgressionPersistenceWarning />
         <Outlet />
       </main>
 
-      <footer className="pied">
-        <div className="pied__interieur">
-          <p>
-            Projet independant, <strong>non affilie a TryHackMe</strong>. Seules des metadonnees
-            publiques des 714 rooms gratuites sont affichees ; les contenus restent sur{" "}
-            <a href="https://tryhackme.com" rel="noopener noreferrer" target="_blank">
-              tryhackme.com
-            </a>
-            .
-          </p>
-          {/* Dans le pied, pas dans la navigation principale : on y va quand on
-              se pose la question, pas en decouvrant le produit. */}
-          <p className="petit">
-            <Link to="/mentions" className="pied__lien">
-              Mentions et donnees personnelles
-            </Link>
-          </p>
-        </div>
-      </footer>
+      <Pied />
     </>
   );
 }
 
+/**
+ * Page introuvable.
+ *
+ * ELLE PORTE UN `<h1>`. Sans lui, un lecteur d'ecran arrive sur une page sans
+ * point d'entree — et c'est precisement la page ou l'on est deja perdu.
+ *
+ * Ce commentaire a ete FAUX pendant onze commits : le passage au composant
+ * commun avait remplace le `<h1>` par un `<p>` sans que personne le voie. Le
+ * composant sait desormais porter le titre de la page, et trois pages
+ * « introuvable » le demandent.
+ *
+ * Elle propose plusieurs sorties, pas une seule : quelqu'un qui se trompe
+ * d'adresse ne cherche pas forcement le catalogue.
+ */
 function NotFound(): ReactNode {
+  useTitre("Page introuvable");
   return (
-    <div className="etat">
-      <div className="etat__titre">Page introuvable</div>
-      <p className="petit doux">Cette adresse ne correspond a aucune page.</p>
-      <p style={{ marginTop: 8 }}>
-        <Link to="/rooms">Retour au catalogue</Link>
+    <EmptyState
+      titrePrincipal
+      titre="Cette page n'existe pas"
+      icone={
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <title>Panneau d'avertissement</title>
+          <path d="M12 3 2 21h20L12 3Z" strokeLinejoin="round" />
+          <path d="M12 10v5" strokeLinecap="round" />
+          <circle cx="12" cy="18" r="0.6" fill="currentColor" stroke="none" />
+        </svg>
+      }
+    >
+      <p className="petit doux">
+        L'adresse demandée ne correspond à aucune page du site. Elle a peut-être changé, ou comporte
+        une faute de frappe.
       </p>
-    </div>
+      <p className="rang" style={{ marginTop: 12, justifyContent: "center" }}>
+        <Link to="/">Accueil</Link>
+        <Link to="/roadmap">Parcours</Link>
+        <Link to="/rooms">Catalogue</Link>
+      </p>
+    </EmptyState>
   );
 }
 

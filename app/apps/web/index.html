@@ -7,19 +7,39 @@
     <meta name="description" content="Catalogue filtrable des 714 rooms TryHackMe gratuites, et parcours d'apprentissage ecrits a la main. Projet independant, non affilie a TryHackMe." />
     <!--
       SOMBRE DES LA PREMIERE PEINTURE, avant que la feuille de style arrive.
-
-      Cette balise portait `light` — heritage du theme clair. Consequence : le
-      navigateur peint un fond blanc jusqu'au chargement du CSS, soit un flash
-      blanc a chaque ouverture de page dans une application entierement sombre.
-      Elle doit dire la meme chose que `:root { color-scheme: dark }`.
+      Sans elle, le navigateur peint un fond blanc jusqu'au chargement du CSS,
+      soit un flash blanc a chaque ouverture de page. Elle dit la meme chose que
+      `:root { color-scheme: dark }`, et plus rien d'autre : le theme clair a ete
+      retire, il n'y a plus de second terme.
     -->
     <meta name="color-scheme" content="dark" />
     <!--
-      Barre d'adresse du navigateur mobile. Meme valeur que `--fond`. Sans elle
-      elle reste claire et tranche avec la page, sur le type d'ecran qui est
-      justement majoritaire pour le public vise.
+      Barre d'adresse du navigateur mobile. Meme valeur que `--fond`, verifiee par
+      `pnpm contrast` : deux ecritures de la meme couleur derivent, et personne
+      ne relit un <head>. Une seule balise depuis que le theme est unique.
     -->
-    <meta name="theme-color" content="#0f1115" />
+    <meta name="theme-color" content="#0d0d0d" />
+    <!--
+      Les deux polices sont demandees TOT, sans attendre la feuille de style qui
+      les declare. Sans ce prechargement, le navigateur ne les decouvre qu'apres
+      avoir analyse le CSS : le texte s'affiche d'abord dans la police de repli,
+      puis saute. `crossorigin` est obligatoire meme en meme origine — une
+      police est toujours demandee en mode anonyme.
+    -->
+    <link
+      rel="preload"
+      href="/fonts/space-grotesk-latin-variable.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/fonts/inter-latin-variable.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
   </head>
   <body>
     <div id="root"></div>

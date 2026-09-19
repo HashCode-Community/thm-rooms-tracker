@@ -3,6 +3,7 @@ import type { StepProgress, TrackRoom, TrackStep } from "@thm/shared";
 import type { ReactNode } from "react";
 import { RoomCompletionControl } from "../progression.js";
 import { DifficultyBadge, formatDuration, TypeBadge } from "./badges.js";
+import { Callout } from "./ui/index.js";
 
 /**
  * Le parcours rendu comme un CHEMIN.
@@ -33,8 +34,15 @@ export function etatDeLEtape(
   return "a-venir";
 }
 
-const REQUIREMENT_LABELS: Readonly<Record<TrackRoom["requirement"], string>> = {
-  core: "Recommandee",
+/**
+ * Seules les rooms QUI NE SONT PAS le coeur portent un libelle.
+ *
+ * « Recommandee » s'affichait sur 17 rooms sur 17 : un badge que tout le monde
+ * porte n'informe personne, il occupe la premiere place de chaque ligne et
+ * repousse la difficulte. Le defaut est d'etre recommandee ; ce qui merite d'etre
+ * dit, c'est l'ecart.
+ */
+const LIBELLE_HORS_SOCLE: Readonly<Record<string, string>> = {
   optional: "Optionnelle",
   bonus: "Bonus",
 };
@@ -58,10 +66,8 @@ function RoomDuChemin({ room, terminee }: { room: TrackRoom; terminee: boolean }
       </div>
 
       <div className="chemin-room__meta">
-        {room.requirement === "core" ? (
-          <span className="badge badge--core">{REQUIREMENT_LABELS.core}</span>
-        ) : (
-          <span className="badge badge--neutre">{REQUIREMENT_LABELS[room.requirement]}</span>
+        {room.requirement !== "core" && (
+          <span className="badge badge--neutre">{LIBELLE_HORS_SOCLE[room.requirement]}</span>
         )}
         <DifficultyBadge difficulty={room.difficulty} />
         <TypeBadge type={room.type} />
@@ -70,15 +76,35 @@ function RoomDuChemin({ room, terminee }: { room: TrackRoom; terminee: boolean }
 
       {/* Jamais repliee : plusieurs notes signalent que la suite d'une serie est
           payante, et c'est souvent l'information la plus utile de l'etape. */}
-      {room.note !== null && <p className="chemin-room__note">{room.note}</p>}
+      {room.note !== null && <NoteDeRoom note={room.note} />}
     </li>
   );
 }
 
+/**
+ * La note d'une room, et son avertissement s'il y en a un.
+ *
+ * Certaines notes commencent par « ATTENTION : » — la seule facon qu'avait le
+ * contenu editorial de crier dans du texte brut. Ce cri devient un encart : le
+ * ton porte l'alerte, le titre la nomme, et les capitales disparaissent. Ecrire
+ * en majuscules est le dernier recours de qui n'a pas de composant.
+ */
+function NoteDeRoom({ note }: { note: string }): ReactNode {
+  const alerte = /attention\s*:/i.test(note);
+  if (!alerte) return <p className="chemin-room__note">{note}</p>;
+
+  const texte = note.replace(/attention\s*:\s*/i, "").trim();
+  return (
+    <Callout ton="alerte" titre="À savoir avant de commencer">
+      <p className="petit">{texte}</p>
+    </Callout>
+  );
+}
+
 const ETAT_LIBELLE: Readonly<Record<EtatEtape, string>> = {
-  faite: "Etape terminee",
-  prochaine: "Prochaine etape",
-  "a-venir": "Etape a venir",
+  faite: "Étape terminée",
+  prochaine: "Prochaine étape",
+  "a-venir": "Étape à venir",
 };
 
 export function EtapeDuChemin({
@@ -96,7 +122,7 @@ export function EtapeDuChemin({
   const total = progress?.coreTotal ?? 0;
 
   return (
-    <li className={`chemin__etape chemin__etape--${etat}`}>
+    <li className={`chemin__etape chemin__etape--${etat}`} id={`etape-${step.position}`}>
       {/*
         La marque porte l'etat par sa FORME autant que par sa couleur : pleine
         et cochee quand c'est fait, cerclee quand c'est la suite, vide sinon.
@@ -106,23 +132,31 @@ export function EtapeDuChemin({
         {etat === "faite" ? "✓" : step.position}
       </div>
 
-      <div className="chemin__corps">
-        <div className="chemin__entete">
+      {/* UNE ETAPE TERMINEE SE REPLIE. Sur un parcours de huit etapes, celles
+          qui sont faites poussent la suivante hors de l'ecran — or c'est la
+          suivante qu'on vient voir. Repliee, l'etape garde son resume et se
+          rouvre d'un clic. `<details>` natif : clavier, annonce et recherche de
+          page fonctionnent sans qu'on ait rien a ecrire. */}
+      <details className="chemin__corps" open={etat !== "faite"}>
+        <summary className="chemin__entete">
           <h2 className="chemin__titre">
             <span className="visuellement-cache">
-              Etape {step.position}, {ETAT_LIBELLE[etat]} :{" "}
+              Étape {step.position}, {ETAT_LIBELLE[etat]} :{" "}
             </span>
             {step.title}
           </h2>
-          {etat === "prochaine" && <span className="chemin__marqueur">Prochaine etape</span>}
-        </div>
+          {etat === "prochaine" && <span className="chemin__marqueur">Prochaine étape</span>}
+          {etat === "faite" && (
+            <span className="chemin__marqueur chemin__marqueur--faite">Terminée</span>
+          )}
+        </summary>
 
         {step.objective !== null && <p className="doux">{step.objective}</p>}
 
         <p className="petit doux chemin__compteur">
           {total === 0
-            ? "Aucune room recommandee a cette etape"
-            : `${faits} sur ${total} room${total > 1 ? "s" : ""} recommandee${total > 1 ? "s" : ""}`}
+            ? "Aucune room recommandée à cette étape"
+            : `${faits} sur ${total} room${total > 1 ? "s" : ""} recommandée${total > 1 ? "s" : ""}`}
           {step.estimatedMinutes !== null && ` — ${formatDuration(step.estimatedMinutes)}`}
         </p>
 
@@ -131,39 +165,8 @@ export function EtapeDuChemin({
             <RoomDuChemin key={room.code} room={room} terminee={completedCodes.has(room.code)} />
           ))}
         </ul>
-      </div>
+      </details>
     </li>
-  );
-}
-
-/**
- * Avancement du parcours, en tete de chemin.
- *
- * `progress` est un element natif : il porte son role, sa valeur et son maximum
- * sans qu'on ait a les reecrire en ARIA, et il reste lisible quand la feuille de
- * style ne charge pas.
- */
-export function AvancementParcours({
-  faits,
-  total,
-  pourcent,
-}: {
-  faits: number;
-  total: number;
-  pourcent: number;
-}): ReactNode {
-  return (
-    <div className="avancement">
-      <div className="avancement__ligne">
-        <strong className="avancement__chiffre">{pourcent} %</strong>
-        <span className="petit doux">
-          {faits} sur {total} room{total > 1 ? "s" : ""} recommandee{total > 1 ? "s" : ""}
-        </span>
-      </div>
-      <progress className="avancement__barre" value={faits} max={total || 1}>
-        {pourcent} %
-      </progress>
-    </div>
   );
 }
 

@@ -1,116 +1,248 @@
 import { createRoute, Link } from "@tanstack/react-router";
 import type { StatsResponse, TrackListResponse } from "@thm/shared";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
+import { useMemo } from "react";
 import { urls, useResource } from "../api.js";
+import { useApparition } from "../apparition.js";
+import { type AvancementParcours, useAvancement } from "../avancement.js";
+import { formatDuration } from "../components/badges.js";
+import { CarteParcours } from "../components/CarteParcours.js";
+import { Compteur } from "../components/Compteur.js";
+import { GrapheParcours } from "../components/GrapheParcours.js";
 import { ErrorState } from "../components/states.js";
+import { Badge, Skeleton } from "../components/ui/index.js";
+import { useProgression } from "../progression.js";
+import { useTitre } from "../titre.js";
 import { rootRoute } from "./root.js";
 
+const NIVEAUX: Readonly<Record<string, string>> = {
+  beginner: "Débutant",
+  intermediate: "Intermédiaire",
+  advanced: "Avancé",
+};
+
+/**
+ * Page d'accueil.
+ *
+ * ELLE DOIT FAIRE CHOISIR, pas informer. Sa version precedente posait un titre,
+ * un paragraphe, quatre chiffres plats et trois portes equivalentes — dont le
+ * catalogue en premier, alors que le titre affirme que le parcours est le
+ * produit. Rien n'appelait a l'action.
+ *
+ * L'ordre suit maintenant la question de celui qui arrive : qu'est-ce que c'est,
+ * par ou je commence, qu'est-ce que ca vaut, comment ca marche.
+ */
 function Home(): ReactNode {
+  useTitre("714 rooms TryHackMe, trois parcours");
   const stats = useResource<StatsResponse>(urls.stats());
   const tracks = useResource<TrackListResponse>(urls.tracks());
+  const progression = useProgression();
+  const codes = useMemo(
+    () => progression.completedRooms.map((room) => room.code),
+    [progression.completedRooms],
+  );
+  const slugs = useMemo(
+    () => (tracks.data === null ? [] : tracks.data.data.map((track) => track.slug)),
+    [tracks.data],
+  );
+  const avancements = useAvancement(slugs, codes);
+  const reprise = premiereRepriseUtile(slugs, avancements);
+  const apparition = useApparition();
 
   return (
     <>
-      <div className="intro">
-        <h1>Le catalogue n'est pas le produit. Le parcours l'est.</h1>
-        <p className="doux">
-          714 rooms TryHackMe gratuites, indexees et filtrables. Mais une liste de 714 entrees ne
-          dit pas par ou commencer : c'est le role des parcours, ecrits a la main et assumes comme
-          des recommandations, jamais comme des prerequis techniques.
-        </p>
-      </div>
+      <section className="hero">
+        {/* Le fond : une trame, un halo tres faible derriere le graphe, un grain.
+            Trois couches decoratives, aucune information. */}
+        <div className="hero__fond" aria-hidden="true" />
 
-      <h2 className="visuellement-cache">Chiffres cles</h2>
-      {/*
-        Squelette AUX DIMENSIONS DES VRAIS CHIFFRES : quatre cases de la taille
-        qu'occuperont les valeurs. Un chargement generique a cet endroit
-        deplacerait tout ce qui suit au moment ou les donnees arrivent.
-      */}
+        <div className="hero__colonnes">
+          <div className="accroche">
+            <h1 className="accroche__titre">
+              714 rooms TryHackMe gratuites.
+              <br />
+              <span className="accroche__accent">Trois chemins pour les traverser.</span>
+            </h1>
+            <p className="accroche__sous-titre">
+              Un catalogue ne dit pas par où commencer. Les parcours, oui : trois chemins écrits à
+              la main, assumés comme des recommandations, jamais comme des prérequis.
+            </p>
+
+            {/* DEUX actions, une seule principale. Le parcours d'abord : c'est ce
+                que le titre vient d'affirmer, et proposer deux portes egales
+                reviendrait a ne rien recommander du tout. Quand une progression
+                existe, l'action principale dit OU on reprend, pas « reprendre ». */}
+            <div className="accroche__actions">
+              {reprise === null ? (
+                <Link to="/roadmap" className="bouton bouton--principal">
+                  Commencer par un parcours
+                </Link>
+              ) : (
+                <Link
+                  to="/roadmap/$slug"
+                  params={{ slug: reprise.slug }}
+                  className="bouton bouton--principal"
+                >
+                  Reprendre — {reprise.titre}, étape {reprise.etape}
+                </Link>
+              )}
+              <Link to="/rooms" className="bouton">
+                Explorer le catalogue
+              </Link>
+            </div>
+          </div>
+
+          <div className="hero__visuel">
+            {tracks.data === null ? (
+              <div className="graphe graphe--attente" aria-hidden="true" />
+            ) : (
+              <GrapheParcours tracks={tracks.data.data} avancements={avancements} />
+            )}
+          </div>
+        </div>
+      </section>
+
+      <h2 className="visuellement-cache">Chiffres clés</h2>
+      {stats.status === "error" && stats.data === null && (
+        <ErrorState error={stats.error} onRetry={stats.reload} />
+      )}
       {stats.data === null && stats.status === "loading" && (
         <ul className="chiffres" aria-busy="true">
           <span className="visuellement-cache">Chargement des chiffres du catalogue</span>
           {[1, 2, 3, 4].map((rang) => (
             <li className="chiffre" key={rang}>
-              <div className="squelette squelette--chiffre" />
-              <div className="squelette squelette--libelle" />
+              <Skeleton forme="chiffre" />
+              <Skeleton forme="libelle" />
             </li>
           ))}
         </ul>
       )}
-      {stats.status === "error" && stats.data === null && (
-        <div style={{ margin: "24px 0" }}>
-          <ErrorState error={stats.error} onRetry={stats.reload} />
-        </div>
-      )}
       {stats.data !== null && (
-        <ul className={`chiffres${stats.status === "loading" ? " perime" : ""}`}>
-          <Figure value={stats.data.rooms.total.toLocaleString("fr-FR")} label="rooms gratuites" />
-          <Figure
-            value={Math.round(stats.data.durationMinutes.total / 60).toLocaleString("fr-FR")}
-            label="heures de contenu cumulees"
+        <ul
+          ref={apparition}
+          className={`chiffres apparition${stats.status === "loading" ? " perime" : ""}`}
+        >
+          <Chiffre valeur={stats.data.rooms.total} libelle="rooms gratuites" />
+          <Chiffre
+            valeur={Math.round(stats.data.durationMinutes.total / 60)}
+            libelle="heures de contenu"
           />
-          <Figure
-            value={(
-              stats.data.tags.technology +
-              stats.data.tags.tool +
-              stats.data.tags.skill
-            ).toLocaleString("fr-FR")}
-            label="technologies, outils et competences"
+          <Chiffre
+            valeur={stats.data.tags.technology + stats.data.tags.tool + stats.data.tags.skill}
+            libelle="technologies, outils et compétences"
           />
-          {/*
-            Les parcours, pas « les rooms de niveau facile ». Le titre de la page
-            dit que le parcours est le produit : le quatrieme chiffre doit le
-            soutenir, pas ramener l'attention sur le catalogue. Le compte vient
-            de l'API, jamais ecrit en dur — un parcours ajoute doit se voir ici
-            sans que personne ait a y penser, et tant qu'il n'est pas connu la
-            case reste vide plutot que de porter une valeur devinee.
-          */}
           {tracks.data !== null && (
-            <Figure
-              value={`${tracks.data.data.length}`}
-              label={`parcours ecrit${tracks.data.data.length > 1 ? "s" : ""} a la main`}
+            <Chiffre
+              valeur={tracks.data.data.length}
+              libelle={`parcours écrit${tracks.data.data.length > 1 ? "s" : ""} à la main`}
             />
           )}
         </ul>
       )}
 
-      <h2 style={{ marginBottom: 8 }}>Par ou entrer</h2>
-      <ul className="portes">
-        <li>
-          <Link to="/rooms" className="porte">
-            <span className="porte__titre">Catalogue</span>
-            <span className="petit doux">
-              Chercher, filtrer par technologie, outil, competence, difficulte ou duree.
+      <section className="section-accueil apparition" ref={apparition}>
+        <div className="section-accueil__entete">
+          <h2>Les trois parcours</h2>
+          <Link to="/roadmap">Tous les parcours →</Link>
+        </div>
+
+        {tracks.data === null && tracks.status === "loading" && (
+          <ul className="apercu-parcours" aria-busy="true">
+            <span className="visuellement-cache">Chargement des parcours</span>
+            {[1, 2, 3].map((rang) => (
+              <li key={rang}>
+                <Skeleton forme="carte" />
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {tracks.data !== null && (
+          <ul className="parcours-liste">
+            {tracks.data.data.map((track, rang) => (
+              <CarteParcours
+                key={track.slug}
+                track={track}
+                avancement={avancements.get(track.slug)}
+                large={rang === 0}
+              />
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="section-accueil apparition" ref={apparition}>
+        <h2>Comment ça marche</h2>
+        {/* Le meme fil que sur un parcours, en trois temps. La page d'accueil
+            explique le produit avec la forme du produit. */}
+        <ol className="marche">
+          <li className="marche__etape" style={{ "--rang": 0 } as CSSProperties}>
+            <span className="marche__marque" aria-hidden="true">
+              1
             </span>
-          </Link>
-        </li>
-        <li>
-          <Link to="/roadmap" className="porte">
-            <span className="porte__titre">Parcours</span>
-            <span className="petit doux">
-              Un ordre de lecture dans les 714 rooms. Contenu editorial, ecrit a la main : les
-              donnees TryHackMe ne contiennent aucun ordre pedagogique.
+            <div>
+              <h3>Choisissez un chemin</h3>
+              <p className="petit doux">
+                Trois parcours, du socle à l'offensive et à la défense. Chaque étape recommande des
+                rooms — jamais de prérequis technique.
+              </p>
+            </div>
+          </li>
+          <li className="marche__etape" style={{ "--rang": 1 } as CSSProperties}>
+            <span className="marche__marque" aria-hidden="true">
+              2
             </span>
-          </Link>
-        </li>
-        <li>
-          <Link to="/progression" className="porte">
-            <span className="porte__titre">Ma progression</span>
-            <span className="petit doux">
-              Retrouver les rooms terminees, le temps cumule et l'avancement des parcours.
+            <div>
+              <h3>Avancez room par room</h3>
+              <p className="petit doux">
+                Chaque room se fait sur TryHackMe. Vous cochez ici ce que vous avez terminé, et la
+                suite se met à jour.
+              </p>
+            </div>
+          </li>
+          <li className="marche__etape" style={{ "--rang": 2 } as CSSProperties}>
+            <span className="marche__marque" aria-hidden="true">
+              3
             </span>
-          </Link>
-        </li>
-      </ul>
+            <div>
+              <h3>Gardez la main sur vos données</h3>
+              <p className="petit doux">
+                Aucun compte, aucun cookie. Votre progression reste dans ce navigateur, et vous
+                pouvez l'exporter quand vous voulez.
+              </p>
+            </div>
+          </li>
+        </ol>
+      </section>
     </>
   );
 }
 
-function Figure({ value, label }: { value: string; label: string }): ReactNode {
+/**
+ * Le parcours a reprendre : le premier, dans l ordre des parcours, qui est
+ * entame et pas fini. Sans progression, il n y en a aucun et l action
+ * principale redevient « commencer ».
+ */
+function premiereRepriseUtile(
+  slugs: readonly string[],
+  avancements: ReadonlyMap<string, AvancementParcours>,
+): { slug: string; titre: string; etape: number } | null {
+  for (const slug of slugs) {
+    const avancement = avancements.get(slug);
+    if (avancement === undefined || avancement.prochaine === null) continue;
+    if (avancement.pourcentage === 0) continue;
+    return { slug, titre: avancement.titre, etape: avancement.prochaine };
+  }
+  return null;
+}
+
+function Chiffre({ valeur, libelle }: { valeur: number; libelle: string }): ReactNode {
   return (
     <li className="chiffre">
-      <div className="chiffre__valeur">{value}</div>
-      <div className="chiffre__libelle">{label}</div>
+      <div className="chiffre__valeur">
+        <Compteur valeur={valeur} />
+      </div>
+      <div className="chiffre__libelle">{libelle}</div>
     </li>
   );
 }

@@ -10,7 +10,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node --conditions=development --import tsx --test tests/*.test.ts",
     "contrast": "node --conditions=development --import tsx scripts/verifie-contrastes.ts",
-    "build:analyse": "vite build --sourcemap && node --import tsx scripts/analyse-bundle.ts"
+    "build:analyse": "vite build --sourcemap && node --import tsx scripts/analyse-bundle.ts",
+    "langue": "node --conditions=development --import tsx scripts/verifie-langue.ts"
   },
   "dependencies": {
     "@tanstack/react-router": "1.170.35",
@@ -23,5 +24,6 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
     "vite": "^8.2.2"
-  }
+  },
+  "license": "MIT"
 }

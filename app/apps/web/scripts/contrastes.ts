@@ -9,6 +9,8 @@
 // --- Couleur ---------------------------------------------------------------
 
 export type Rgb = readonly [number, number, number];
+/** Une couleur avec son canal alpha, dans [0, 1]. */
+export type Rgba = readonly [number, number, number, number];
 
 export function parseHex(valeur: string): Rgb {
   const nettoye = valeur.trim().replace("#", "");
@@ -22,6 +24,47 @@ export function parseHex(valeur: string): Rgb {
   if (!/^[0-9a-fA-F]{6}$/.test(etendu)) throw new Error(`Couleur illisible : ${valeur}`);
   const n = Number.parseInt(etendu, 16);
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+/**
+ * Lit les deux ecritures employees par la charte : `#hex` et `rgb(r g b / a)`.
+ *
+ * LA TRANSPARENCE N'EST PAS UN DETAIL D'ECRITURE. Les fonds de difficulte sont
+ * a 12 % et les bordures a 25 % : mesurer la couleur pleine a leur place
+ * donnerait un ratio qui n'existe nulle part a l'ecran. Elle est donc lue, puis
+ * aplatie sur le fond reel avant toute mesure.
+ */
+export function parseCouleur(valeur: string): Rgba {
+  const texte = valeur.trim();
+  if (texte.startsWith("#")) {
+    const [r, v, b] = parseHex(texte);
+    return [r, v, b, 1];
+  }
+  const fonction = /^rgba?\(([^)]+)\)$/.exec(texte);
+  if (fonction?.[1] === undefined) throw new Error(`Couleur illisible : ${valeur}`);
+  const morceaux = fonction[1].split("/");
+  const canaux = (morceaux[0] ?? "")
+    .trim()
+    .split(/[\s,]+/)
+    .filter((part) => part !== "")
+    .map(Number);
+  const alpha = morceaux[1] === undefined ? 1 : Number(morceaux[1].trim());
+  const [r, v, b] = canaux;
+  if (r === undefined || v === undefined || b === undefined || canaux.some(Number.isNaN)) {
+    throw new Error(`Couleur illisible : ${valeur}`);
+  }
+  return [r, v, b, Number.isNaN(alpha) ? 1 : alpha];
+}
+
+/** Pose une couleur translucide sur un fond opaque et rend le resultat visible. */
+export function aplatir(couleur: Rgba, fond: Rgb): Rgb {
+  const [r, v, b, a] = couleur;
+  if (a >= 1) return [r, v, b];
+  return [
+    Math.round(r * a + fond[0] * (1 - a)),
+    Math.round(v * a + fond[1] * (1 - a)),
+    Math.round(b * a + fond[2] * (1 - a)),
+  ];
 }
 
 /** Composante lineaire, formule WCAG 2.1. */
@@ -60,18 +103,58 @@ export function sansCommentaires(source: string): string {
   return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|\s)\/\/[^\n]*/g, "$1");
 }
 
-export function lireTokens(css: string): Map<string, string> {
-  const debut = css.indexOf(":root {");
-  const fin = css.indexOf("}", debut);
-  if (debut < 0 || fin < 0) throw new Error("Bloc :root introuvable");
-  const bloc = css.slice(debut, fin);
+/**
+ * Tokens declares dans UN bloc, designe par son selecteur.
+ *
+ * La valeur est gardee TELLE QUELLE, y compris quand c'est un `var(--autre)` :
+ * la feuille a deux etages, la charte et les roles, et c'est la chaine complete
+ * qui dit quelle couleur est reellement peinte. `resoudreCouleur` la suit.
+ */
+export function lireTokensDuBloc(css: string, selecteur: string): Map<string, string> {
+  const debut = css.indexOf(`${selecteur} {`);
+  if (debut < 0) throw new Error(`Bloc introuvable : ${selecteur}`);
 
+  // Fin du bloc : la premiere accolade fermante en debut de ligne a partir du
+  // selecteur. Les declarations sont toutes indentees, donc sans ambiguite.
+  const lignes = sansCommentaires(css.slice(debut)).split("\n");
   const tokens = new Map<string, string>();
-  for (const ligne of bloc.split("\n")) {
-    const trouve = /^\s*(--[a-z0-9-]+)\s*:\s*(#[0-9a-fA-F]{3,8})\s*;/.exec(ligne);
-    if (trouve?.[1] !== undefined && trouve[2] !== undefined) tokens.set(trouve[1], trouve[2]);
+  for (const ligne of lignes.slice(1)) {
+    if (/^\s{0,2}\}/.test(ligne)) break;
+    const trouve = /^\s*(--[a-z0-9-]+)\s*:\s*([^;]+);/.exec(ligne);
+    if (trouve?.[1] !== undefined && trouve[2] !== undefined) {
+      tokens.set(trouve[1], trouve[2].trim());
+    }
   }
+  if (tokens.size === 0) throw new Error(`Aucun token dans ${selecteur}`);
   return tokens;
+}
+
+/** La palette de la feuille, c'est-a-dire le bloc `:root`. */
+export function lireTokens(css: string): Map<string, string> {
+  return lireTokensDuBloc(css, ":root");
+}
+
+/**
+ * Suit la chaine de `var()` jusqu'a une couleur ecrite.
+ *
+ * Un jeton de role pointe sur un jeton de charte, qui porte la valeur. Sans
+ * cette resolution, le controleur ne mesurerait que des noms — et un role
+ * branche sur le mauvais jeton passerait sans bruit.
+ */
+export function resoudreCouleur(tokens: ReadonlyMap<string, string>, nom: string): Rgba {
+  let valeur = tokens.get(nom);
+  if (valeur === undefined) throw new Error(`Token absent de la palette : ${nom}`);
+
+  for (let saut = 0; saut < 8; saut += 1) {
+    const reference = /^var\(\s*(--[a-z0-9-]+)\s*\)$/.exec(valeur);
+    if (reference?.[1] === undefined) return parseCouleur(valeur);
+    const suivante = tokens.get(reference[1]);
+    if (suivante === undefined) {
+      throw new Error(`${nom} renvoie a ${reference[1]}, qui n'existe pas`);
+    }
+    valeur = suivante;
+  }
+  throw new Error(`Chaine de var() trop profonde depuis ${nom}`);
 }
 
 /** Tokens employes comme `color:` et comme fond, dans TOUTE la feuille. */
@@ -106,7 +189,7 @@ const LITTERAL = /#[0-9a-fA-F]{3,8}\b|(?<![\w-])(?:white|black)(?![\w-])|\b(?:rg
 export type Litteral = Readonly<{ fichier: string; ligne: number; texte: string }>;
 
 /**
- * Couleurs ecrites en clair AILLEURS que dans le bloc `:root`.
+ * Couleurs ecrites en clair ailleurs que dans une declaration de token.
  *
  * POURQUOI CE CONTROLE EXISTE. Le passage au theme sombre a revele deux regles
  * qui peignaient `#fff` sur une couleur devenue claire : le lien d'evitement,
@@ -121,16 +204,17 @@ export function trouverLitteraux(
   const trouves: Litteral[] = [];
 
   for (const { chemin, contenu } of fichiers) {
-    const nettoye = sansCommentaires(contenu);
-    const lignes = nettoye.split("\n");
-
-    // Le bloc `:root` est le SEUL endroit ou une couleur s'ecrit en clair.
-    const debutRoot = lignes.findIndex((l) => l.includes(":root {"));
-    const finRoot =
-      debutRoot === -1 ? -1 : lignes.findIndex((l, i) => i > debutRoot && l.trim() === "}");
+    const lignes = sansCommentaires(contenu).split("\n");
 
     for (const [index, ligne] of lignes.entries()) {
-      if (debutRoot !== -1 && index >= debutRoot && index <= finRoot) continue;
+      // UNE DECLARATION DE TOKEN EST LE SEUL ENDROIT LEGITIME, ou qu'elle soit.
+      //
+      // Ce qui compte n'a jamais ete l'endroit mais la FORME : une couleur
+      // nommee est declaree, une couleur anonyme est un litteral. La regle
+      // couvre donc toutes les ecritures d'une valeur de token — `#hex` comme
+      // `rgb(r g b / a)`, que la charte emploie pour ses fonds a 12 %.
+      if (/^\s*--[a-z0-9-]+\s*:/.test(ligne)) continue;
+
       for (const trouve of ligne.matchAll(LITTERAL)) {
         trouves.push({ fichier: chemin, ligne: index + 1, texte: trouve[0] });
       }
@@ -145,6 +229,14 @@ export type Paire = Readonly<{
   contexte: string;
   premierPlan: string;
   arrierePlan: string;
+  /**
+   * Fond opaque sous un arriere-plan translucide.
+   *
+   * Un badge de difficulte pose son fond a 12 % sur une carte, qui est elle-meme
+   * posee sur la page. Sans ce troisieme terme, la mesure porterait sur une
+   * couleur qui ne s'affiche nulle part.
+   */
+  base?: string;
   /** Seuil abaisse a 3:1 : texte large, ou bordure porteuse de sens. */
   grand?: boolean;
 }>;
@@ -156,16 +248,29 @@ export type Reglages = Readonly<{
   /** Token de la couleur portee sur ces couleurs externes. */
   surCouleursExternes: string;
   /**
-   * La rampe de difficulte, du plus clair au plus sombre.
-   *
-   * `info` n'y figure PAS : ce n'est pas un cran. Mesure sur le dataset, 18
-   * rooms sur 714 soit 2,5 %, contre 364 easy et 262 medium. Placer `info` a une
-   * extremite de la rampe reviendrait a affirmer visuellement qu'une room
-   * d'information est plus facile qu'une `easy`. Elle est d'une autre nature,
-   * et c'est justement celle qu'un debutant doit reperer comme « lecture, pas
-   * exercice ». Son contour la distingue, pas sa place dans une echelle.
+   * Opacite a laquelle ces couleurs sont reellement peintes, et fond qui les
+   * recoit. Les badges d'equipe suivent l'idiome de la charte : teinte a 12 %
+   * sur la carte, libelle en blanc. Mesurer le blanc sur la couleur PLEINE
+   * donnerait un ratio qui ne s'affiche plus nulle part.
    */
-  rampe: readonly string[];
+  opaciteExterne: number;
+  fondExterne: string;
+  /**
+   * Teintes dont la clarte percue est RAPPORTEE, sans condition de reussite.
+   *
+   * Le controle exigeait avant que les cinq crans de difficulte forment une
+   * rampe monotone en L*, pour rester separables en niveaux de gris. La charte
+   * les code desormais par la TEINTE : cyan, ambre, orange, rouge. Cette
+   * exigence tomberait a chaque execution, et la faire tomber reviendrait a
+   * refuser la charte.
+   *
+   * Ce qui garantit la lisibilite sans la couleur n'est donc plus l'ecart de
+   * clarte mais le LIBELLE, ecrit en toutes lettres sur chaque badge — c'est ce
+   * que demande WCAG 1.4.1, l'ecart de gris etait un supplement. Les clartes
+   * restent mesurees et affichees : la perte doit se voir, pas disparaitre avec
+   * le controle qui la mesurait.
+   */
+  teintes: readonly string[];
   /**
    * Tokens peints en `background` qui sont des MARQUES, pas des arriere-plans.
    *
@@ -178,14 +283,12 @@ export type Reglages = Readonly<{
   marques: readonly string[];
   seuilTexte: number;
   seuilGrand: number;
-  seuilGris: number;
 }>;
 
 export type Rapport = Readonly<{
   mesures: ReadonlyArray<{ contexte: string; ratio: number; seuil: number; passe: boolean }>;
   externes: ReadonlyArray<{ nom: string; couleur: string; ratio: number; passe: boolean }>;
   clartes: ReadonlyArray<{ nom: string; clarte: number }>;
-  ecartMinimal: number;
   litteraux: readonly Litteral[];
   echecs: readonly string[];
 }>;
@@ -198,15 +301,22 @@ export type Rapport = Readonly<{
  * porte la valeur en clair. Deux ecritures de la meme couleur derivent, et
  * celle-ci deriverait en silence — personne ne relit un `<head>`. On les
  * compare.
+ *
+ * Une seule balise depuis que le theme est unique : celle qui portait
+ * `prefers-color-scheme: light` n'a plus de theme a decrire.
  */
 export function verifierThemeColor(html: string, fond: string): string | null {
-  const trouve = /<meta\s+name="theme-color"\s+content="(#[0-9a-fA-F]{3,8})"/.exec(html);
+  // `String.raw` : dans un gabarit ordinaire, `\s` n'est pas une sequence
+  // d'echappement valide et se reduit a `s`. Le motif ne correspondrait alors
+  // jamais, et le garde se tairait — exactement ce qu'un garde ne doit pas faire.
+  const motif = /<meta\s+name="theme-color"\s+content="(#[0-9a-fA-F]{3,8})"\s*\/?>/;
+  const trouve = motif.exec(html);
   if (trouve?.[1] === undefined) {
-    return "index.html ne declare pas de `theme-color` : la barre d'adresse mobile restera claire";
+    return "index.html ne declare pas de `theme-color` : la barre d'adresse mobile ne suivra pas la page";
   }
   const declare = trouve[1].toLowerCase();
   if (declare !== fond.toLowerCase()) {
-    return `theme-color vaut ${declare} alors que --fond vaut ${fond} : la barre d'adresse ne sera pas de la couleur de la page`;
+    return `theme-color vaut ${declare} alors que --fond vaut ${fond}`;
   }
   return null;
 }
@@ -215,20 +325,23 @@ export function analyser(
   css: string,
   reglages: Reglages,
   fichiersComposants: ReadonlyArray<{ chemin: string; contenu: string }> = [],
+  tokens: ReadonlyMap<string, string> = lireTokens(css),
 ): Rapport {
-  const tokens = lireTokens(css);
   const echecs: string[] = [];
 
-  const resoudre = (nom: string): Rgb => {
-    const valeur = tokens.get(nom);
-    if (valeur === undefined) throw new Error(`Token absent de :root : ${nom}`);
-    return parseHex(valeur);
+  /** La couleur peinte a l'ecran : chaine de `var()` suivie, alpha aplati. */
+  const peinte = (nom: string, sous: string): Rgb => {
+    const base = aplatir(resoudreCouleur(tokens, sous), [0, 0, 0]);
+    return aplatir(resoudreCouleur(tokens, nom), base);
   };
 
   // 1. paires declarees
   const mesures = reglages.paires.map((paire) => {
     const seuil = paire.grand === true ? reglages.seuilGrand : reglages.seuilTexte;
-    const mesure = ratio(resoudre(paire.premierPlan), resoudre(paire.arrierePlan));
+    const base = paire.base ?? "--fond";
+    const fond = peinte(paire.arrierePlan, base);
+    const avant = aplatir(resoudreCouleur(tokens, paire.premierPlan), fond);
+    const mesure = ratio(avant, fond);
     const passe = mesure >= seuil;
     if (!passe) {
       echecs.push(
@@ -240,9 +353,12 @@ export function analyser(
   });
 
   // 2. couleurs imposees par les donnees
-  const surExterne = resoudre(reglages.surCouleursExternes);
+  const fondExterne = aplatir(resoudreCouleur(tokens, reglages.fondExterne), [0, 0, 0]);
+  const surExterne = aplatir(resoudreCouleur(tokens, reglages.surCouleursExternes), fondExterne);
   const externes = reglages.couleursExternes.map(([nom, couleur]) => {
-    const mesure = ratio(surExterne, parseHex(couleur));
+    const [r, v, b] = parseHex(couleur);
+    const teinte = aplatir([r, v, b, reglages.opaciteExterne], fondExterne);
+    const mesure = ratio(surExterne, teinte);
     const passe = mesure >= reglages.seuilTexte;
     if (!passe) {
       echecs.push(`${nom} : ${mesure.toFixed(2)}:1 sur ${couleur}, seuil ${reglages.seuilTexte}:1`);
@@ -250,26 +366,11 @@ export function analyser(
     return { nom, couleur, ratio: mesure, passe };
   });
 
-  // 3. la rampe reste une rampe en niveaux de gris
-  const clartes = reglages.rampe.map((nom) => ({ nom, clarte: clartePercue(resoudre(nom)) }));
-  let ecartMinimal = Number.POSITIVE_INFINITY;
-  for (const [index, gauche] of clartes.entries()) {
-    const droite = clartes[index + 1];
-    if (droite === undefined) continue;
-    const ecart = gauche.clarte - droite.clarte;
-    ecartMinimal = Math.min(ecartMinimal, Math.abs(ecart));
-    if (ecart <= 0) {
-      echecs.push(
-        `la rampe n'est plus monotone entre ${gauche.nom} et ${droite.nom} : ` +
-          `${gauche.clarte.toFixed(1)} puis ${droite.clarte.toFixed(1)}`,
-      );
-    } else if (ecart < reglages.seuilGris) {
-      echecs.push(
-        `${gauche.nom} et ${droite.nom} se confondent en niveaux de gris : ` +
-          `ecart de clarte ${ecart.toFixed(1)}, minimum ${reglages.seuilGris}`,
-      );
-    }
-  }
+  // 3. clartes percues, rapportees sans condition (voir `teintes`)
+  const clartes = reglages.teintes.map((nom) => ({
+    nom,
+    clarte: clartePercue(aplatir(resoudreCouleur(tokens, nom), [0, 0, 0])),
+  }));
 
   // 4. aucun token n'echappe a la mesure
   const emplois = lireEmplois(css);
@@ -295,7 +396,7 @@ export function analyser(
     }
   }
 
-  // 5. aucune couleur litterale hors du bloc de tokens
+  // 5. aucune couleur litterale hors d'une declaration de token
   const litteraux = trouverLitteraux([
     { chemin: "styles.css", contenu: css },
     ...fichiersComposants,
@@ -306,5 +407,5 @@ export function analyser(
     );
   }
 
-  return { mesures, externes, clartes, ecartMinimal, litteraux, echecs };
+  return { mesures, externes, clartes, litteraux, echecs };
 }

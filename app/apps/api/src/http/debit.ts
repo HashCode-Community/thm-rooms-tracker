@@ -38,7 +38,7 @@ export type ReglagesDebit = Readonly<{
    * moins dangereuse des deux — elle degrade le service au lieu de l'ouvrir — et
    * le deploiement DOIT la trancher. Voir la dette de la phase 10.
    */
-  readonly trustProxy: boolean;
+  readonly trustProxy: boolean | ((adresse: string, saut: number) => boolean);
 }>;
 
 /**

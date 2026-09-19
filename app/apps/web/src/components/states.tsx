@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Button } from "./ui/index.js";
 
 /**
  * Les trois etats, ecrits des le premier jet.
@@ -22,10 +23,23 @@ export function Loading({ label }: { label: string }): ReactNode {
   );
 }
 
-export function Empty({ title, children }: { title: string; children?: ReactNode }): ReactNode {
+export function Empty({
+  title,
+  titrePrincipal = false,
+  children,
+}: {
+  title: string;
+  /** Vrai quand cet etat EST la page : le titre devient le `<h1>`. */
+  titrePrincipal?: boolean;
+  children?: ReactNode;
+}): ReactNode {
   return (
     <div className="etat">
-      <div className="etat__titre">{title}</div>
+      {titrePrincipal ? (
+        <h1 className="etat__titre">{title}</h1>
+      ) : (
+        <div className="etat__titre">{title}</div>
+      )}
       {children}
     </div>
   );
@@ -40,15 +54,13 @@ export function ErrorState({
 }): ReactNode {
   return (
     <div className="etat etat--erreur" role="alert">
-      <div className="etat__titre">Impossible de charger ces donnees</div>
+      <div className="etat__titre">Impossible de charger ces données</div>
       {/* Le message vient du `detail` RFC 9457 du serveur : il dit quelque chose
           d'utile, contrairement a un « une erreur est survenue ». */}
       <p className="petit">{error.message}</p>
       {onRetry !== undefined && (
         <p style={{ marginTop: 8 }}>
-          <button type="button" className="bouton" onClick={onRetry}>
-            Reessayer
-          </button>
+          <Button onClick={onRetry}>Réessayer</Button>
         </p>
       )}
     </div>

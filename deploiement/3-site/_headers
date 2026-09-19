@@ -1,0 +1,35 @@
+# En-tetes du front.
+#
+# L'API pose les siens elle-meme (`apps/api/src/http/securite.ts`). Ceux-ci ne
+# peuvent etre poses que par l'hebergeur, et AUCUN TEST DE CE DEPOT NE PEUT LES
+# ATTEINDRE : c'est la seule partie de la securite du front qui ne se verifie
+# qu'en ligne.
+#
+# `connect-src` DOIT nommer l'origine de l'API. C'est pour cela qu'aucune balise
+# <meta> CSP n'est posee dans index.html : elle serait ecrite avant que ce
+# domaine existe, et casserait la production le jour du deploiement.
+#
+# REMPLACER https://api.exemple.fr par l'origine reelle de l'API avant le
+# premier deploiement. Sans cela, le front n'aura le droit d'appeler personne.
+
+/*
+  Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; connect-src 'self' https://api.exemple.fr; frame-ancestors 'none'; base-uri 'none'; form-action 'none'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+  Cross-Origin-Opener-Policy: same-origin
+
+# Les fichiers a empreinte dans leur nom ne changent jamais de contenu : un an
+# de cache, immuable. Sans cette regle, chaque visite retelecharge 274 ko de
+# JavaScript qui n'a pas bouge.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# index.html, lui, ne doit JAMAIS etre mis en cache longtemps : c'est lui qui
+# pointe vers les fichiers a empreinte. Un index.html perime sert eternellement
+# l'ancienne version du site.
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate

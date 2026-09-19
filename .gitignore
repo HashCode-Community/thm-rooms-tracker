@@ -24,3 +24,8 @@ node_modules/
 
 # Artefacts de build du paquet partage.
 app/packages/shared/dist/
+
+# Produit par deploiement/3-site/preparer-le-site.ps1 : un artefact de
+# construction, propre a une adresse d API. Il ne se versionne pas.
+deploiement/3-site/site-a-deposer/
+deploiement-thm-roadmap.zip

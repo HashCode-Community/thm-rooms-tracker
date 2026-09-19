@@ -1,5 +1,31 @@
 # 🚩🔍 Scraper de Rooms Gratuites TryHackMe — Roadmap d'équipe
 
+## 🌐 Le projet est en ligne
+
+| | |
+|---|---|
+| **Site** | **<https://thm-roadmap.pages.dev>** |
+| API | <https://thm-roadmap-api.onrender.com> |
+
+**Ce que fait le site.** TryHackMe propose 714 exercices pratiques de cybersécurité gratuits, mais
+sans aucun ordre : rien n'indique par où commencer, ni ce qu'il faut savoir avant d'attaquer tel
+exercice. Ce projet reprend ces 714 exercices, les rend consultables et filtrables par difficulté,
+durée, technologie ou outil, et propose surtout **trois parcours écrits à la main** —
+Fondamentaux, Red Team débutant, Blue Team débutant — qui donnent un ordre de progression.
+
+Les parcours sont des **recommandations, jamais des prérequis** : rien n'est verrouillé, rien
+n'oblige à terminer une étape avant la suivante. Cocher un exercice terminé enregistre la
+progression **dans le navigateur du visiteur** : aucun compte, aucun mot de passe, aucune donnée
+personnelle envoyée au serveur — et donc aucun bandeau de consentement aux cookies.
+
+> ⏱️ **La première visite peut demander 30 à 60 secondes.** L'API est hébergée sur un palier
+> gratuit qui se met en veille après 15 minutes sans trafic. Le site affiche un message pendant
+> qu'elle se réveille ; les visites suivantes sont immédiates.
+
+*Non affilié à TryHackMe. Les métadonnées des rooms appartiennent à TryHackMe et à ses auteurs.*
+
+---
+
 > 🎓 Projet étudiant en cybersécurité — réalisé en équipe.
 >
 > 📌 **Document mis à jour le 16 septembre 2026.** La roadmap d'origine (cadrage initial de Malick) est

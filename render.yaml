@@ -1,0 +1,97 @@
+# Plan de deploiement Render.
+#
+# A LIRE AVANT DE S'EN SERVIR : le Postgres gratuit de Render EXPIRE AU BOUT DE
+# 30 JOURS. Ce fichier ne declare donc pas de base : elle est prise chez Neon,
+# dont le palier gratuit n'expire pas, et son adresse est posee a la main dans
+# `DATABASE_URL`. Declarer ici une base qui disparaitra dans un mois serait
+# preparer une panne.
+#
+# Le service gratuit se rendort apres 15 minutes sans trafic, et se reveille en
+# 30 a 60 secondes. Le front sait l'afficher proprement — l'API rend alors un
+# 502 ou un 503, et `api.ts` a un message pour ce cas precis — mais le premier
+# visiteur de la journee attend.
+#
+# CE FICHIER DOIT RESTER A LA RACINE DU DEPOT : Render ne cherche `render.yaml`
+# nulle part ailleurs. Range dans `app/deploy/`, il etait invisible, et la page
+# Blueprint repondait « aucun render.yaml trouve ».
+#
+# Deployer : Render > New > Blueprint, pointer sur ce depot, choisir la branche
+# `feat/refonte-ui` — `main` a 61 commits de retard.
+
+services:
+  - type: web
+    name: thm-roadmap-api
+    runtime: docker
+    dockerfilePath: ./deploiement/2-api/Dockerfile
+    dockerContext: ./app
+    plan: free
+    region: frankfurt
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Render impose le port par la variable PORT. L'API lit API_PORT : les
+      # deux doivent dire la meme chose.
+      - key: API_PORT
+        value: "10000"
+      - key: PORT
+        value: "10000"
+      - key: API_HOST
+        value: 0.0.0.0
+      # LE NOMBRE d'intermediaires devant l'application, pas un booleen.
+      # `true` signifiait « fais confiance a tous les sauts » : l'appelant
+      # choisissait alors l'adresse sur laquelle il etait compte, et la limite
+      # de debit ne limitait personne. L'application refuse desormais `true`.
+      - key: TRUST_PROXY
+        value: "1"
+      # A renseigner dans l'interface, pas ici : ce fichier est versionne.
+      - key: DATABASE_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: RATE_LIMIT_MAX
+        value: "120"
+      - key: LOG_LEVEL
+        value: info
+
+  # Le front en statique. Render sert aussi des sites statiques ; Cloudflare
+  # Pages reste preferable pour la bande passante et les en-tetes, mais tout
+  # tenir au meme endroit a sa valeur le premier jour.
+  - type: web
+    name: thm-roadmap-web
+    runtime: static
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build
+    staticPublishPath: ./app/apps/web/dist
+    rootDir: ./app
+    envVars:
+      # LUE A LA CONSTRUCTION, PAS AU DEMARRAGE. Le front n'ecrit aucune adresse
+      # d'API en dur : sans cette variable il demande /api/... a sa propre
+      # origine, la regle de repli ci-dessous rend index.html en 200, et le site
+      # affiche "Unexpected token '<'" a la place des donnees. Aucune erreur CORS
+      # n'apparait, puisque aucun appel n'a quitte l'origine.
+      #
+      # `sync: false` et pas `fromService` : il faut l'origine COMPLETE avec son
+      # schema (https://...), or `fromService` ne rend que l'hote, et render.yaml
+      # ne sait pas concatener. A poser a la main, une fois l'API deployee.
+      - key: VITE_API_BASE_URL
+        sync: false
+    routes:
+      # Le repli de l'application a page unique. Sans lui, un rechargement sur
+      # /roadmap/fondamentaux rend un 404 de l'hebergeur.
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: no-referrer
+      # REMPLACER l'origine de l'API avant le premier deploiement.
+      - path: /*
+        name: Content-Security-Policy
+        value: "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; connect-src 'self' https://thm-roadmap-api.onrender.com; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable

@@ -1,85 +1,185 @@
 /*
  * Feuille de style unique.
  *
- * Parti pris : outil de travail, pas page de vente. Densite d'information,
- * hierarchie par la taille et le poids du texte, bordures plutot qu'ombres.
- * Pas de degrade, pas de grande banniere, pas d'ombre portee sur chaque carte.
+ * CHARTE HASHCODE, UN SEUL THEME. Le theme clair et son selecteur sont retires :
+ * amendement date d'ADR-0005, qui les avait introduits le 2026-09-16. Deux
+ * palettes a tenir pour un produit qui s'affirme sombre coutaient deux fois le
+ * travail de couleur sans rien affirmer.
  *
- * THEME SOMBRE UNIQUE, sans selecteur. `prefers-color-scheme: light` n'est PAS
- * gere, et c'est une decision, pas un oubli : un theme clair a moitie fait est
- * pire que pas de theme clair. Voir ADR-0005 et la dette de la phase 10.
+ * DEUX ETAGES DE JETONS, et c'est volontaire :
+ *   1. `--color-hc-*` porte la charte telle qu'elle a ete arretee, valeur par
+ *      valeur. C'est la reference, et elle se lit sans connaitre le produit.
+ *   2. les jetons de ROLE (`--fond`, `--texte`, `--accent`...) la nomment par
+ *      l'usage, et ce sont eux que les regles emploient.
+ * Une couleur ne s'ecrit donc qu'a UN endroit, et changer la charte ne touche
+ * qu'un bloc. `pnpm contrast` resout la chaine de `var()` : il mesure les
+ * couleurs reellement peintes, pas les noms.
  *
- * Les contrastes ne sont pas affirmes ici, ils sont MESURES : `pnpm contrast`
- * calcule le ratio WCAG de chaque paire employee et sort en code 1 sous le seuil.
- * La couleur n'est jamais le seul porteur d'information — chaque badge porte son
- * libelle, et les cinq difficultes restent distinctes en niveaux de gris, ce que
- * le meme script verifie.
+ * Les contrastes ne sont pas affirmes ici, ils sont MESURES : le controleur
+ * calcule le ratio WCAG de chaque paire et sort en code 1 sous le seuil. La
+ * couleur n'est jamais le seul porteur d'information — chaque badge porte son
+ * libelle en toutes lettres.
+ *
+ * LE LIME N'EST NI UNE DIFFICULTE NI UN LIEN. Il marque l'action, l'etat actif,
+ * la progression et le focus, et rien d'autre. Un seul appel a l'action lime
+ * par ecran : deux accents de meme force ne designent plus rien.
  */
 
+/* --- Polices ------------------------------------------------------------
+   AUTO-HEBERGEES, sous-ensemble latin, variables. Deux fichiers, 70 ko en
+   tout : une requete de moins qu'un appel a un CDN tiers, et aucune adresse IP
+   d'utilisateur envoyee a un tiers — ce que la page « mentions » promet.
+   `font-display: swap` : le texte s'affiche tout de suite dans la police de
+   repli et bascule ensuite. Jamais de texte invisible en attendant. */
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/fonts/inter-latin-variable.woff2") format("woff2");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+    U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Space Grotesk";
+  font-style: normal;
+  font-weight: 500 700;
+  font-display: swap;
+  src: url("/fonts/space-grotesk-latin-variable.woff2") format("woff2");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+    U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 :root {
-  /* --- Fonds (3) : page, surface, surface elevee ----------------------
-     Ni noir pur ni blanc pur. `#000` sous `#fff` provoque du halo sur les
-     ecrans OLED et fatigue a la lecture longue ; le contraste maximal n'est
-     pas le plus lisible. */
-  --fond: #0f1115;
-  --fond-doux: #16181d;
-  --fond-appuye: #1e2128;
+  /* --- La charte ------------------------------------------------------ */
 
-  /* --- Bordures (2) : discrete, marquee ------------------------------- */
-  --bord: #2b303a;
-  --bord-fort: #626c80;
+  --color-hc-lime: #a8ff00;
+  --color-hc-lime-dim: #7acc00;
+  --color-hc-lime-soft: rgb(168 255 0 / 0.12);
 
-  /* --- Textes (3) : principal, secondaire, desactive ------------------- */
-  --texte: #e6e8eb;
-  --texte-doux: #a7b0bd;
-  --texte-eteint: #79828f;
+  --color-hc-black: #0d0d0d;
+  --color-hc-surface: #161616;
+  --color-hc-elevated: #1f1f1f;
+  --color-hc-border: rgb(255 255 255 / 0.08);
 
-  /* --- Accent (3) : base, survol, visite -------------------------------
-     ECART ASSUME avec le decoupage a deux accents : « visite » n'est pas un
-     survol, c'est un etat persistant du lien, et le catalogue s'explore. Le
-     retirer forcerait l'utilisateur a se souvenir de ce qu'il a deja ouvert. */
-  --lien: #79b0ff;
-  --lien-survol: #a8caff;
-  --lien-visite: #c9a6f5;
+  --color-hc-text: #ffffff;
+  --color-hc-text-secondary: #b3b3b3;
+  --color-hc-text-subtle: #8a8a8a;
+  --color-hc-text-muted: #6e6e6e;
 
-  /* --- Difficulte (5) --------------------------------------------------
-     Employees en TEXTE ET BORDURE sur `--fond-appuye`, jamais en aplat : en
-     sombre, cinq pastilles pleines saturees deviennent cinq taches. Le libelle
-     reste present en toutes circonstances, et les cinq clartes sont espacees
-     pour rester separables en niveaux de gris. */
-  /* HORS RAMPE. `info` n'est pas un cran de difficulte : 18 rooms sur 714, et
-     une room d'information n'est ni plus facile ni plus dure qu'une `easy`,
-     elle est d'une autre nature. Teinte neutre, contour tirete : une autre
-     famille, pas une extremite de l'echelle. Voir ADR-0005. */
-  --diff-info: #a9b6c6;
-  --diff-easy: #93e6b1;
-  --diff-medium: #f0b01b;
-  --diff-hard: #fb7f71;
-  --diff-insane: #b46be7;
+  /* Difficulte : une TEINTE par cran, jamais le lime. Chaque cran s'ecrit en
+     trois temps — texte plein, fond a 12 %, bordure a 25 %. */
+  --color-hc-diff-info: #a6a6a6;
+  --color-hc-diff-info-12: rgb(166 166 166 / 0.12);
+  --color-hc-diff-info-25: rgb(166 166 166 / 0.25);
 
-  /* --- Etats (4) : succes, alerte, erreur, focus ----------------------- */
-  --succes: #57d68b;
-  --alerte: #f0b429;
-  --erreur: #ff8f85;
-  --focus: #79b0ff;
+  --color-hc-diff-facile: #22d3ee;
+  --color-hc-diff-facile-12: rgb(34 211 238 / 0.12);
+  --color-hc-diff-facile-25: rgb(34 211 238 / 0.25);
 
-  /* --- Surfaces d'etat (3) ---------------------------------------------
-     ECART ASSUME avec le decoupage a quatre etats secs : un bandeau a besoin
-     d'un fond ET d'une couleur. Les deriver a l'execution par `color-mix` les
-     rendrait invisibles au controleur de contraste, qui lit des tokens. Le
-     focus n'a pas de fond : c'est un anneau. */
-  --succes-fond: #10241a;
-  --alerte-fond: #2b1f06;
-  --erreur-fond: #2c1517;
+  --color-hc-diff-intermediaire: #f5b83d;
+  --color-hc-diff-intermediaire-12: rgb(245 184 61 / 0.12);
+  --color-hc-diff-intermediaire-25: rgb(245 184 61 / 0.25);
 
-  /* --- Hors palette (1) : impose par les donnees ------------------------
-     Les couleurs d'equipe viennent de l'API, la feuille ne les regle pas. Le
-     texte pose dessus est blanc, et c'est un TOKEN pour que le controleur le
-     mesure et que la regle « aucune couleur en clair » reste absolue. */
-  --sur-couleur-imposee: #ffffff;
+  --color-hc-diff-difficile: #ff7a3d;
+  --color-hc-diff-difficile-12: rgb(255 122 61 / 0.12);
+  --color-hc-diff-difficile-25: rgb(255 122 61 / 0.25);
+
+  --color-hc-diff-extreme: #ff4d5e;
+  --color-hc-diff-extreme-12: rgb(255 77 94 / 0.12);
+  --color-hc-diff-extreme-25: rgb(255 77 94 / 0.25);
+
+  /* EXTENSION ASSUMEE. La charte donne une bordure unique a 8 %, invisible sur
+     un champ de saisie ou un bouton : une bordure qui porte le contour d'une
+     commande doit atteindre 3:1, la meme exigence que pour une icone. Celle-ci
+     est mesuree, la charte est respectee partout ailleurs. */
+  --color-hc-border-fort: rgb(255 255 255 / 0.38);
+
+  /* La grille de fond : une trame technique, assez faible pour ne jamais
+     disputer la lecture. Elle vaut 4 % de blanc, soit moins que la bordure. */
+  --color-hc-grille: rgb(255 255 255 / 0.07);
+  /* Le halo derriere le graphe : assez pour que le fond ne soit pas plat,
+     assez peu pour ne jamais lutter avec le lime des elements actifs. */
+  --color-hc-halo: rgb(168 255 0 / 0.1);
+  /* La meme trame que le hero, deux fois plus faible : les pages interieures
+     la portent sans que leur contenu ait a lutter contre elle. */
+  --color-hc-grille-attenuee: rgb(255 255 255 / 0.035);
+
+  /* --- Les roles ------------------------------------------------------ */
+
+  --fond: var(--color-hc-black);
+  --fond-doux: var(--color-hc-surface);
+  --fond-appuye: var(--color-hc-elevated);
+
+  --bord: var(--color-hc-border);
+  --bord-fort: var(--color-hc-border-fort);
+
+  --texte: var(--color-hc-text);
+  --texte-doux: var(--color-hc-text-secondary);
+  --texte-eteint: var(--color-hc-text-subtle);
+  /* DECORATIF UNIQUEMENT, et jamais sous 18 px : ce gris ne tient pas le seuil
+     de texte courant, et c'est pour ca qu'il n'a qu'un seul emploi. */
+  --texte-decoratif: var(--color-hc-text-muted);
+
+  /* UN LIEN N'EST PAS BLEU, ET UN LIEN VISITE N'EST PAS VIOLET. Les couleurs du
+     navigateur portaient une convention qui n'est pas celle de ce produit, et
+     le violet du visite s'invitait jusque dans les libelles de boutons. Un lien
+     est blanc, se souligne au survol, et passe au lime quand il est actif. */
+  --lien: var(--color-hc-text);
+
+  --accent: var(--color-hc-lime);
+  --accent-survol: var(--color-hc-lime-dim);
+  --accent-fond: var(--color-hc-lime-soft);
+  /* Le texte pose sur un aplat lime est noir, jamais blanc. */
+  --sur-accent: var(--color-hc-black);
+
+  --focus: var(--color-hc-lime);
+
+  /* Progression et succes portent l'accent : c'est le meme sens. */
+  --succes: var(--color-hc-lime);
+  --succes-fond: var(--color-hc-lime-soft);
+  --alerte: var(--color-hc-diff-intermediaire);
+  --alerte-fond: var(--color-hc-diff-intermediaire-12);
+  --erreur: var(--color-hc-diff-extreme);
+  --erreur-fond: var(--color-hc-diff-extreme-12);
+  /* Le rouge de la charte est CLAIR : du blanc dessus mesure 3,24:1, sous le
+     seuil. La regle « texte noir sur aplat clair » vaut pour lui comme pour le
+     lime, et elle est mesuree comme telle. */
+  --sur-erreur: var(--color-hc-black);
+
+  --diff-info: var(--color-hc-diff-info);
+  --diff-info-fond: var(--color-hc-diff-info-12);
+  --diff-info-bord: var(--color-hc-diff-info-25);
+  --diff-easy: var(--color-hc-diff-facile);
+  --diff-easy-fond: var(--color-hc-diff-facile-12);
+  --diff-easy-bord: var(--color-hc-diff-facile-25);
+  --diff-medium: var(--color-hc-diff-intermediaire);
+  --diff-medium-fond: var(--color-hc-diff-intermediaire-12);
+  --diff-medium-bord: var(--color-hc-diff-intermediaire-25);
+  --diff-hard: var(--color-hc-diff-difficile);
+  --diff-hard-fond: var(--color-hc-diff-difficile-12);
+  --diff-hard-bord: var(--color-hc-diff-difficile-25);
+  --diff-insane: var(--color-hc-diff-extreme);
+  --diff-insane-fond: var(--color-hc-diff-extreme-12);
+  --diff-insane-bord: var(--color-hc-diff-extreme-25);
+
+  --grille: var(--color-hc-grille);
+  --halo: var(--color-hc-halo);
+  --grille-attenuee: var(--color-hc-grille-attenuee);
+  /* Butee de masque, pas une couleur : seul son canal alpha compte. Elle est
+     nommee parce que la regle « aucune couleur ecrite en clair » porte sur la
+     FORME, et qu'une exception au cas par cas ferait tomber la regle. */
+  --masque-plein: rgb(0 0 0 / 1);
 
   --rayon: 4px;
   --pas: 8px;
+
+  --police-texte: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --police-display: "Space Grotesk", "Inter", system-ui, sans-serif;
 
   color-scheme: dark;
 }
@@ -97,17 +197,26 @@ body {
   margin: 0;
   background: var(--fond);
   color: var(--texte);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--police-texte);
   font-size: 15px;
   line-height: 1.5;
+  /* Inter porte un zero barre et des chiffres a chasse fixe par variante
+     OpenType : les colonnes de nombres du catalogue s'alignent sans etre
+     monospacees. */
+  font-variant-numeric: tabular-nums;
 }
 
+/* Les titres et les nombres passent en display technique. Le reste du texte
+   reste en Inter : une police display sur un paragraphe se lit moins bien, et
+   la hierarchie vient justement du contraste entre les deux. */
 h1,
 h2,
 h3 {
-  line-height: 1.25;
+  font-family: var(--police-display);
+  line-height: 1.2;
   margin: 0;
-  font-weight: 650;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 h1 {
@@ -124,14 +233,21 @@ p {
   margin: 0;
 }
 
+/* AUCUN LIEN AU STYLE DU NAVIGATEUR. Le bleu et le violet du visite sont une
+   convention de document, pas celle de ce produit — et le violet s'invitait
+   jusque dans les libelles de boutons, mesure a 1,34:1 sur le lime. Un lien est
+   blanc, se souligne au survol, et passe au lime quand il designe la page
+   courante. Le soulignement au survol remplace la couleur : il reste un signal
+   non colore, donc lisible sans percevoir les teintes. */
 a {
   color: var(--lien);
+  text-decoration: none;
   text-decoration-thickness: 1px;
   text-underline-offset: 2px;
 }
 
-a:visited {
-  color: var(--lien-visite);
+a:hover {
+  text-decoration: underline;
 }
 
 /* Focus visible partout, sans exception : c'est la seule facon de naviguer au
@@ -217,10 +333,6 @@ kbd {
   text-decoration: none;
 }
 
-.marque:visited {
-  color: var(--texte);
-}
-
 .nav {
   display: flex;
   gap: var(--pas);
@@ -233,10 +345,6 @@ kbd {
   text-decoration: none;
   padding: 4px var(--pas);
   border-radius: var(--rayon);
-}
-
-.nav a:visited {
-  color: var(--texte-doux);
 }
 
 .nav a:hover {
@@ -300,9 +408,14 @@ kbd {
   white-space: nowrap;
 }
 
+/* La teinte vient des donnees, l'idiome vient de la charte : fond a 12 %,
+   bordure a 25 %. Le libelle reste en blanc — sur une teinte a 12 % posee sur la
+   carte, c'est le meme contraste que du texte ordinaire, et le controleur le
+   mesure comme tel. */
 .badge--equipe {
-  color: var(--sur-couleur-imposee);
-  border-color: transparent;
+  color: var(--texte);
+  background: color-mix(in srgb, var(--couleur-equipe) 12%, transparent);
+  border-color: color-mix(in srgb, var(--couleur-equipe) 25%, transparent);
 }
 
 .badge--neutre {
@@ -311,17 +424,38 @@ kbd {
   font-weight: 500;
 }
 
-/* La difficulte est portee par la COULEUR DU TEXTE et la bordure, sur un fond
-   commun. Cinq aplats satures cote a cote deviennent cinq taches en theme
-   sombre, et le libelle y perd en lisibilite exactement la ou il compte. Les
-   cinq clartes sont espacees d'au moins 8 en L*, verifie par `pnpm contrast` :
-   un lecteur qui ne distingue pas les teintes lit quand meme cinq gris. */
-.badge--info,
-.badge--easy,
-.badge--medium,
-.badge--hard,
+/* La difficulte est CODEE PAR LA TEINTE, en trois temps : texte plein, fond a
+   12 %, bordure a 25 %. Le lime n'y figure pas — il marque l'action, pas un cran
+   de difficulte, et une pastille lime au milieu du catalogue dirait « clique
+   ici ». Le libelle est toujours ecrit en toutes lettres : la teinte accelere la
+   lecture, elle ne la conditionne pas. */
+.badge--info {
+  color: var(--diff-info);
+  background: var(--diff-info-fond);
+  border-color: var(--diff-info-bord);
+  /* `info` n'est pas un cran : 18 rooms sur 714, ni plus facile ni plus dure
+     qu'une `easy`, d'une autre nature. Contour tirete, teinte neutre. */
+  border-style: dashed;
+}
+.badge--easy {
+  color: var(--diff-easy);
+  background: var(--diff-easy-fond);
+  border-color: var(--diff-easy-bord);
+}
+.badge--medium {
+  color: var(--diff-medium);
+  background: var(--diff-medium-fond);
+  border-color: var(--diff-medium-bord);
+}
+.badge--hard {
+  color: var(--diff-hard);
+  background: var(--diff-hard-fond);
+  border-color: var(--diff-hard-bord);
+}
 .badge--insane {
-  background: var(--fond-appuye);
+  color: var(--diff-insane);
+  background: var(--diff-insane-fond);
+  border-color: var(--diff-insane-bord);
 }
 
 .badge--info {
@@ -370,6 +504,127 @@ kbd {
   border-color: var(--succes);
   background: var(--succes-fond);
   color: var(--texte);
+}
+
+/* Le bouton PRINCIPAL. Un seul par vue : deux actions egales en importance
+   veulent dire qu'aucune ne l'est. Il porte le fond, pas juste la bordure. */
+.bouton--principal {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--sur-accent);
+  font-weight: 700;
+}
+
+.bouton--principal:hover:not(:disabled) {
+  background: var(--accent-survol);
+  border-color: var(--accent-survol);
+}
+
+/* Le bouton DISCRET : une action de service, qui ne dispute pas l'attention au
+   contenu. Bordure seule au survol, rien au repos. */
+.bouton--discret {
+  border-color: transparent;
+  background: none;
+  color: var(--texte-doux);
+}
+
+.bouton--discret:hover:not(:disabled) {
+  border-color: var(--bord);
+  background: var(--fond-doux);
+  color: var(--texte);
+}
+
+/* --- Liste deroulante ---------------------------------------------------
+   Un `<select>` NATIF habille. `appearance: none` retire le chevron du
+   systeme ; on en redessine un, purement decoratif. Le clavier, le tactile et
+   l'annonce restent ceux du navigateur, qu'aucune reimplementation n'egale. */
+.champ-liste {
+  position: relative;
+  display: block;
+}
+
+.champ--liste {
+  appearance: none;
+  width: 100%;
+  padding-right: calc(var(--pas) * 4);
+  cursor: pointer;
+}
+
+.champ-liste__chevron {
+  position: absolute;
+  right: var(--pas);
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  margin-top: -6px;
+  border-right: 2px solid var(--texte-doux);
+  border-bottom: 2px solid var(--texte-doux);
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
+/* --- Encart -------------------------------------------------------------- */
+
+.encart {
+  border: 1px solid var(--bord-fort);
+  border-left-width: 3px;
+  border-radius: var(--rayon);
+  background: var(--fond-doux);
+  padding: var(--pas) calc(var(--pas) * 1.5);
+  margin: calc(var(--pas) * 2) 0;
+  display: grid;
+  gap: 6px;
+  max-width: 78ch;
+  font-size: 0.875rem;
+}
+
+.encart--alerte {
+  border-color: var(--alerte);
+  background: var(--alerte-fond);
+}
+
+.encart--erreur {
+  border-color: var(--erreur);
+  background: var(--erreur-fond);
+}
+
+.encart__titre {
+  font-weight: 650;
+  margin: 0;
+}
+
+/* Le marqueur de `<details>` reste, mais discret : il signale que l'encart se
+   replie. Le retirer rendrait le pliage invisible. */
+/* `.encart > summary` et non `details.encart > summary` : la specificite plus
+   elevee du second passait AVANT une regle plus faible ecrite plus bas, ce que
+   biome signale a juste titre. Seul l'encart repliable rend un `<summary>`,
+   donc la selection reste exacte. */
+.encart > summary {
+  cursor: pointer;
+  list-style-position: inside;
+}
+
+.encart > summary::marker {
+  color: var(--texte-doux);
+}
+
+/* --- Etat vide ----------------------------------------------------------- */
+
+.etat--vide {
+  text-align: center;
+  display: grid;
+  gap: var(--pas);
+  justify-items: center;
+}
+
+.etat__icone {
+  color: var(--texte-eteint);
+  line-height: 0;
+}
+
+.etat__icone svg {
+  width: 44px;
+  height: 44px;
 }
 
 .bouton--lien {
@@ -454,30 +709,64 @@ label {
   gap: var(--pas);
 }
 
+/* UNE BANDE, PAS QUATRE BOITES. Quatre encadres identiques alignes ne
+   hierarchisent rien : ils disent que les quatre nombres se valent, ce qui est
+   faux — le premier est l'argument, les trois autres l'etayent. La bande les
+   separe par un trait et laisse la taille faire la difference. */
 .chiffres {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: var(--pas);
-  margin: calc(var(--pas) * 3) 0;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0;
+  margin: calc(var(--pas) * 4) 0;
   padding: 0;
   list-style: none;
+  border-top: 1px solid var(--bord);
+  border-bottom: 1px solid var(--bord);
 }
 
 .chiffre {
-  border: 1px solid var(--bord);
-  border-radius: var(--rayon);
-  padding: calc(var(--pas) * 1.5);
+  padding: calc(var(--pas) * 2) calc(var(--pas) * 2) calc(var(--pas) * 2) 0;
+}
+
+.chiffre + .chiffre {
+  border-left: 1px solid var(--bord);
+  padding-left: calc(var(--pas) * 2);
 }
 
 .chiffre__valeur {
-  font-size: 1.5rem;
-  font-weight: 650;
+  font-family: var(--police-display);
+  font-size: clamp(1.75rem, 1.3rem + 1.6vw, 2.5rem);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--accent);
   font-variant-numeric: tabular-nums;
 }
 
+/* Le premier chiffre est l'argument du produit : 714 rooms. Les trois autres
+   l'etayent. */
+.chiffre:first-child .chiffre__valeur {
+  font-size: clamp(2.25rem, 1.6rem + 2.4vw, 3.25rem);
+}
+
+@media (max-width: 719px) {
+  .chiffre:nth-child(odd) {
+    border-left: 0;
+    padding-left: 0;
+  }
+
+  .chiffre:nth-child(n + 3) {
+    border-top: 1px solid var(--bord);
+  }
+}
+
 .chiffre__libelle {
-  color: var(--texte-doux);
-  font-size: 0.8125rem;
+  color: var(--texte-eteint);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 6px;
+  max-width: 22ch;
 }
 
 .portes {
@@ -496,10 +785,6 @@ label {
   text-decoration: none;
   color: var(--texte);
   height: 100%;
-}
-
-.porte:visited {
-  color: var(--texte);
 }
 
 .porte:hover {
@@ -582,11 +867,46 @@ label {
 }
 
 @media (min-width: 861px) {
+  /* Collante, et SANS ascenseur propre dans le cas normal. Le `max-height` ne
+     disparait pas — il reste le filet pour une fenetre courte ou des facettes
+     deployees a la main — mais avec les facettes longues repliees, la colonne
+     mesure moins que la fenetre et ne l'atteint plus. Mesure a 1440x900, meme
+     page, memes filtres : 1 649 px si tout est deploye, 786 par defaut, pour
+     816 disponibles. */
   .filtres {
     position: sticky;
     top: 68px;
-    max-height: calc(100vh - 84px);
+    max-height: calc(100dvh - 84px);
     overflow-y: auto;
+    gap: 12px;
+  }
+
+  /* 44 px est la cible du doigt. A la souris, sept resumes a 44 px coutent
+     308 px de colonne pour rien : 32 px restent tres au-dessus du minimum
+     exigible, et c'est ce qui fait tenir la colonne. */
+  .facette__titre {
+    min-height: 32px;
+  }
+}
+
+/* ECRANS D'ORDINATEUR PORTABLE. 900 px de haut est une fenetre de bureau ; un
+   portable courant en offre 768 ou 720, dont il faut retirer la barre du
+   navigateur. Mesure a 1366x768 avant ce bloc : la colonne demandait 786 px
+   pour 682 disponibles, donc son ascenseur revenait — exactement ce que le
+   repliement des facettes avait chasse. On resserre l'interligne plutot que de
+   cacher des filtres. */
+@media (min-width: 861px) and (max-height: 860px) {
+  .filtres {
+    gap: 6px;
+    padding: calc(var(--pas) * 1.25);
+  }
+
+  .facette__titre {
+    min-height: 26px;
+  }
+
+  .option {
+    padding: 1px 4px;
   }
 }
 
@@ -597,6 +917,8 @@ label {
   min-width: 0;
 }
 
+/* Le resume est la cible tactile de la facette : 44 px, pas la hauteur d'un
+   texte de 12 px. */
 .facette__titre {
   font-size: 0.75rem;
   font-weight: 700;
@@ -605,6 +927,58 @@ label {
   color: var(--texte-doux);
   padding: 0;
   margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.facette__titre::-webkit-details-marker {
+  display: none;
+}
+
+/* Le chevron est dessine, pas ecrit : le triangle du systeme change de forme
+   d'un navigateur a l'autre et ne suit pas la couleur du texte. */
+.facette__titre::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  margin-left: 2px;
+  margin-right: 2px;
+  flex: none;
+  transition: transform 120ms ease;
+}
+
+.facette[open] > .facette__titre::before {
+  transform: rotate(45deg);
+}
+
+.facette__compte {
+  margin-left: auto;
+  background: var(--fond-appuye);
+  color: var(--texte);
+  border-radius: 999px;
+  min-width: 20px;
+  padding: 0 6px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.facette__corps {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .facette__titre::before {
+    transition: none;
+  }
 }
 
 .facette__liste {
@@ -613,6 +987,11 @@ label {
   gap: 2px;
   max-height: 230px;
   overflow-y: auto;
+}
+
+.squelette--option {
+  height: 22px;
+  margin-bottom: 2px;
 }
 
 .option {
@@ -633,6 +1012,9 @@ label {
 .option input {
   margin: 0;
   flex-shrink: 0;
+  /* Une case cochee est un etat ACTIF : elle prend l'accent, pas le bleu du
+     systeme. */
+  accent-color: var(--accent);
 }
 
 .option__nom {
@@ -665,6 +1047,75 @@ label {
   font-weight: 650;
 }
 
+/* --- Puces de filtres actifs ---------------------------------------------
+
+   Chaque puce est une cible de 36 px, pas 44 : separees de 8 px, elles
+   satisfont l'exception d'espacement du critere « taille de cible » — et une
+   rangee de dix puces a 44 px pousserait les resultats hors de l'ecran, ce qui
+   coute plus qu'elle ne rapporte. */
+
+.puces {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: calc(var(--pas) * 2);
+}
+
+.puces__liste {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.puce {
+  font: inherit;
+  font-size: 0.8125rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--bord-fort);
+  border-radius: 999px;
+  background: var(--fond-doux);
+  color: var(--texte);
+  cursor: pointer;
+  max-width: 100%;
+}
+
+.puce:hover {
+  background: var(--fond-appuye);
+}
+
+.puce__groupe {
+  color: var(--texte-doux);
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex: none;
+}
+
+.puce__libelle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.puce__croix {
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--texte-doux);
+  flex: none;
+}
+
+.puce:hover .puce__croix {
+  color: var(--texte);
+}
+
 .grille-rooms {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -675,6 +1126,7 @@ label {
 }
 
 .carte {
+  position: relative;
   border: 1px solid var(--bord);
   border-radius: var(--rayon);
   padding: calc(var(--pas) * 1.5);
@@ -705,8 +1157,9 @@ label {
 }
 
 .carte__titre {
-  font-size: 0.9375rem;
+  font-size: 1rem;
   font-weight: 650;
+  line-height: 1.3;
 }
 
 .carte__titre a {
@@ -715,6 +1168,21 @@ label {
 
 .carte__titre a:hover {
   text-decoration: underline;
+}
+
+/* Le titre seul mesure 22 px de haut ; la carte en mesure 180. Le lien s'etend
+   a la carte, ce qui laisse UN SEUL lien dans l'arbre d'accessibilite. La carte
+   ne contient aucune autre commande : c'est la condition pour que ce motif
+   reste honnete. */
+.carte__titre a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.carte:focus-within {
+  border-color: var(--bord-fort);
 }
 
 .carte__resume {
@@ -754,77 +1222,80 @@ label {
 
 /* --- Detail ------------------------------------------------------------ */
 
-.detail {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 280px;
-  gap: calc(var(--pas) * 4);
-  align-items: start;
-}
-
-@media (max-width: 860px) {
-  .detail {
-    grid-template-columns: minmax(0, 1fr);
-    gap: calc(var(--pas) * 3);
-  }
-}
-
-.detail__corps {
+/* UNE SEULE COLONNE. La fiche tenait sur deux : le contenu a gauche, quatre
+   faits dans un encadre de 280 px a droite. Sous 860 px cet encadre passait
+   APRES tout le reste, donc la duree de la room s'affichait en bas de page,
+   apres les tags et les parcours. Une colonne de 280 px pour quatre valeurs ne
+   valait pas ce prix-la. */
+.fiche-room {
   display: flex;
   flex-direction: column;
   gap: calc(var(--pas) * 2);
   max-width: 70ch;
 }
 
-.fiche {
-  border: 1px solid var(--bord);
-  border-radius: var(--rayon);
-  padding: calc(var(--pas) * 2);
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--pas) * 1.5);
+.fiche-room h1 {
+  margin-bottom: 0;
 }
 
-.fiche dl {
+/* Les quatre faits en ligne, repliables en colonne quand la place manque. */
+.meta-room {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pas) calc(var(--pas) * 3);
   margin: 0;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 4px var(--pas);
+  padding: calc(var(--pas) * 1.5) 0;
+  border-top: 1px solid var(--bord);
+  border-bottom: 1px solid var(--bord);
   font-size: 0.875rem;
 }
 
-.fiche dt {
+.meta-room dt {
   color: var(--texte-doux);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-.fiche dd {
-  margin: 0;
+.meta-room dd {
+  margin: 2px 0 0;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
-.lien-sortant {
+.fiche-room__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pas);
+  align-items: center;
+}
+
+/* Les deux commandes de la fiche font la meme hauteur : elles sont le meme
+   geste en deux temps. */
+.fiche-room__actions .bouton {
+  min-height: 44px;
+  padding: 0 16px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  border: 1px solid var(--lien);
-  color: var(--lien);
-  background: var(--fond);
-  border-radius: var(--rayon);
-  padding: 8px 14px;
-  font-weight: 650;
+}
+
+.entete-page__actions .bouton {
+  min-height: var(--hauteur-commande);
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lien-externe {
   text-decoration: none;
 }
 
-.lien-sortant:hover {
-  background: var(--lien);
-  color: var(--fond);
-}
-
-.lien-sortant:visited {
-  color: var(--lien);
-}
-
-.lien-sortant:visited:hover {
-  color: var(--fond);
+.parcours-de-la-room {
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 /* Cible tactile minimale : 24x24 px CSS, WCAG 2.2 AA (critere 2.5.8).
@@ -912,44 +1383,1069 @@ label {
   font-size: 0.875rem;
 }
 
+/* --- Cartes de parcours --------------------------------------------------
+
+   LA GRILLE DIT LE CHEMIN. Trois cartes egales affirment trois options
+   equivalentes ; le premier parcours est le socle des deux autres. La carte
+   large en tete, les deux dessous : c'est la forme du graphe de l'accueil,
+   redite par la mise en page. */
+
 .parcours-liste {
-  list-style: none;
-  margin: 0;
-  padding: 0;
   display: grid;
-  gap: var(--pas);
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: minmax(0, 1fr);
+  gap: calc(var(--pas) * 2);
+  list-style: none;
+  margin: calc(var(--pas) * 3) 0 0;
+  padding: 0;
+}
+
+@media (min-width: 860px) {
+  .parcours-liste {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .parcours-carte--large {
+    grid-column: 1 / -1;
+  }
 }
 
 .parcours-carte {
+  position: relative;
+  display: grid;
+  gap: var(--pas);
+  align-content: start;
+  padding: calc(var(--pas) * 2.5);
   border: 1px solid var(--bord);
   border-radius: var(--rayon);
-  padding: calc(var(--pas) * 2);
-  display: flex;
-  flex-direction: column;
-  gap: var(--pas);
+  background: var(--fond-doux);
+  /* Seules la couleur et l'ombre changent au survol : ni la taille, ni la
+     position, donc aucun element voisin ne bouge. */
+  transition:
+    background-color 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    border-color 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.parcours-carte:hover {
-  border-color: var(--bord-fort);
+.parcours-carte:hover,
+.parcours-carte:focus-within {
+  background: var(--fond-appuye);
+  border-color: var(--accent-fond);
 }
 
 .parcours-carte__titre {
-  font-size: 1.0625rem;
+  font-size: 1.25rem;
+  margin: 0;
+}
+
+.parcours-carte--large .parcours-carte__titre {
+  font-size: 1.5rem;
 }
 
 .parcours-carte__titre a {
   text-decoration: none;
 }
 
-.parcours-carte__titre a:hover {
+/* Toute la carte est la cible, et le titre reste le seul lien : l'appel a
+   l'action en dessous est un signe, pas un second lien vers la meme page. */
+.parcours-carte__titre a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.glyphe-parcours {
+  width: 32px;
+  height: 32px;
+  color: var(--texte-doux);
+}
+
+.glyphe-parcours svg {
+  width: 100%;
+  height: 100%;
+}
+
+.parcours-carte:hover .glyphe-parcours {
+  color: var(--accent);
+}
+
+.parcours-carte__resume {
+  /* Deux lignes, puis on coupe : le resume oriente, il ne raconte pas. Le
+     parcours entier est a un clic. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 0;
+}
+
+.parcours-carte--large .parcours-carte__resume {
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
+.parcours-carte__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 650;
+  color: var(--accent);
+  font-size: 0.875rem;
+}
+
+.parcours-carte__fleche {
+  transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.parcours-carte:hover .parcours-carte__fleche {
+  transform: translateX(4px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .parcours-carte,
+  .parcours-carte__fleche {
+    transition: none;
+  }
+}
+
+/* --- Accueil -------------------------------------------------------------
+
+   L'accroche occupe une colonne LISIBLE, pas toute la largeur. Une ligne de
+   texte au-dela d'environ 70 caracteres oblige l'oeil a chercher le debut de la
+   suivante, et c'est la premiere chose que quelqu'un lit du produit. */
+
+/* --- Hero ---------------------------------------------------------------
+
+   PLEIN ECRAN, PARCE QU'IL PORTE LE PRODUIT. L'accueil affirmait « trois
+   chemins » et n'en montrait aucun : le visiteur devait croire sur parole qu'il
+   existait une progression. La moitie droite etait vide. Elle porte maintenant
+   le graphe, et c'est la seule chose spectaculaire de la page — le reste reste
+   sobre, sinon plus rien ne ressort. */
+
+.hero {
+  position: relative;
+  min-height: 88svh;
+  display: flex;
+  align-items: center;
+  margin-bottom: calc(var(--pas) * 4);
+}
+
+/* Trois couches decoratives, aucune information : halo, trame, grain. Elles
+   portent `aria-hidden` et disparaissent a l'impression. */
+.hero__fond {
+  position: absolute;
+  inset: -24px -16px 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    radial-gradient(52% 46% at 74% 44%, var(--halo), transparent 72%),
+    linear-gradient(var(--grille) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grille) 1px, transparent 1px);
+  background-size:
+    100% 100%,
+    34px 34px,
+    34px 34px;
+  mask-image: linear-gradient(
+    to bottom,
+    var(--masque-plein) 0%,
+    var(--masque-plein) 58%,
+    transparent 100%
+  );
+}
+
+/* Le grain casse l'aplat parfait des grandes surfaces sombres, ou le degrade du
+   halo se voit par bandes sur un ecran 8 bits. Turbulence SVG, aucune requete,
+   aucune couleur : seule la luminance du bruit est gardee. */
+.hero__fond::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.4;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='b'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23b)' opacity='0.06'/%3E%3C/svg%3E");
+}
+
+.hero__colonnes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: calc(var(--pas) * 4);
+  width: 100%;
+  padding: calc(var(--pas) * 4) 0;
+}
+
+@media (min-width: 1024px) {
+  .hero__colonnes {
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    align-items: center;
+    gap: calc(var(--pas) * 4);
+  }
+
+  /* Le titre est plus bas qu'en pleine largeur : il partage la ligne avec le
+     graphe. Mesure a 1440 avant reglage : cinq lignes pour deux. */
+  .hero .accroche__titre {
+    font-size: clamp(1.625rem, 1rem + 1.9vw, 2.375rem);
+  }
+}
+
+@media print {
+  .hero__fond {
+    display: none;
+  }
+}
+
+/* --- Apparitions au defilement ------------------------------------------
+
+   L'element est DANS le document des le depart : seule son opacite change.
+   Rien ne depend du JavaScript pour etre lisible, imprimable ou indexable. */
+
+.apparition {
+  opacity: 0;
+  transform: translateY(12px);
+  transition:
+    opacity 320ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    transform 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.apparition.apparu {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .apparition {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  /* La transition entre routes est posee par le navigateur : c'est ici qu'on la
+     coupe, pas dans le routeur. */
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
+/* --- Graphe des parcours -------------------------------------------------
+
+   Le trace est orthogonal a angles arrondis : vocabulaire du plan de metro et
+   du circuit imprime. Les courbes libres auraient dit « schema de
+   presentation » ; ce produit est un outil. */
+
+/* PLAFONNE EN HAUTEUR, ET LA LARGEUR SUIT. Le rapport est tenu par les deux
+   bornes a la fois : sans la borne de largeur, la boite resterait large, le
+   dessin se centrerait dedans et les libelles — poses en pourcentage — ne
+   tomberaient plus sur le trace.
+
+   Mesure a 882 px avant plafond : graphe 1 200 px de haut, hero 1 530 px, soit
+   trois ecrans pour une accroche et six liens. */
+.graphe {
+  --plafond-graphe: min(420px, 55svh);
+  /* Les libelles sont du HTML pose sur un dessin qui, lui, se met a l'echelle.
+     Sans requete de conteneur, un texte de 15 px sur un graphe reduit a 313 px
+     de large chevauche le voisin — mesure a 882x535. Ils suivent maintenant la
+     largeur du graphe, pas celle de la fenetre. */
+  container-type: inline-size;
+  position: relative;
+  width: 100%;
+  max-width: calc(var(--plafond-graphe) * var(--largeur-graphe) / var(--hauteur-graphe));
+  max-height: var(--plafond-graphe);
+  aspect-ratio: var(--largeur-graphe) / var(--hauteur-graphe);
+  margin-inline: auto;
+}
+
+@media (min-width: 768px) {
+  .graphe {
+    /* En large, le graphe partage la hauteur avec le reste du hero. */
+    --plafond-graphe: min(420px, 55svh);
+    margin-inline: 0;
+  }
+}
+
+/* Fenetre courte — un portable en paysage : le hero resserre ses marges plutot
+   que d'ecraser le graphe. */
+@media (max-height: 700px) {
+  .hero__colonnes {
+    padding-block: calc(var(--pas) * 2);
+  }
+
+  .hero {
+    min-height: 0;
+  }
+}
+
+.graphe--attente {
+  --largeur-graphe: 520;
+  --hauteur-graphe: 400;
+  border: 1px dashed var(--bord);
+  border-radius: var(--rayon);
+}
+
+.graphe__dessin {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* `pathLength="1"` rend la longueur du trace independante de sa forme : le
+   dessin s'anime en CSS, sans mesurer le chemin en JavaScript. */
+.graphe__trace {
+  fill: none;
+  stroke: var(--bord-fort);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: graphe-tracer 900ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  animation-delay: calc(var(--rang) * 180ms);
+}
+
+@keyframes graphe-tracer {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.graphe__etape {
+  fill: var(--fond);
+  stroke: var(--bord-fort);
+  stroke-width: 2;
+  opacity: 0;
+  animation: graphe-apparait 220ms ease-out forwards;
+  animation-delay: calc(360ms + var(--rang) * 180ms + var(--index) * 55ms);
+}
+
+@keyframes graphe-apparait {
+  to {
+    opacity: 1;
+  }
+}
+
+/* Une etape terminee est pleine. C'est la progression, donc c'est l'accent. */
+.graphe__etape--faite {
+  fill: var(--accent);
+  stroke: var(--accent);
+}
+
+.graphe__ici-coeur {
+  fill: var(--accent);
+}
+
+.graphe__ici-onde {
+  fill: var(--accent);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: graphe-onde 2.8s ease-out infinite;
+}
+
+@keyframes graphe-onde {
+  0% {
+    transform: scale(0.55);
+    opacity: 0.45;
+  }
+  70%,
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+/* Les libelles sont des liens HTML poses sur le dessin : vrai focus, vraie
+   cible tactile, et un ordre de lecture qui suit le chemin. */
+.graphe__noeuds {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Le libelle se pose AU-DESSUS DU TRACE, pas dessus : dix pixels de garde, et
+   un fond translucide derriere le texte pour les largeurs ou la garde ne suffit
+   pas. Un titre qui traverse une ligne se lit deux fois moins vite. */
+.graphe__noeud {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  transform: translate(-10px, calc(-100% - 10px));
+  max-width: 44%;
+}
+
+/* En colonne, les deux branches sont cote a cote : le libelle de gauche doit
+   s'arreter avant le trace de droite, pose a 55 % de la largeur. Mesure a
+   375 px avant reglage : une paire de libelles se chevauchait. */
+.graphe--colonne .graphe__noeud {
+  max-width: 38%;
+}
+
+.graphe__noeud a {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 10px;
+  border-radius: var(--rayon);
+  text-decoration: none;
+  border: 1px solid transparent;
+  background: color-mix(in srgb, var(--fond) 82%, transparent);
+}
+
+.graphe__noeud a:hover {
+  background: var(--fond-doux);
+  border-color: var(--bord);
+  text-decoration: none;
+}
+
+.graphe__titre {
+  font-family: var(--police-display);
+  font-weight: 700;
+  font-size: clamp(0.6875rem, 2.9cqw, 0.9375rem);
+  line-height: 1.2;
+}
+
+.graphe__meta {
+  color: var(--texte-eteint);
+  font-size: clamp(0.5625rem, 2.2cqw, 0.75rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .graphe__trace,
+  .graphe__etape,
+  .graphe__ici-onde {
+    animation: none;
+  }
+
+  .graphe__trace {
+    stroke-dashoffset: 0;
+  }
+
+  .graphe__etape {
+    opacity: 1;
+  }
+
+  .graphe__ici-onde {
+    opacity: 0.3;
+  }
+}
+
+.accroche {
+  padding: 0;
+}
+
+/* LA MESURE SE POSE SUR LE TEXTE, PAS SUR LE CONTENEUR. `ch` se resout contre
+   la police de l'element qui le porte : sur `.accroche` (16 px) un `max-width`
+   en `ch` bridait un titre rendu a 44 px. Mesure : les deux lignes voulues font
+   648 px et 635 px a 44 px, le titre tenait dans 372 px — cinq lignes pour deux.
+   D'ou une mesure en `rem`, independante de l'echelle des enfants. */
+.accroche__titre {
+  font-size: clamp(1.625rem, 1.1rem + 2.3vw, 2.75rem);
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  margin: 0;
+  max-width: 44rem;
+}
+
+.accroche__accent {
+  color: var(--accent);
+}
+
+.accroche__sous-titre {
+  color: var(--texte-doux);
+  font-size: 1rem;
+  margin-top: var(--pas);
+  max-width: 52ch;
+}
+
+.accroche__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pas);
+  margin-top: calc(var(--pas) * 3);
+}
+
+/* Les actions sont des liens qui ressemblent a des boutons : la destination est
+   une adresse, donc un lien. Un `<button>` qui navigue casse le clic milieu,
+   l'ouverture en onglet et la copie de l'adresse. */
+.accroche__actions .bouton {
+  min-height: 44px;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+/* --- En-tete des pages interieures --------------------------------------
+
+   Meme famille que le hero, en sourdine : la trame est deux fois plus faible et
+   s'arrete au bas de l'en-tete. Elle situe la page dans le produit sans lui
+   voler l'attention. */
+
+.entete-page {
+  position: relative;
+  padding: calc(var(--pas) * 3) 0 calc(var(--pas) * 3);
+  margin-bottom: calc(var(--pas) * 3);
+  border-bottom: 1px solid var(--bord);
+}
+
+.entete-page__fond {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--grille-attenuee) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grille-attenuee) 1px, transparent 1px);
+  background-size: 34px 34px;
+  mask-image: linear-gradient(to bottom, var(--masque-plein) 0%, transparent 92%);
+}
+
+.entete-page__ligne {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: calc(var(--pas) * 2);
+  flex-wrap: wrap;
+}
+
+.entete-page__texte {
+  min-width: 0;
+}
+
+.entete-page__titre {
+  font-family: var(--police-display);
+  font-size: clamp(1.5rem, 1.1rem + 1.4vw, 2.125rem);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.entete-page__sous-titre {
+  color: var(--texte-doux);
+  margin-top: 6px;
+  max-width: 62ch;
+}
+
+.entete-page__actions {
+  display: flex;
+  gap: var(--pas);
+  /* Les commandes de page font 44 px, comme partout ailleurs. */
+  --hauteur-commande: 44px;
+  align-items: center;
+  flex-wrap: wrap;
+  flex: 1 1 100%;
+  justify-content: flex-start;
+}
+
+@media (min-width: 1024px) {
+  .entete-page__actions {
+    flex: 0 1 auto;
+    justify-content: flex-end;
+  }
+}
+
+@media print {
+  .entete-page__fond {
+    display: none;
+  }
+}
+
+/* --- Recherche du catalogue ---------------------------------------------
+
+   Haute de 52 px, avec sa loupe et son raccourci. C'est la commande la plus
+   employee du produit : elle avait la taille d'un champ de formulaire
+   ordinaire, posee au-dessus de la grille comme un filtre parmi d'autres. */
+
+.recherche {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  max-width: 520px;
+}
+
+.recherche__loupe {
+  position: absolute;
+  left: 14px;
+  width: 18px;
+  height: 18px;
+  color: var(--texte-eteint);
+  pointer-events: none;
+}
+
+.recherche__loupe svg {
+  width: 100%;
+  height: 100%;
+}
+
+.recherche__champ {
+  font: inherit;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 46px 0 42px;
+  border: 1px solid var(--bord-fort);
+  border-radius: var(--rayon);
+  background: var(--fond-doux);
+  color: var(--texte);
+}
+
+.recherche__champ::placeholder {
+  color: var(--texte-eteint);
+}
+
+.recherche__champ:focus {
+  border-color: var(--accent);
+}
+
+.recherche__raccourci {
+  position: absolute;
+  right: 12px;
+  min-width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--bord);
+  border-radius: 4px;
+  color: var(--texte-eteint);
+  font-family: var(--police-display);
+  font-size: 0.75rem;
+  pointer-events: none;
+}
+
+/* --- Grille de page ------------------------------------------------------
+
+   DOUZE COLONNES, et une colonne laterale qui SERT. Le contenu des pages
+   interieures etait borne a 70ch : sur un ecran de 1440, le tiers droit restait
+   vide alors que la page avait des choses a y mettre — la progression, les
+   parcours qui contiennent la room, le sommaire des etapes. La lecture reste
+   bornee par la colonne principale, pas par une largeur posee sur la page. */
+
+.grille-page {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: calc(var(--pas) * 3);
+  align-items: start;
+}
+
+.colonne-principale {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.colonne-laterale {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+@media (min-width: 1024px) {
+  .colonne-principale {
+    grid-column: span 8;
+  }
+
+  .colonne-laterale {
+    grid-column: span 4;
+    position: sticky;
+    /* Sous l'en-tete collante, plus une respiration. */
+    top: calc(var(--pas) * 9);
+  }
+}
+
+/* --- Sections de l'accueil ----------------------------------------------- */
+
+.section-accueil {
+  margin-top: calc(var(--pas) * 5);
+}
+
+.section-accueil__entete {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--pas);
+  flex-wrap: wrap;
+  margin-bottom: var(--pas);
+}
+
+/* Lien isole, donc vraie cible : 23 px mesures, 44 px imposes. */
+.section-accueil__entete a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+/* --- Apercu des parcours ------------------------------------------------- */
+
+.apercu-parcours {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--pas);
+}
+
+.apercu-parcours__carte {
+  position: relative;
+  border: 1px solid var(--bord);
+  border-radius: var(--rayon);
+  background: var(--fond-doux);
+  padding: calc(var(--pas) * 1.5) calc(var(--pas) * 1.5) calc(var(--pas) * 1.5)
+    calc(var(--pas) * 2.5);
+  display: grid;
+  gap: var(--pas);
+  align-content: start;
+}
+
+/* LE FIL. La meme marque verticale que l'epine d'un parcours, reduite a la
+   hauteur d'une carte. C'est la seule chose qui distingue ce produit d'un
+   annuaire, et elle doit se reconnaitre d'une page a l'autre. */
+.apercu-parcours__fil {
+  position: absolute;
+  left: var(--pas);
+  top: calc(var(--pas) * 1.5);
+  bottom: calc(var(--pas) * 1.5);
+  width: 3px;
+  border-radius: 999px;
+  background: var(--bord-fort);
+}
+
+.apercu-parcours__titre {
+  margin: 0;
+  font-size: 1.0625rem;
+}
+
+.apercu-parcours__titre a {
+  text-decoration: none;
+}
+
+.apercu-parcours__titre a:hover {
   text-decoration: underline;
 }
 
-/*
- * Etapes verticales numerotees. Ici la numerotation encode une SEQUENCE : le
- * trait vertical relie les etapes pour le dire visuellement.
- */
+/* TOUTE LA CARTE EST LA CIBLE. Mesure a 375 px : le titre seul faisait 22 px de
+   haut, moitie du minimum tactile. Le lien s'etend a la carte par un pseudo
+   element, ce qui laisse UN SEUL lien dans l'arbre d'accessibilite au lieu d'en
+   dupliquer un par zone. */
+.apercu-parcours__titre a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.apercu-parcours__carte:focus-within {
+  border-color: var(--bord-fort);
+}
+
+.apercu-parcours__resume {
+  margin: 0;
+}
+
+/* --- Comment ca marche --------------------------------------------------- */
+
+/* --- « Comment ca marche » ------------------------------------------------
+
+   TROIS ETAPES RELIEES. En colonne sous 768 px, en ligne au-dessus : la liaison
+   dit que c'est une sequence, ce que trois cartes posees cote a cote ne disent
+   pas. Le trait se remplit quand la section entre dans la fenetre — c'est la
+   seule animation declenchee par le defilement qui porte du sens, les autres ne
+   font qu'apparaitre. */
+
+.marche {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: calc(var(--pas) * 2);
+  counter-reset: marche;
+}
+
+.marche__etape {
+  position: relative;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: calc(var(--pas) * 1.5);
+  align-items: start;
+}
+
+.marche__marque {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--bord-fort);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--police-display);
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: var(--texte-doux);
+  background: var(--fond);
+  position: relative;
+  z-index: 1;
+}
+
+.marche__etape h3 {
+  margin: 4px 0 2px;
+  font-size: 1rem;
+}
+
+.marche__etape p {
+  margin: 0;
+}
+
+/* Le trait de liaison, une seule fois par etape sauf la derniere. */
+.marche__etape::after {
+  content: "";
+  position: absolute;
+  /* `--bord` vaut 8 % de blanc : invisible sur un trait de deux pixels. Le
+     controleur l'a signale comme fond non mesure, et il avait raison deux fois
+     — la regle manquait, et la couleur ne se voyait pas. */
+  background: var(--bord-fort);
+  transform-origin: top left;
+  transform: scaleY(0);
+  transition: transform 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition-delay: calc(var(--rang, 0) * 120ms);
+  left: 15px;
+  top: 32px;
+  width: 2px;
+  bottom: calc(var(--pas) * -2);
+}
+
+.marche__etape:last-child::after {
+  display: none;
+}
+
+.apparu .marche__etape::after {
+  transform: scaleY(1);
+}
+
+@media (min-width: 768px) {
+  .marche {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: calc(var(--pas) * 3);
+  }
+
+  .marche__etape {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--pas);
+  }
+
+  .marche__etape::after {
+    transform-origin: left center;
+    transform: scaleX(0);
+    left: 40px;
+    top: 15px;
+    width: auto;
+    height: 2px;
+    right: calc(var(--pas) * -3);
+    bottom: auto;
+  }
+
+  .apparu .marche__etape::after {
+    transform: scaleX(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marche__etape::after {
+    transition: none;
+    transform: none;
+  }
+}
+
+/* --- En-tete -------------------------------------------------------------
+
+   COLLANTE AVEC UN LEGER FLOU. Le flou n'est pas decoratif : sans lui, le
+   contenu qui defile sous une barre translucide devient illisible. La couleur
+   de repli, opaque, s'applique la ou `backdrop-filter` n'existe pas. */
+
+/* TRANSPARENTE SUR LE HERO, POSEE ENSUITE. Le fond est porte par un pseudo
+   element dont seule l'OPACITE change : une transition de couleur de fond
+   repeindrait la barre a chaque image, alors qu'une opacite est composee par le
+   compositeur. Meme resultat, aucune peinture. */
+.entete {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  border-bottom: 1px solid transparent;
+}
+
+.entete::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--fond-appuye);
+  border-bottom: 1px solid var(--bord);
+  opacity: 0;
+  transition: opacity 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.entete--posee::before {
+  opacity: 1;
+}
+
+@supports (backdrop-filter: blur(8px)) {
+  .entete--posee {
+    backdrop-filter: blur(10px);
+  }
+
+  .entete--posee::before {
+    background: color-mix(in srgb, var(--fond-appuye) 76%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .entete::before {
+    transition: none;
+  }
+}
+
+.entete__interieur {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--pas) calc(var(--pas) * 2);
+  display: flex;
+  align-items: center;
+  gap: var(--pas);
+  flex-wrap: wrap;
+}
+
+.marque {
+  font-weight: 700;
+  font-size: 1.0625rem;
+  text-decoration: none;
+  color: var(--texte);
+  letter-spacing: -0.01em;
+  margin-right: auto;
+}
+
+.marque__accent {
+  color: var(--accent);
+  margin-left: 0.35ch;
+}
+
+/* --- Menu mobile ---------------------------------------------------------
+
+   UN VRAI BOUTON, pas une case a cocher deguisee. Le motif « checkbox +
+   label » evite un peu de JavaScript et coute l'annonce correcte : un lecteur
+   d'ecran dit « case a cocher » la ou l'utilisateur ouvre un menu. */
+
+.entete__bascule {
+  font: inherit;
+  font-size: 0.875rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--bord-fort);
+  border-radius: var(--rayon);
+  background: none;
+  color: var(--texte);
+  cursor: pointer;
+}
+
+.entete__barres,
+.entete__barres::before,
+.entete__barres::after {
+  display: block;
+  width: 16px;
+  height: 2px;
+  background: currentColor;
+}
+
+.entete__barres {
+  position: relative;
+}
+
+.entete__barres::before,
+.entete__barres::after {
+  content: "";
+  position: absolute;
+  left: 0;
+}
+
+.entete__barres::before {
+  top: -5px;
+}
+
+.entete__barres::after {
+  top: 5px;
+}
+
+/* `:not([hidden])` N'EST PAS DECORATIF.
+   Une regle de classe qui pose `display` ECRASE la regle `[hidden]` de la
+   feuille du navigateur, dont la specificite est plus faible. Ecrit
+   `display: flex` sans condition, l'attribut `hidden` devient decoratif : le
+   menu reste ouvert, le bouton annonce « ferme », et les deux se contredisent
+   sans que rien n'echoue. Mesure avant correction : `hidden` a vrai,
+   `display` calcule a `flex`, 116 px de hauteur, quatre liens atteignables. */
+.entete__panneau:not([hidden]) {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--pas) * 2);
+  width: 100%;
+  padding-top: var(--pas);
+}
+
+/* A partir du palier large, le menu est toujours la et le bouton disparait. */
+@media (min-width: 720px) {
+  .entete__bascule {
+    display: none;
+  }
+
+  .entete__panneau {
+    width: auto;
+    padding-top: 0;
+  }
+
+  /* A cette largeur l'etat « ferme » n'a aucun sens : le panneau est montre
+     meme quand React le croit ferme. C'est le SEUL endroit ou l'on ecrase
+     `hidden`, et c'est deliberement ecrit avec l'attribut dans le selecteur. */
+  .entete__panneau[hidden] {
+    display: flex;
+    width: auto;
+    padding-top: 0;
+  }
+}
+
+/* --- Pied ---------------------------------------------------------------- */
+
+.pied__mention {
+  max-width: 78ch;
+}
+
+.pied__colonnes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: calc(var(--pas) * 3);
+  margin-top: calc(var(--pas) * 3);
+  padding-top: calc(var(--pas) * 2);
+  border-top: 1px solid var(--bord);
+}
+
+.pied__colonne {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+  font-size: 0.875rem;
+}
+
+.pied__colonne a {
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.pied__titre {
+  font-weight: 650;
+  color: var(--texte);
+  margin: 0 0 2px;
+}
+
 /* --- Le chemin ---------------------------------------------------------
 
    MOBILE D'ABORD. Colonne verticale a TOUTES les largeurs : epine a gauche,
@@ -1145,11 +2641,361 @@ label {
   line-height: 1;
 }
 
+/* LA PISTE SE VOIT MEME A ZERO. Une barre a 0 % qui n'affiche rien ne dit pas
+   « rien de fait » : elle ne dit rien du tout, et on doute que la barre existe.
+   Le remplissage est anime, la piste ne l'est jamais. `accent-color` ne suffit
+   pas : il colore le remplissage sans rien dire de la piste. */
 .avancement__barre {
   width: 100%;
   height: 8px;
   margin-top: 6px;
-  accent-color: var(--succes);
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--fond-appuye);
+}
+
+.avancement__barre::-webkit-progress-bar {
+  background: var(--fond-appuye);
+  border-radius: 999px;
+}
+
+.avancement__barre::-webkit-progress-value {
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.avancement__barre::-moz-progress-bar {
+  background: var(--accent);
+  border-radius: 999px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .avancement__barre::-webkit-progress-value {
+    transition: none;
+  }
+}
+
+/* --- Case « Terminee » ---------------------------------------------------
+
+   L'ACTION PRINCIPALE DE LA PAGE DU PARCOURS. L'`<input>` natif est toujours la,
+   focalisable et annonce ; il est rendu transparent et etale sur toute
+   l'etiquette, de sorte que la cible reelle fait 44 px sans que le dessin
+   grossisse. */
+
+.case-terminee {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 8px 0 4px;
+  border-radius: var(--rayon);
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--texte-doux);
+}
+
+.case-terminee input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.case-terminee__boite {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  border: 2px solid var(--bord-fort);
+  border-radius: 6px;
+  color: var(--sur-accent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background-color 160ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    border-color 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.case-terminee__boite svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* La coche se TRACE, elle n'apparait pas : `pathLength="1"` rend la longueur du
+   trait independante de sa forme. */
+.case-terminee__boite path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  transition: stroke-dashoffset 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.case-terminee input:checked + .case-terminee__boite {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.case-terminee input:checked + .case-terminee__boite path {
+  stroke-dashoffset: 0;
+}
+
+.case-terminee input:focus-visible + .case-terminee__boite {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.case-terminee:hover .case-terminee__boite {
+  border-color: var(--accent);
+}
+
+.case-terminee input:checked ~ .case-terminee__texte {
+  color: var(--texte);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .case-terminee__boite,
+  .case-terminee__boite path {
+    transition: none;
+  }
+}
+
+/* --- Suivi du parcours, colonne de droite -------------------------------- */
+
+.suivi {
+  display: grid;
+  gap: calc(var(--pas) * 1.5);
+}
+
+.anneau {
+  position: relative;
+  width: 132px;
+  justify-self: center;
+  aspect-ratio: 1;
+}
+
+.anneau__dessin {
+  width: 100%;
+  height: 100%;
+  /* Le depart de l'arc est en haut, pas a trois heures. */
+  transform: rotate(-90deg);
+}
+
+.anneau__piste,
+.anneau__arc {
+  fill: none;
+  stroke-width: 8;
+}
+
+.anneau__piste {
+  stroke: var(--fond-appuye);
+}
+
+.anneau__arc {
+  stroke: var(--accent);
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: calc(1 - var(--fraction));
+  transition: stroke-dashoffset 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.anneau__centre {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  gap: 2px;
+}
+
+.anneau__chiffre {
+  font-family: var(--police-display);
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.suivi__reste {
+  text-align: center;
+  color: var(--texte-doux);
+  font-size: 0.875rem;
+}
+
+.suivi__suite {
+  min-height: 44px;
+  padding: 8px 14px;
+  display: inline-flex;
+  align-items: center;
+  text-align: left;
+  text-decoration: none;
+  font-size: 0.875rem;
+  line-height: 1.25;
+}
+
+.sommaire {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+  border-top: 1px solid var(--bord);
+  padding-top: var(--pas);
+}
+
+.sommaire__ligne a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 32px;
+  padding: 2px 6px;
+  border-radius: var(--rayon);
+  text-decoration: none;
+  color: var(--texte-doux);
+  font-size: 0.8125rem;
+}
+
+.sommaire__ligne a:hover {
+  background: var(--fond-appuye);
+  color: var(--texte);
+  text-decoration: none;
+}
+
+.sommaire__marque {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--bord-fort);
+  border-radius: 50%;
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.sommaire__ligne--faite .sommaire__marque {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--sur-accent);
+}
+
+.sommaire__ligne--prochaine a {
+  color: var(--texte);
+  font-weight: 650;
+}
+
+.sommaire__ligne--prochaine .sommaire__marque {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.sommaire__titre {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anneau__arc {
+    transition: none;
+  }
+}
+
+/* --- Etat vide de la progression, et zone secondaire ------------------- */
+
+.progression-vide {
+  padding: calc(var(--pas) * 5) calc(var(--pas) * 3);
+}
+
+.chemin-pointilles {
+  width: 200px;
+  max-width: 100%;
+  height: auto;
+  color: var(--texte-eteint);
+}
+
+.progression-vide__texte {
+  max-width: 52ch;
+}
+
+.progression-vide__actions {
+  margin-top: calc(var(--pas) * 2);
+  justify-content: center;
+}
+
+.progression-vide__actions .bouton {
+  min-height: 44px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+/* Ce qu on ne vient pas faire ici : separe par un trait, jamais mis en avant. */
+.zone-secondaire {
+  border-top: 1px solid var(--bord);
+  padding-top: var(--pas);
+  margin-top: var(--pas);
+  display: grid;
+  gap: var(--pas);
+  justify-items: start;
+}
+
+/* --- Panneau lateral ---------------------------------------------------- */
+
+.panneau {
+  border: 1px solid var(--bord);
+  border-radius: var(--rayon);
+  background: var(--fond-doux);
+  padding: calc(var(--pas) * 2);
+}
+
+.panneau__titre {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--texte-doux);
+  margin-bottom: var(--pas);
+}
+
+.renvoi-parcours {
+  position: relative;
+  padding: var(--pas) 0;
+}
+
+.renvoi-parcours + .renvoi-parcours {
+  border-top: 1px solid var(--bord);
+}
+
+.renvoi-parcours__titre {
+  font-size: 0.9375rem;
+  margin: 0;
+}
+
+.renvoi-parcours__titre a {
+  text-decoration: none;
+}
+
+/* Toute la ligne est la cible, comme les cartes du catalogue. */
+.renvoi-parcours__titre a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.renvoi-parcours:hover {
+  background: var(--fond-appuye);
+}
+
+.renvoi-parcours__etape {
+  color: var(--texte-doux);
+  font-size: 0.8125rem;
+  margin-top: 2px;
 }
 
 /* --- Squelettes AUX DIMENSIONS DU CONTENU REEL ------------------------- */
@@ -1275,7 +3121,7 @@ label {
 
 .indicateur-stockage:hover {
   background: var(--erreur);
-  color: var(--erreur-fond);
+  color: var(--sur-erreur);
 }
 
 .indicateur-stockage__point {

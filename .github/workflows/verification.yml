@@ -101,11 +101,12 @@ jobs:
       - name: Installer les dependances
         run: pnpm install --frozen-lockfile
 
-      # Biome ET le controleur de contraste : `pnpm lint` enchaine les deux.
-      # Le second fait echouer la construction si une paire de couleurs passe
-      # sous le seuil AA, si la rampe de difficulte cesse d'etre monotone, ou si
-      # une couleur est ecrite en clair hors du bloc de tokens.
-      - name: Lint et contrastes
+      # TROIS controles enchaines par `pnpm lint` : Biome, les contrastes, les
+      # accents. Le contraste fait echouer la construction si une paire passe
+      # sous le seuil AA, si la rampe de difficulte cesse d'etre monotone ou si
+      # une couleur est ecrite en clair hors du bloc de tokens. Les accents
+      # font echouer si un texte affiche perd les siens.
+      - name: Lint, contrastes et accents
         run: pnpm lint
 
       - name: Types

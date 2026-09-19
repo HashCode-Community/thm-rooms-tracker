@@ -3,6 +3,7 @@ import { ErrorState } from "./components/states.js";
 import { homeRoute } from "./routes/home.js";
 import { mentionsRoute } from "./routes/mentions.js";
 import { progressionRoute } from "./routes/progression.js";
+import { catalogueRedirection, parcoursRedirection } from "./routes/redirections.js";
 import { roadmapDetailRoute } from "./routes/roadmap-detail.js";
 import { roadmapListRoute } from "./routes/roadmap-list.js";
 import { roomDetailRoute } from "./routes/room-detail.js";
@@ -23,6 +24,8 @@ const routeTree = rootRoute.addChildren([
   roadmapListRoute,
   roadmapDetailRoute,
   mentionsRoute,
+  catalogueRedirection,
+  parcoursRedirection,
 ]);
 
 export const router = createRouter({
@@ -37,6 +40,10 @@ export const router = createRouter({
     <ErrorState error={error instanceof Error ? error : new Error(String(error))} />
   ),
   scrollRestoration: true,
+  // TRANSITION ENTRE ROUTES par l'API du navigateur : un fondu court, pris en
+  // charge par le compositeur, et rien du tout la ou l'API n'existe pas. La
+  // feuille de style la neutralise sous `prefers-reduced-motion`.
+  defaultViewTransition: true,
 });
 
 declare module "@tanstack/react-router" {

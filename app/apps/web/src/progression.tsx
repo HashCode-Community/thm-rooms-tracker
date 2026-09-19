@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { Button } from "./components/ui/index.js";
 import {
   type CompletedRoom,
   createProgressionExport,
@@ -50,8 +51,17 @@ export function RoomCompletionControl({
   const completed = progression.isCompleted(code);
 
   if (presentation === "checkbox") {
+    // C'EST L'ACTION PRINCIPALE DE LA PAGE DU PARCOURS, pas une case de
+    // formulaire. Le dessin est a nous, la mecanique reste celle du navigateur :
+    // l'`<input>` est toujours la, focalisable, annonce « case a cocher », et
+    // pilotable a la barre d'espace. Une case redessinee en `<div>` perd tout
+    // cela pour gagner un coin arrondi.
+    //
+    // Le libelle ne change pas entre les deux etats : « Terminee » cochee ou
+    // non, c'est la case qui porte l'etat. Un libelle qui change pousserait la
+    // ligne a chaque clic.
     return (
-      <label className="progression-case">
+      <label className="case-terminee">
         <input
           type="checkbox"
           checked={completed}
@@ -59,7 +69,18 @@ export function RoomCompletionControl({
             progression.setCompleted(code, event.target.checked);
           }}
         />
-        <span>Terminee</span>
+        <span className="case-terminee__boite" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+            <title>Coche</title>
+            <path
+              d="m5 12.5 4.5 4.5L19 7"
+              pathLength={1}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </span>
+        <span className="case-terminee__texte">Terminée</span>
       </label>
     );
   }
@@ -73,7 +94,7 @@ export function RoomCompletionControl({
         progression.setCompleted(code, !completed);
       }}
     >
-      {completed ? "Marquee comme terminee" : "Marquer comme terminee"}
+      {completed ? "Marquée comme terminée" : "Marquer comme terminée"}
     </button>
   );
 }
@@ -89,25 +110,25 @@ const WARNING_TEXT: Readonly<
   Record<NonNullable<ProgressionSnapshot["warning"]>, { titre: string; corps: string }>
 > = {
   "unreadable-preserved": {
-    titre: "Votre progression n'est pas enregistree",
+    titre: "Votre progression n'est pas enregistrée",
     corps:
-      "Une progression existe deja dans ce navigateur, mais elle est illisible. Elle n'a " +
-      "pas ete remplacee, au cas ou elle serait recuperable. Ce que vous cochez maintenant " +
-      "reste dans cet onglet et disparaitra au rechargement.",
+      "Une progression existe déjà dans ce navigateur, mais elle est illisible. Elle n'a " +
+      "pas été remplacée, au cas où elle serait récupérable. Ce que vous cochez maintenant " +
+      "reste dans cet onglet et disparaîtra au rechargement.",
   },
   "storage-unavailable": {
-    titre: "Votre progression n'est pas enregistree",
+    titre: "Votre progression n'est pas enregistrée",
     corps:
-      "Ce navigateur n'autorise pas le stockage local, souvent en navigation privee ou " +
-      "quand les cookies sont bloques. Rien n'est conserve : ce que vous cochez disparaitra " +
+      "Ce navigateur n'autorise pas le stockage local, souvent en navigation privée ou " +
+      "quand les cookies sont bloqués. Rien n'est conservé : ce que vous cochez disparaîtra " +
       "au rechargement. Vous pouvez exporter votre progression en JSON avant de fermer.",
   },
   "write-failed": {
-    titre: "Votre progression n'est pas enregistree",
+    titre: "Votre progression n'est pas enregistrée",
     corps:
       "Le stockage local de ce navigateur est plein. Ce que vous cochez reste dans cet " +
-      "onglet et disparaitra au rechargement. Liberer de l'espace, ou decocher des rooms, " +
-      "suffit a relancer l'enregistrement.",
+      "onglet et disparaîtra au rechargement. Libérer de l'espace, ou décocher des rooms, " +
+      "suffit à relancer l'enregistrement.",
   },
 };
 
@@ -163,15 +184,13 @@ export function ProgressionPersistenceWarning(): ReactNode {
       <p className="alerte-stockage__titre">{titre}</p>
       <p>{corps}</p>
       <p>
-        <button
-          type="button"
-          className="bouton"
+        <Button
           onClick={() => {
             setAcquitte(warning);
           }}
         >
           J'ai compris
-        </button>
+        </Button>
       </p>
     </div>
   );

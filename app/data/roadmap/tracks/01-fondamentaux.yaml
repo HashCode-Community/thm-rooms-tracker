@@ -22,39 +22,39 @@ provenance:
 
 steps:
   - title: "S'orienter avant de commencer"
-    objective: "Savoir quels métiers existent en cybersécurité et lequel t'attire, avant d'investir des dizaines d'heures."
+    objective: "Savoir quels métiers existent en cybersécurité et lequel vous attire, avant d'investir des dizaines d'heures."
     rooms:
       - { code: careersincybersn, requirement: core }
       - { code: startingoutincybersec, requirement: core }
       - { code: searchskillscS, requirement: core, note: "Savoir chercher est la compétence la plus rentable du métier." }
 
   - title: "Comment les machines se parlent"
-    objective: "Comprendre ce qui se passe entre ton navigateur et un serveur : adresses, ports, DNS, couches réseau."
+    objective: "Comprendre ce qui se passe entre votre navigateur et un serveur : adresses, ports, DNS, couches réseau."
     rooms:
       - { code: whatisnetworking, requirement: core }
       - { code: introtolan, requirement: core }
       - { code: dnsindetail, requirement: core }
-      - { code: networkingconcepts, requirement: optional, note: "Plus théorique (modèle OSI, TCP/IP). À faire si le sujet t'intéresse ou si tu vises le réseau." }
+      - { code: networkingconcepts, requirement: optional, note: "Plus théorique (modèle OSI, TCP/IP). À faire si le sujet vous intéresse ou si vous visez le réseau." }
 
   - title: "Le web vu de l'intérieur"
     objective: "Lire une requête HTTP, comprendre ce qu'un site envoie et reçoit. Indispensable pour tout ce qui touche au web ensuite."
     rooms:
       - { code: httpindetail, requirement: core }
-      - { code: webapplicationbasics, requirement: core, note: "120 min, la plus longue de l'étape. Prévois une vraie session." }
+      - { code: webapplicationbasics, requirement: core, note: "120 min, la plus longue de l'étape. Prévoyez une vraie session." }
 
   - title: "Linux, en ligne de commande"
     objective: "Naviguer, lire des fichiers, gérer des permissions dans un terminal Linux."
     rooms:
       - { code: linuxfundamentalspt15vm, requirement: core, note: "ATTENTION : les parties 2 et 3 de cette série ne sont pas gratuites. Ce parcours enchaîne sur d'autres rooms libres pour couvrir la suite." }
       - { code: linuxstrengthtraining, requirement: core, note: "Prend le relais de Pt2/Pt3 : entraînement aux commandes, gratuit." }
-      - { code: bashscripting, requirement: optional, note: "Utile dès que tu veux automatiser. Peut attendre." }
+      - { code: bashscripting, requirement: optional, note: "Utile dès que vous voulez automatiser. Peut attendre." }
 
   - title: "Windows, en ligne de commande"
     objective: "Se repérer dans un système Windows : système de fichiers, registre, comptes, outils d'administration."
     rooms:
       - { code: windowsfundamentals1xbx, requirement: core }
       - { code: windowsfundamentals2x0x, requirement: core }
-      - { code: windowscommandline, requirement: optional, note: "À faire si tu vises la défense ou l'Active Directory." }
+      - { code: windowscommandline, requirement: optional, note: "À faire si vous visez la défense ou l'Active Directory." }
 
   - title: "Le vocabulaire de la sécurité"
     objective: "Savoir ce qu'est une vulnérabilité, un modèle de menace, une chaîne d'attaque. C'est le langage commun de tout le reste du site."
@@ -65,7 +65,7 @@ steps:
       - { code: cryptographybasics, requirement: optional, note: "Chiffrement symétrique et asymétrique. Revient partout ensuite." }
 
   - title: "Première mise en pratique"
-    objective: "Appliquer ce que tu viens d'apprendre sur deux machines volontairement vulnérables, sans solution sous les yeux."
+    objective: "Appliquer ce que vous venez d'apprendre sur deux machines volontairement vulnérables, sans solution sous les yeux."
     rooms:
       - { code: picklerick, requirement: core, note: "Le premier CTF de la plupart des gens. Ne regarde pas la solution avant d'avoir essayé une heure." }
       - { code: easyctf, requirement: core }
