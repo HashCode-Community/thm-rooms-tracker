@@ -57,12 +57,60 @@ Set-Location $app
 # perd la soiree a verifier CORS_ORIGINS et connect-src, qui sont corrects.
 $env:VITE_API_BASE_URL = $ApiUrl
 
-pnpm install --frozen-lockfile
-if ($LASTEXITCODE -ne 0) { throw "L'installation a echoue." }
-pnpm build
-if ($LASTEXITCODE -ne 0) { throw "La construction a echoue." }
+# ---------------------------------------------------------------------------
+# DEUX GARDES QUI MANQUAIENT, ET LE DEFAUT QU'ILS FERMENT.
+#
+# `$LASTEXITCODE` n'est PAS mis a jour quand la commande n'existe pas. Sous
+# `$ErrorActionPreference = "Continue"`, une CommandNotFoundException n'arrete
+# pas le script et laisse la VALEUR PRECEDENTE en place - 0, le plus souvent.
+# Chaque `if ($LASTEXITCODE -ne 0)` voyait donc 0 et laissait passer.
+#
+# Constate sur une machine ou pnpm n'etait pas sur le PATH : le script affichait
+# ses etapes, se terminait par "Termine." en vert, code de sortie 0, et
+# proposait d'aller verifier 714 lignes dans une base ou rien n'avait ete ecrit.
+#
+# Deux mesures, et les deux sont necessaires :
+#   1. exiger l'outil AVANT la premiere etape ;
+#   2. remettre $LASTEXITCODE a $null avant chaque appel, pour qu'une commande
+#      qui n'a pas tourne se distingue d'une commande qui a reussi.
+# ---------------------------------------------------------------------------
+
+if (-not (Get-Command pnpm -ErrorAction SilentlyContinue)) {
+  throw "pnpm est introuvable sur le PATH. Installez-le (corepack enable) et rouvrez le terminal."
+}
+
+function Invoquer {
+  param(
+    [Parameter(Mandatory = $true)][string]$Etape,
+    [Parameter(Mandatory = $true)][scriptblock]$Commande
+  )
+  $global:LASTEXITCODE = $null
+  & $Commande
+  if ($null -eq $global:LASTEXITCODE) {
+    throw "$Etape : la commande n'a pas ete executee du tout. Rien n'a ete fait."
+  }
+  if ($global:LASTEXITCODE -ne 0) {
+    throw "$Etape : echec, code $global:LASTEXITCODE."
+  }
+}
 
 $dist = Join-Path $app "apps\web\dist"
+
+# ON EFFACE AVANT DE CONSTRUIRE, ET C'EST LE SECOND CORRECTIF.
+#
+# Sans cela, la relecture plus bas peut trouver l'adresse dans un bundle
+# CONSTRUIT LA VEILLE : la construction echoue, l'ancien `dist` reste en place,
+# le garde-fou le relit, le trouve conforme et affiche "adresse presente" en
+# vert. Constate en lancant ce script avec pnpm injoignable : il a reempaquete
+# un dist perime et annonce "Termine.".
+#
+# Efface, le dossier ne peut plus mentir : s'il existe apres la construction,
+# c'est que la construction l'a produit.
+if (Test-Path $dist) { Remove-Item $dist -Recurse -Force }
+
+Invoquer "1/3 installation" { pnpm install --frozen-lockfile }
+Invoquer "1/3 construction" { pnpm build }
+
 if (-not (Test-Path $dist)) { throw "Le dossier construit est introuvable : $dist" }
 
 # PREUVE, PAS CONFIANCE.
