@@ -341,11 +341,3 @@ qu'il ne répond pas à l'objectif écrit en tête de ce document.
 - 🔔 Alertes sur les nouvelles rooms gratuites ajoutées.
   → *Mécanisme déjà en place : la comparaison des codes entre deux exécutions détecte les
   nouveautés. La date de publication fournie par TryHackMe n'est pas exploitable pour ça.*
-
----
-
-## 📎 Annexe technique 🆕
-
-Un document séparé détaille l'architecture, le modèle de données, les décisions techniques
-et leurs alternatives écartées, les anomalies de données traitées, et les défauts identifiés
-avant mise en production : **`ROADMAP-PROJET.pdf`** (10 pages).
