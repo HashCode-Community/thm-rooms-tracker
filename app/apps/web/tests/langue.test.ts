@@ -39,6 +39,26 @@ describe("controleur de la langue affichee", () => {
     assert.deepEqual(analyser(source)[0]?.formes, ["repond", "etre", "arretee"]);
   });
 
+  it("attrape une phrase JSX coupee par une interpolation", () => {
+    const source = `
+      <span>
+        Aucun resultat exact pour « {search.q} » : recherche approchee sur les titres.
+      </span>
+    `;
+    const signalements = analyser(source);
+    assert.equal(signalements.length, 1);
+    assert.deepEqual(signalements[0]?.formes, ["resultat", "approchee"]);
+  });
+
+  it("controle les locutions ambigues sans interdire les mots valides", () => {
+    assert.deepEqual(formesTrouvees("d'ou il vient, construit a partir des donnees"), [
+      "d'ou",
+      "construit a partir",
+      "donnees",
+    ]);
+    assert.deepEqual(formesTrouvees("Le serveur a fini, ou il recommence."), []);
+  });
+
   it("ne signale rien quand tout est accentue", () => {
     const source = `
       <p>Les parcours sont un contenu éditorial, écrit et relu à la main.</p>
@@ -71,6 +91,11 @@ describe("controleur de la langue affichee", () => {
 
   it("distingue le mot du prefixe : « memento » n'est pas « meme »", () => {
     assert.deepEqual(formesTrouvees("un memento des acces"), ["acces"]);
+  });
+
+  it("distingue le verbe publie du participe publié", () => {
+    assert.deepEqual(formesTrouvees("TryHackMe publie des rooms"), []);
+    assert.deepEqual(formesTrouvees("Aucun parcours publie"), ["parcours publie"]);
   });
 
   it("attrape le tutoiement, pronom comme possessif", () => {

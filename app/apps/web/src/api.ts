@@ -50,7 +50,7 @@ async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") throw error;
     // `fetch` rejette avec « Failed to fetch », qui ne dit rien a personne.
-    throw new ApiError(0, "API injoignable. Verifiez votre connexion, puis reessayez.");
+    throw new ApiError(0, "API injoignable. Vérifiez votre connexion, puis réessayez.");
   }
 
   if (!response.ok) {

@@ -33,7 +33,6 @@
  *    valide. Impossible a trancher sans analyser la phrase.
  */
 export const FORMES_SANS_ACCENT: readonly string[] = [
-  "publie",
   "publiee",
   "publiees",
   "publies",
@@ -43,6 +42,11 @@ export const FORMES_SANS_ACCENT: readonly string[] = [
   "termines",
   "resultat",
   "resultats",
+  "approchee",
+  "approchees",
+  "verifiez",
+  "reessayez",
+  "plutot",
   "duree",
   "durees",
   "frequentation",
@@ -132,6 +136,23 @@ export const FORMES_SANS_ACCENT: readonly string[] = [
 ];
 
 /**
+ * Locutions ou `a` et `ou` sont fautifs dans le contexte connu.
+ *
+ * Ces mots sont ambigus seuls : « a » peut etre le verbe avoir et « ou » une
+ * conjonction. Les signaler sans leur contexte rendrait le controle inutilisable.
+ */
+export const PHRASES_SANS_ACCENT: readonly string[] = [
+  "parcours publie",
+  "contenu publie",
+  "d'ou",
+  "construit a partir",
+  "appartiennent a leurs",
+  "ou elle se fait",
+  "écrits a la main",
+  "vérifie a chaque",
+];
+
+/**
  * Marques du tutoiement.
  *
  * Le produit VOUVOIE, partout, y compris dans le contenu editorial des
@@ -162,7 +183,10 @@ const MOTIF_TUTOIEMENT = new RegExp(
   "gi",
 );
 
-const MOTIF = new RegExp(`(?<![A-Za-zÀ-ÿ])(${FORMES_SANS_ACCENT.join("|")})(?![A-Za-zÀ-ÿ])`, "gi");
+const MOTIF = new RegExp(
+  `(?<![A-Za-zÀ-ÿ])(${[...PHRASES_SANS_ACCENT, ...FORMES_SANS_ACCENT].join("|")})(?![A-Za-zÀ-ÿ])`,
+  "gi",
+);
 
 /**
  * Blanchit les commentaires en gardant les numeros de ligne.
@@ -199,10 +223,11 @@ export function textesAffiches(source: string): Candidat[] {
     for (const trouve of ligne.matchAll(/"([^"\n]*)"|'([^'\n]*)'|`([^`\n]*)`/g)) {
       trouves.push({ ligne: index + 1, texte: trouve[1] ?? trouve[2] ?? trouve[3] ?? "" });
     }
-    for (const trouve of ligne.matchAll(/>([^<>{}]+)</g)) {
-      trouves.push({ ligne: index + 1, texte: trouve[1] ?? "" });
-    }
-    if (estProse(ligne)) trouves.push({ ligne: index + 1, texte: ligne.trim() });
+    // Retire le balisage et les expressions JSX avant d'evaluer la prose.
+    // Sans cela, une interpolation au milieu d'un texte faisait disparaitre
+    // toute la ligne du controle : « Aucun resultat {valeur} ... » passait.
+    const proseJsx = ligne.replace(/<[^>]*>/g, " ").replace(/\{[^{}]*\}/g, " ");
+    if (estProse(proseJsx)) trouves.push({ ligne: index + 1, texte: proseJsx.trim() });
   });
 
   return trouves.filter((candidat) => estAffichable(candidat.texte));
