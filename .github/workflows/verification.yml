@@ -13,7 +13,9 @@ name: Verification
 
 on:
   push:
-    branches: [main, "feature/**"]
+    # Les trois prefixes sont utilises dans l’historique du depot. Les garder
+    # ici permet de verifier une branche avant meme l’ouverture de sa PR.
+    branches: [main, "feature/**", "feat/**", "fix/**"]
   pull_request:
 
 # Une nouvelle poussee annule la verification en cours sur la meme branche :
