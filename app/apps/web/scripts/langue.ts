@@ -33,7 +33,6 @@
  *    valide. Impossible a trancher sans analyser la phrase.
  */
 export const FORMES_SANS_ACCENT: readonly string[] = [
-  "publie",
   "publiee",
   "publiees",
   "publies",
@@ -143,6 +142,8 @@ export const FORMES_SANS_ACCENT: readonly string[] = [
  * conjonction. Les signaler sans leur contexte rendrait le controle inutilisable.
  */
 export const PHRASES_SANS_ACCENT: readonly string[] = [
+  "parcours publie",
+  "contenu publie",
   "d'ou",
   "construit a partir",
   "appartiennent a leurs",
