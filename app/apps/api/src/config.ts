@@ -62,7 +62,19 @@ export type AppConfig = {
 };
 
 function readNodeEnv(value: string | undefined): NodeEnv {
-  return value === "production" || value === "test" ? value : "development";
+  switch (value) {
+    case undefined:
+    case "development":
+      return "development";
+    case "test":
+      return "test";
+    case "production":
+      return "production";
+    default:
+      throw new Error(
+        `NODE_ENV doit etre development, test ou production, recu : ${JSON.stringify(value)}`,
+      );
+  }
 }
 
 /**
