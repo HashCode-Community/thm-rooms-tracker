@@ -42,6 +42,8 @@ import {
  *   - upsert par `code`, JAMAIS par titre ;
  *   - une room absente du dataset est DESACTIVEE, jamais supprimee ;
  *   - refus d'executer si plus de 5 % des rooms seraient desactivees, sauf --force ;
+ *   - refus si plus de 25 % des rooms connues changent, ou si une difficulte
+ *     se decale de plus de 10 points, sauf --force ;
  *   - transaction unique sur les DONNEES : tout ou rien.
  *
  * Le journal `import_runs` est HORS de cette transaction, sur une connexion
