@@ -2,12 +2,9 @@ import { checkDatasetVersion } from "@thm/shared";
 import { describe, expect, it } from "vitest";
 
 describe("compatibilite de version du dataset", () => {
-  it.each(["1.0.0", "1.0.1", "1.1.0", "1.99.99"])(
-    "accepte %s dans la plage ^1.0.0",
-    (version) => {
-      expect(checkDatasetVersion(version)).toMatchObject({ ok: true, version });
-    },
-  );
+  it.each(["1.0.0", "1.0.1", "1.1.0", "1.99.99"])("accepte %s dans la plage ^1.0.0", (version) => {
+    expect(checkDatasetVersion(version)).toMatchObject({ ok: true, version });
+  });
 
   it.each(["0.9.9", "2.0.0", "3.1.4"])("refuse %s hors de la plage ^1.0.0", (version) => {
     expect(checkDatasetVersion(version)).toMatchObject({ ok: false, version });
