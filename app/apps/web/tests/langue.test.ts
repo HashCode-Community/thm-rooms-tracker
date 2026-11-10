@@ -93,6 +93,11 @@ describe("controleur de la langue affichee", () => {
     assert.deepEqual(formesTrouvees("un memento des acces"), ["acces"]);
   });
 
+  it("distingue le verbe publie du participe publié", () => {
+    assert.deepEqual(formesTrouvees("TryHackMe publie des rooms"), []);
+    assert.deepEqual(formesTrouvees("Aucun parcours publie"), ["parcours publie"]);
+  });
+
   it("attrape le tutoiement, pronom comme possessif", () => {
     assert.deepEqual(marquesTutoiement("Explore ton catalogue"), ["ton"]);
     assert.deepEqual(marquesTutoiement("ce que tu viens d'apprendre"), ["tu"]);
