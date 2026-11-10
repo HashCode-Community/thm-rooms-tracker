@@ -29,7 +29,12 @@ $ErrorActionPreference = "Continue"
 
 # Le dossier `app` du depot, quel que soit l'endroit d'ou le script est lance.
 $app = Resolve-Path (Join-Path $PSScriptRoot "..\..\app")
-Set-Location $app
+$anciennePosition = Get-Location
+$databaseUrlExistait = Test-Path Env:DATABASE_URL
+$ancienneDatabaseUrl = if ($databaseUrlExistait) { $env:DATABASE_URL } else { $null }
+
+try {
+  Set-Location $app
 
 Write-Host ""
 Write-Host "Base visee : " -NoNewline
@@ -106,3 +111,13 @@ Write-Host "A verifier dans la console Neon, onglet SQL Editor :" -ForegroundCol
 Write-Host "  select count(*) from rooms;   -- attendu : 714"
 Write-Host "  select count(*) from tracks;  -- attendu : 3"
 Write-Host ""
+}
+finally {
+  if ($databaseUrlExistait) {
+    $env:DATABASE_URL = $ancienneDatabaseUrl
+  }
+  else {
+    Remove-Item Env:DATABASE_URL -ErrorAction SilentlyContinue
+  }
+  Set-Location -LiteralPath $anciennePosition.Path
+}
