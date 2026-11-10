@@ -86,24 +86,42 @@ describe("sonde de vie", () => {
 });
 
 describe("format des erreurs (RFC 9457)", () => {
-  it("une route inconnue rend un problem+json", async () => {
-    const response = await hidden.inject({ method: "GET", url: "/api/nexistepas" });
+  it("une route inconnue ne reflete pas sa query string", async () => {
+    const response = await hidden.inject({
+      method: "GET",
+      url: "/api/nexistepas?recherche=secret-client",
+    });
+
     expect(response.statusCode).toBe(404);
     expect(response.headers["content-type"]).toContain("application/problem+json");
     expect(response.json()).toMatchObject({
       type: "/problems/not-found",
       status: 404,
+      detail: "Aucune route GET /api/nexistepas.",
       instance: "/api/nexistepas",
     });
+    expect(response.body).not.toContain("secret-client");
+    expect(response.body).not.toContain("recherche=");
   });
 
-  it("une erreur de validation rend un problem+json detaille", async () => {
-    const response = await hidden.inject({ method: "GET", url: "/api/rooms?sort=banana" });
+  it("une validation utilise la route normalisee sans la query string", async () => {
+    const response = await hidden.inject({
+      method: "GET",
+      url: "/api/rooms?sort=banana&recherche=secret-client",
+    });
+
     expect(response.statusCode).toBe(400);
     expect(response.headers["content-type"]).toContain("application/problem+json");
-    const problem = response.json<{ type: string; errors: Array<{ path: string }> }>();
+    const problem = response.json<{
+      type: string;
+      instance: string;
+      errors: Array<{ path: string }>;
+    }>();
     expect(problem.type).toBe("/problems/validation-error");
+    expect(problem.instance).toBe("/api/rooms");
     expect(problem.errors.map((issue) => issue.path)).toContain("/sort");
+    expect(response.body).not.toContain("secret-client");
+    expect(response.body).not.toContain("recherche=");
   });
 
   it("aucune reponse d'erreur ne contient de pile d'appels", async () => {
