@@ -17,7 +17,7 @@ export function Pied(): ReactNode {
       <div className="pied__interieur">
         <p className="pied__mention">
           Projet indépendant, <strong>non affilié à TryHackMe</strong>. Seules des métadonnées
-          publiques des 714 rooms gratuites sont affichées ; les contenus restent sur{" "}
+          publiques des rooms gratuites sont affichées ; les contenus restent sur{" "}
           <a href="https://tryhackme.com" rel="noopener noreferrer" target="_blank">
             tryhackme.com
           </a>
