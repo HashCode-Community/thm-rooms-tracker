@@ -42,8 +42,13 @@ Write-Host "API      : $ApiUrl"
 Write-Host "Sortie   : $sortie"
 Write-Host ""
 
-Write-Host "1/3  Construction du site, avec l'adresse de l'API dedans..." -ForegroundColor Cyan
-Set-Location $app
+$anciennePosition = Get-Location
+$apiBaseUrlExistait = Test-Path Env:VITE_API_BASE_URL
+$ancienneApiBaseUrl = if ($apiBaseUrlExistait) { $env:VITE_API_BASE_URL } else { $null }
+
+try {
+  Write-Host "1/3  Construction du site, avec l'adresse de l'API dedans..." -ForegroundColor Cyan
+  Set-Location $app
 
 # CE QUI SE JOUE SUR CETTE LIGNE.
 #
@@ -106,7 +111,7 @@ $dist = Join-Path $app "apps\web\dist"
 #
 # Efface, le dossier ne peut plus mentir : s'il existe apres la construction,
 # c'est que la construction l'a produit.
-if (Test-Path $dist) { Remove-Item $dist -Recurse -Force }
+if (Test-Path $dist) { Remove-Item $dist -Recurse -Force -ErrorAction Stop }
 
 Invoquer "1/3 installation" { pnpm install --frozen-lockfile }
 Invoquer "1/3 construction" { pnpm build }
@@ -129,7 +134,7 @@ if (-not $trouve) {
 Write-Host ("     adresse presente dans " + $trouve[0].Filename) -ForegroundColor Green
 
 Write-Host "2/3  Copie du site construit..." -ForegroundColor Cyan
-if (Test-Path $sortie) { Remove-Item $sortie -Recurse -Force }
+if (Test-Path $sortie) { Remove-Item $sortie -Recurse -Force -ErrorAction Stop }
 Copy-Item $dist $sortie -Recurse
 
 Write-Host "3/3  En-tetes et repli, avec votre adresse d'API..." -ForegroundColor Cyan
@@ -151,3 +156,13 @@ Write-Host ""
 Write-Host "Verification rapide, le dossier doit contenir :"
 Get-ChildItem $sortie | Select-Object -First 6 -ExpandProperty Name | ForEach-Object { Write-Host "  $_" }
 Write-Host ""
+}
+finally {
+  if ($apiBaseUrlExistait) {
+    $env:VITE_API_BASE_URL = $ancienneApiBaseUrl
+  }
+  else {
+    Remove-Item Env:VITE_API_BASE_URL -ErrorAction SilentlyContinue
+  }
+  Set-Location -LiteralPath $anciennePosition.Path
+}
