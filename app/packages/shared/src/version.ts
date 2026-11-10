@@ -7,9 +7,9 @@
  * `unrecognized key: "imageUrl"` de Zod, qui ne dit rien du vrai probleme.
  *
  * Le contrat pose `additionalProperties: false` sur la racine et sur chaque
- * room. Un champ ajoute par le scraper n'est donc PAS ignore : il est rejete.
- * C'est voulu (la coordination est forcee plutot que la derive silencieuse),
- * mais cela n'a de sens que si le message d'erreur est actionnable.
+ * room. Un champ ajoute par le scraper n'est donc PAS ignore : il est rejete
+ * par Zod tant que le contrat n'a pas ete mis a jour. Le controle de version
+ * reste independant : une version comprise dans la plage caret est compatible.
  *
  * Politique de versionnement, cf. docs/data-contract.md :
  *   ajout de champ                 -> bump MINEUR (1.0.0 -> 1.1.0), meme fichier
@@ -30,8 +30,27 @@ function parseSemver(value: string): Semver | null {
   return { major: Number(major), minor: Number(minor), patch: Number(patch) };
 }
 
+function compareSemver(left: Semver, right: Semver): number {
+  if (left.major !== right.major) return left.major - right.major;
+  if (left.minor !== right.minor) return left.minor - right.minor;
+  return left.patch - right.patch;
+}
+
+/**
+ * Semantique du caret npm :
+ *   ^1.2.3   -> >=1.2.3 <2.0.0
+ *   ^0.2.3   -> >=0.2.3 <0.3.0
+ *   ^0.0.3   -> >=0.0.3 <0.0.4
+ */
+function satisfiesCaret(actual: Semver, minimum: Semver): boolean {
+  if (compareSemver(actual, minimum) < 0) return false;
+  if (minimum.major > 0) return actual.major === minimum.major;
+  if (minimum.minor > 0) return actual.major === 0 && actual.minor === minimum.minor;
+  return actual.major === 0 && actual.minor === 0 && actual.patch === minimum.patch;
+}
+
 export type VersionVerdict =
-  | { ok: true; version: string }
+  | { ok: true; version: string; notice?: string }
   | { ok: false; version: string; reason: string };
 
 /**
@@ -60,39 +79,25 @@ export function checkDatasetVersion(
     };
   }
 
-  if (actual.major !== supported.major) {
+  if (!satisfiesCaret(actual, supported)) {
+    const older = compareSemver(actual, supported) < 0;
     return {
       ok: false,
       version: raw,
-      reason:
-        `Dataset v${raw} incompatible : cet importer supporte ${range}. ` +
-        "Changement majeur = rupture de contrat (champ supprime ou type modifie). " +
-        `Attendre la mise a jour de l'importer, ou repartir d'un fichier rooms.v${supported.major}.json.`,
+      reason: older
+        ? `Dataset v${raw} plus ancien que la plage supportee ${range}. ` +
+          "L'importer attend un contrat plus recent. Relancer un scrape compatible."
+        : `Dataset v${raw} incompatible : cet importer supporte ${range}. ` +
+          "La version sort de la plage de compatibilite et peut rompre le contrat. " +
+          "Mettre a jour l'importer avant de relivrer.",
     };
   }
 
-  if (
-    actual.minor > supported.minor ||
-    (actual.minor === supported.minor && actual.patch > supported.patch)
-  ) {
+  if (compareSemver(actual, supported) > 0) {
     return {
-      ok: false,
+      ok: true,
       version: raw,
-      reason:
-        `Dataset v${raw} incompatible : cet importer supporte ${range}. ` +
-        "Le dataset est PLUS RECENT que l'importer : le scraper a probablement ajoute un champ. " +
-        "Mettre a jour l'importer et le contrat Zod, ou regenerer le dataset avec l'ancien scraper. " +
-        "Ne PAS contourner en relachant le schema.",
-    };
-  }
-
-  if (actual.minor < supported.minor) {
-    return {
-      ok: false,
-      version: raw,
-      reason:
-        `Dataset v${raw} plus ancien que la plage supportee ${range}. ` +
-        "L'importer attend des champs que ce dataset ne contient pas. Relancer un scrape.",
+      notice: `Dataset v${raw} plus recent que la version minimale ${supported.major}.${supported.minor}.${supported.patch}, mais compatible avec ${range}.`,
     };
   }
 

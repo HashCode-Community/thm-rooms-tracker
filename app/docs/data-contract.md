@@ -184,40 +184,29 @@ L'importer déclare la plage qu'il accepte (`^1.0.0`, donc `>= 1.0.0` et `< 2.0.
 
 **Le dataset et le schéma voyagent ensemble, jamais l'un sans l'autre.**
 
-### Les messages d'erreur que tu obtiendras
+### Compatibilité et diagnostics
 
-Un contrat qui montre l'erreur est plus clair qu'un contrat qui décrit la règle. Ce sont les messages
-réels de `pnpm data:audit`, vérifiés sur des fichiers fabriqués :
+La plage `^1.0.0` accepte toutes les versions de `1.0.0` inclus à `2.0.0` exclu :
 
-**Tu as ajouté un champ et bumpé en `1.1.0` :**
-```
-Version : Dataset v1.1.0 incompatible : cet importer supporte ^1.0.0. Le dataset est PLUS
-RECENT que l'importer : le scraper a probablement ajoute un champ. Mettre a jour l'importer
-et le contrat Zod, ou regenerer le dataset avec l'ancien scraper. Ne PAS contourner en
-relachant le schema.
-```
+| Version du dataset | Verdict du contrôle de version |
+|---|---|
+| `1.0.0` | compatible |
+| `1.0.1` | compatible, correction de données |
+| `1.1.0` | compatible, évolution mineure |
+| `0.9.9` | refusée, antérieure à la borne minimale |
+| `2.0.0` | refusée, rupture majeure |
+| `v1` | refusée, format invalide |
 
-**Tu as bumpé en `2.0.0` :**
-```
-Version : Dataset v2.0.0 incompatible : cet importer supporte ^1.0.0. Changement majeur =
-rupture de contrat (champ supprime ou type modifie). Attendre la mise a jour de l'importer,
-ou repartir d'un fichier rooms.v1.json.
-```
+Une version compatible plus récente est signalée dans le rapport d'audit à titre de diagnostic, sans
+bloquer l'import. Ce diagnostic ne remplace pas la validation du contenu : le schéma Zod reste strict.
 
-**`datasetVersion` mal formé :**
-```
-Version : `meta.datasetVersion` absent ou malforme ("v1"). Le contrat impose le format
-X.Y.Z. Corriger le scraper avant de relivrer.
-```
+Ainsi, si tu ajoutes un champ et passes à `1.1.0`, le contrôle de version accepte `1.1.0`, mais le
+schéma et l'importer doivent être mis à jour dans la même PR. Sans cette mise à jour, l'import échoue
+sur une violation de contrat, pas sur une fausse incompatibilité de version.
 
-**Empreinte qui ne correspond pas :**
-```
-Integrite : le SHA-256 des octets bruts ne correspond pas au sidecar.
-attendu 0000..., obtenu 15b1dd50...
-```
-
-Si tu vois le premier message, **ne relâche pas le schéma pour faire passer l'import.** Préviens Nel :
-c'est l'importer et le contrat qui doivent être mis à jour, dans la même PR que ton champ.
+Pour une version majeure incompatible, l'audit explique que la version sort de la plage et qu'il faut
+mettre à jour l'importer. Pour un `datasetVersion` absent ou mal formé, il rappelle que le format
+`X.Y.Z` est obligatoire.
 
 ---
 

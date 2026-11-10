@@ -204,6 +204,12 @@ function main(): number {
   if (!version.ok) {
     problems.push(`Version : ${version.reason}`);
   }
+  const versionStatus =
+    version.ok && version.notice
+      ? `compatible — ${version.notice}`
+      : version.ok
+        ? "compatible"
+        : "**INCOMPATIBLE, bloquant**";
 
   // --- 3. Contrat Zod (BLOQUANT) -------------------------------------------
   const parsed = DatasetSchema.safeParse(raw);
@@ -240,7 +246,7 @@ function main(): number {
     "|---|---|",
     `| Taille | ${bytes.length.toLocaleString("fr-FR")} octets |`,
     `| SHA-256 des octets bruts | \`${rawSha}\` |`,
-    `| \`meta.datasetVersion\` | \`${version.version}\` — importer compatible \`${SUPPORTED_DATASET_RANGE}\` — ${version.ok ? "compatible" : "**INCOMPATIBLE, bloquant**"} |`,
+    `| \`meta.datasetVersion\` | \`${version.version}\` — importer compatible \`${SUPPORTED_DATASET_RANGE}\` — ${versionStatus} |`,
     `| Sidecar \`${basename(sidecarPath)}\` | ${
       sidecarOk === null
         ? "**ABSENT — bloquant**"
