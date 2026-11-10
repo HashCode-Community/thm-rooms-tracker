@@ -210,7 +210,7 @@ function ResultsHeader({
           des resultats approches. */}
       {strategy === "trigram" && search.q !== undefined && (
         <span className="petit doux">
-          Aucun resultat exact pour « {search.q} » : recherche approchee sur les titres.
+          Aucun résultat exact pour « {search.q} » : recherche approchée sur les titres.
         </span>
       )}
     </div>
