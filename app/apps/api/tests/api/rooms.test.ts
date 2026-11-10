@@ -215,6 +215,23 @@ describe("recherche plein texte et repli trigramme", () => {
 });
 
 describe("bornes d'entree", () => {
+  it.each(["%00", "nmap%00linux", "%09nmap", "nmap%0A", "nmap%7F", "nmap%C2%85"])(
+    "q=%s : refuse les caractères de contrôle avec un problème 400 sur /q",
+    async (q) => {
+      const response = await app.inject({ method: "GET", url: `/api/rooms?q=${q}` });
+      expect(response.statusCode).toBe(400);
+      expect(response.headers["content-type"]).toContain("application/problem+json");
+      const problem = response.json<{
+        type: string;
+        status: number;
+        errors: Array<{ path: string }>;
+      }>();
+      expect(problem.type).toBe("/problems/validation-error");
+      expect(problem.status).toBe(400);
+      expect(problem.errors.map((issue) => issue.path)).toContain("/q");
+    },
+  );
+
   it.each([
     ["/api/rooms?page=0", "/page"],
     ["/api/rooms?page=99999", "/page"],
