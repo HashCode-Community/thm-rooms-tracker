@@ -81,7 +81,7 @@ export default function RoomsList(): ReactNode {
     <>
       <EntetePage
         titre="Catalogue"
-        sousTitre="Les 714 rooms gratuites de TryHackMe, filtrables par difficulté, durée, technologie ou outil."
+        sousTitre="Les rooms gratuites de TryHackMe, filtrables par difficulté, durée, technologie ou outil."
         actions={<SearchBox value={search.q ?? ""} onSearch={applySearchTerm} />}
       />
 

@@ -24,7 +24,6 @@ import { useTitre } from "../titre.js";
 const DATASET = {
   version: "1.0.0",
   extraitLe: "2026-09-10",
-  roomsGratuites: 714,
   roomsAuCatalogue: 1321,
 } as const;
 
@@ -75,8 +74,8 @@ export default function Mentions(): ReactNode {
             Jeu de données <code>{DATASET.version}</code>, extrait le {DATASET.extraitLe}
           </li>
           <li>
-            {DATASET.roomsGratuites} rooms gratuites retenues sur {DATASET.roomsAuCatalogue}{" "}
-            présentes au catalogue
+            Les rooms gratuites sont retenues parmi les {DATASET.roomsAuCatalogue} rooms présentes
+            au catalogue
           </li>
           <li>
             Un jeu de données est une <strong>photographie datée</strong> : TryHackMe publie, retire
