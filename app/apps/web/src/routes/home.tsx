@@ -33,8 +33,12 @@ const NIVEAUX: Readonly<Record<string, string>> = {
  * par ou je commence, qu'est-ce que ca vaut, comment ca marche.
  */
 function Home(): ReactNode {
-  useTitre("714 rooms TryHackMe, trois parcours");
   const stats = useResource<StatsResponse>(urls.stats());
+  useTitre(
+    stats.data === null
+      ? "Rooms TryHackMe, trois parcours"
+      : `${stats.data.rooms.total} rooms TryHackMe, trois parcours`,
+  );
   const tracks = useResource<TrackListResponse>(urls.tracks());
   const progression = useProgression();
   const codes = useMemo(
@@ -59,7 +63,9 @@ function Home(): ReactNode {
         <div className="hero__colonnes">
           <div className="accroche">
             <h1 className="accroche__titre">
-              714 rooms TryHackMe gratuites.
+              {stats.data === null
+                ? "Les rooms TryHackMe gratuites."
+                : `${stats.data.rooms.total} rooms TryHackMe gratuites.`}
               <br />
               <span className="accroche__accent">Trois chemins pour les traverser.</span>
             </h1>
