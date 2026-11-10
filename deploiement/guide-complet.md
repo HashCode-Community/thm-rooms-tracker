@@ -259,7 +259,8 @@ l'autre chemin, celui où Cloudflare reconstruit tout seul à chaque poussée.
 ### 4.1 Dire au site où est l'API
 
 **Cette section ne concerne que le chemin « Cloudflare reconstruit depuis Git ».** Si vous avez
-suivi le raccourci 4.0, le script a déjà tout fait et vous pouvez passer à 4.2.
+suivi le raccourci 4.0 et déposé `site-a-deposer`, votre projet Cloudflare existe déjà : passez
+directement à l'**étape 5**. Ne créez pas un second projet avec « Connect to Git ».
 
 Le site doit savoir **deux** choses, et elles ne se règlent pas au même endroit.
 
@@ -290,7 +291,7 @@ git push origin feat/refonte-ui
 **Attendu** : deux fois `1 fichier(s) copié(s).`. Si vous lisez « Le fichier spécifié est
 introuvable », vous n'êtes pas à la racine du dépôt — le `cd` ci-dessus y mène.
 
-### 4.2 Créer le projet
+### 4.2 Créer le projet — chemin Git uniquement
 
 1. Ouvrir **<https://dash.cloudflare.com>**, créer un compte si besoin (**Sign up**, gratuit).
 2. Menu de gauche : **Workers & Pages** → **Create** → onglet **Pages** → **Connect to Git**.
