@@ -350,7 +350,7 @@ L'API refuse encore les appels du site : à l'étape 3 vous lui avez donné une 
 
 Sur `https://thm-roadmap.pages.dev` :
 
-- l'accueil affiche **714**, **890 heures**, et le graphe des trois parcours ;
+- l'accueil affiche le nombre de rooms et d'heures renvoyé par l'API, ainsi que le graphe des trois parcours ;
 - **Catalogue** affiche des rooms et les filtres répondent ;
 - ouvrir un parcours, cocher une room : la progression se met à jour ;
 - **coller directement** `https://thm-roadmap.pages.dev/roadmap/fondamentaux` dans la barre
@@ -368,7 +368,47 @@ le savez. Dans `app/apps/web/src/routes/mentions-page.tsx`, remplacer cette lign
 Hébergeur : Cloudflare, Inc. (site) et Render Services, Inc. (API).
 ```
 
-Puis `git commit` et `git push` : Cloudflare redéploie tout seul à chaque poussée.
+Puis `git commit` et `git push`. Si vous avez suivi le raccourci 4.0, cette poussée ne
+met pas le site en ligne : Cloudflare n'est pas connecté à Git. Suivez la procédure ci-dessous.
+
+---
+
+## Mettre à jour ce qui est en ligne
+
+Une poussée Git ne suffit pas avec les deux services créés dans ce guide.
+
+### API — déploiement manuel sur Render
+
+Le service a été créé depuis **Public Git Repository**. Dans cette configuration, Render ne
+redéploie pas automatiquement les nouveaux commits.
+
+1. Pousser le correctif sur la branche de production.
+2. Ouvrir **Render** → le service `thm-roadmap-api`.
+3. Choisir **Manual Deploy** → **Deploy latest commit**.
+4. Attendre la fin de la construction, puis vérifier `/health` et les journaux du service.
+
+Tant que cette action manuelle n'est pas faite, l'ancienne version de l'API reste en ligne même si
+GitHub contient déjà le correctif.
+
+### Site — reconstruire puis redéposer sur Cloudflare
+
+Le projet créé par le raccourci 4.0 est un dépôt direct d'assets, sans connexion Git.
+
+1. Récupérer le dernier code sur l'ordinateur.
+2. Relancer :
+
+   ```powershell
+   cd C:\Users\N\Projets\thm-roadmap\deploiement\3-site
+   .\preparer-le-site.ps1 -ApiUrl 'https://thm-roadmap-api.onrender.com'
+   ```
+
+3. Dans **Cloudflare** → **Workers & Pages** → le projet, créer un nouveau déploiement par
+   **Upload assets**.
+4. Déposer le **contenu** du nouveau dossier `site-a-deposer`, puis refaire les vérifications de
+   l'étape 5, notamment le rechargement direct d'une URL `/roadmap/…`.
+
+Ne connectez pas ce projet à Git après coup : ce serait un second chemin de construction, avec un
+risque de publier sans les fichiers de sécurité assemblés par le script.
 
 ---
 
