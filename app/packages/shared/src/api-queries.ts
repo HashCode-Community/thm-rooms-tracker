@@ -74,9 +74,17 @@ const TeamKeySchema = z
 
 const PositiveInt = (max: number) => z.coerce.number().int().min(0).max(max);
 
+/** Refuse les controles C0/C1 AVANT trim, y compris ceux en bordure du terme. */
+const SearchTermSchema = z
+  .string()
+  .regex(/^\P{Cc}*$/u, "Le terme de recherche ne doit pas contenir de caractères de contrôle.")
+  .trim()
+  .min(1)
+  .max(MAX_QUERY_LENGTH);
+
 /** Filtres partages entre `/api/rooms` et `/api/facets`. */
 export const RoomFiltersSchema = z.object({
-  q: z.string().trim().min(1).max(MAX_QUERY_LENGTH).optional(),
+  q: SearchTermSchema.optional(),
   difficulty: multiValue(z.enum(DIFFICULTIES)),
   type: multiValue(z.enum(ROOM_TYPES)),
   team: multiValue(TeamKeySchema),
