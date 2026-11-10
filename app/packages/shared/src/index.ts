@@ -94,6 +94,7 @@ export type {
 export {
   computeTrackProgress,
   nextStepPosition,
+  remainingCoreMinutes,
   ProvenanceSchema,
   ROADMAP_DISCLAIMER,
   STEP_ROOM_REQUIREMENTS,
