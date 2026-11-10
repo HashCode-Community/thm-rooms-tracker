@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { DatasetSchema } from "@thm/shared";
 import type { FastifyInstance } from "fastify";
 import { buildApp } from "../../src/app.js";
 import { type AppConfig, loadConfig } from "../../src/config.js";
@@ -16,7 +19,11 @@ import { closeDatabase, pingDatabase } from "../../src/db/client.js";
  *   `pnpm test`      -> les deux
  */
 
-export const EXPECTED_ROOMS = 714;
+const ROOT = resolve(import.meta.dirname, "../../../..");
+const DATASET = resolve(ROOT, "data/datasets/rooms.v1.json");
+const dataset = DatasetSchema.parse(JSON.parse(readFileSync(DATASET, "utf8")));
+
+export const EXPECTED_ROOMS = dataset.rooms.length;
 
 export async function assertDatabaseReady(): Promise<void> {
   let reachable = false;
