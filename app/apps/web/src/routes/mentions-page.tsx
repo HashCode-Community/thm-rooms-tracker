@@ -44,7 +44,7 @@ export default function Mentions(): ReactNode {
       <div className="intro">
         <h1>Mentions</h1>
         <p className="doux">
-          Ce que ce site affiche, d'ou viennent les données, et ce qu'il fait de ce que vous y
+          Ce que ce site affiche, d'où viennent les données, et ce qu'il fait de ce que vous y
           faites.
         </p>
       </div>
@@ -52,15 +52,15 @@ export default function Mentions(): ReactNode {
       <Section titre="Projet indépendant">
         <p>
           Ce site n'est <strong>pas affilié à TryHackMe</strong>, ni approuvé ni soutenu par eux.
-          C'est un projet indépendant, construit a partir de métadonnées publiques.
+          C'est un projet indépendant, construit à partir de métadonnées publiques.
         </p>
         <p>
-          Les marques, noms de rooms et contenus pédagogiques appartiennent a leurs auteurs. Ce site
+          Les marques, noms de rooms et contenus pédagogiques appartiennent à leurs auteurs. Ce site
           n'en héberge aucun : chaque room renvoie vers{" "}
           <a href="https://tryhackme.com" rel="noopener noreferrer" target="_blank">
             tryhackme.com
           </a>
-          , ou elle se fait.
+          , où elle se fait.
         </p>
       </Section>
 
@@ -81,11 +81,11 @@ export default function Mentions(): ReactNode {
           <li>
             Un jeu de données est une <strong>photographie datée</strong> : TryHackMe publie, retire
             et modifie des rooms en continu. Une room retirée du catalogue reste visible ici,
-            signalée comme telle, plutot que de disparaitre de votre progression sans explication.
+            signalée comme telle, plutôt que de disparaitre de votre progression sans explication.
           </li>
         </ul>
         <p className="petit doux">
-          Les parcours, eux, ne viennent pas des données : ils sont écrits a la main. Les données
+          Les parcours, eux, ne viennent pas des données : ils sont écrits à la main. Les données
           TryHackMe ne contiennent aucun ordre pédagogique, et aucun prérequis technique.
         </p>
       </Section>
@@ -111,7 +111,7 @@ export default function Mentions(): ReactNode {
           <li>
             Ce n'est pas une intention, c'est une impossibilité : l'API ne sait que{" "}
             <strong>lire</strong>. Elle n'expose aucune route capable de recevoir quoi que ce soit,
-            et un test le vérifie a chaque construction.
+            et un test le vérifie à chaque construction.
           </li>
           <li>
             Vous pouvez <strong>exporter</strong> votre progression en JSON depuis la page{" "}
