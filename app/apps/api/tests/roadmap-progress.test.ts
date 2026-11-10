@@ -1,6 +1,7 @@
 import {
   computeTrackProgress,
   nextStepPosition,
+  remainingCoreMinutes,
   type TrackRoom,
   type TrackStep,
 } from "@thm/shared";
@@ -15,13 +16,17 @@ import { describe, expect, it } from "vitest";
  * Une seule definition de la regle, des deux cotes.
  */
 
-function room(code: string, requirement: TrackRoom["requirement"] = "core"): TrackRoom {
+function room(
+  code: string,
+  requirement: TrackRoom["requirement"] = "core",
+  durationMinutes: number | null = 30,
+): TrackRoom {
   return {
     code,
     title: code,
     difficulty: { key: "easy", label: "Facile", level: 1 },
     type: { key: "walkthrough", label: "Guide" },
-    durationMinutes: 30,
+    durationMinutes,
     requirement,
     note: null,
   };
@@ -82,6 +87,36 @@ describe("le denominateur ne compte que les rooms `core`", () => {
  * Si la progression etait scopee a l'etape, 60 rooms sur 61 se comporteraient
  * correctement et personne ne remarquerait rien.
  */
+describe("la duree restante suit les rooms terminees", () => {
+  it("retranche une room meme si son etape reste incomplete", () => {
+    const steps = [
+      step(1, [room("faite", "core", 30), room("a-faire", "core", 45)]),
+      step(2, [room("optionnelle", "optional", 120)]),
+    ];
+
+    expect(remainingCoreMinutes(steps, new Set(["faite"]))).toBe(45);
+  });
+
+  it("ignore les rooms optionnelles et les durees inconnues", () => {
+    const steps = [
+      step(1, [room("essentielle", "core", 25), room("sans-duree", "core", null)]),
+      step(2, [room("bonus", "bonus", 180)]),
+    ];
+
+    expect(remainingCoreMinutes(steps, new Set())).toBe(25);
+  });
+
+  it("ne compte pas deux fois un meme code present dans plusieurs etapes", () => {
+    const steps = [
+      step(1, [room("partagee", "core", 20)]),
+      step(2, [room("partagee", "core", 20)]),
+    ];
+
+    expect(remainingCoreMinutes(steps, new Set())).toBe(20);
+    expect(remainingCoreMinutes(steps, new Set(["partagee"]))).toBe(0);
+  });
+});
+
 describe("une room partagee entre deux parcours ne se termine qu'une fois", () => {
   const PARTAGEE = "cyberkillchainzmt";
 

@@ -214,3 +214,36 @@ export function computeTrackProgress(
     steps: stepProgress,
   };
 }
+/**
+ * Duree des rooms essentielles qu'il reste a terminer.
+ *
+ * Le calcul porte sur les ROOMS, pas sur les etapes : terminer une room doit
+ * reduire le temps restant meme si son etape contient encore d'autres rooms.
+ * Un meme code n'est compte qu'une fois et une duree inconnue n'invente aucun
+ * temps.
+ */
+export function remainingCoreMinutes(
+  steps: ReadonlyArray<{
+    rooms: ReadonlyArray<Pick<TrackRoom, "code" | "requirement" | "durationMinutes">>;
+  }>,
+  completedRoomCodes: ReadonlySet<string>,
+): number {
+  const counted = new Set<string>();
+  let total = 0;
+
+  for (const step of steps) {
+    for (const room of step.rooms) {
+      if (
+        room.requirement !== "core" ||
+        completedRoomCodes.has(room.code) ||
+        counted.has(room.code)
+      ) {
+        continue;
+      }
+      counted.add(room.code);
+      total += room.durationMinutes ?? 0;
+    }
+  }
+
+  return total;
+}

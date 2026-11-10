@@ -2,6 +2,7 @@ import { createRoute, Link } from "@tanstack/react-router";
 import {
   computeTrackProgress,
   nextStepPosition,
+  remainingCoreMinutes,
   type TrackDetail,
   type TrackDetailResponse,
   type TrackProgress,
@@ -99,7 +100,12 @@ export default function RoadmapDetail(): ReactNode {
         </div>
 
         <aside className="colonne-laterale" aria-label="Votre avancement">
-          <SuiviDuParcours data={data} progress={progress} prochaine={prochaine} />
+          <SuiviDuParcours
+            data={data}
+            progress={progress}
+            prochaine={prochaine}
+            completedCodes={completedCodes}
+          />
         </aside>
       </div>
     </div>
@@ -117,20 +123,19 @@ function SuiviDuParcours({
   data,
   progress,
   prochaine,
+  completedCodes,
 }: {
   data: TrackDetail;
   progress: TrackProgress;
   prochaine: number | null;
+  completedCodes: ReadonlySet<string>;
 }): ReactNode {
   const etapeSuivante = data.steps.find((step) => step.position === prochaine);
 
-  // Le temps restant ne compte que les etapes NON terminees : afficher la duree
-  // totale a quelqu'un qui a fait la moitie du parcours lui ment sur ce qui
-  // l'attend.
+  // Une room terminee retranche sa duree immediatement, meme si son etape
+  // contient encore d'autres rooms essentielles.
+  const minutesRestantes = remainingCoreMinutes(data.steps, completedCodes);
   const parPosition = new Map(progress.steps.map((step) => [step.position, step]));
-  const minutesRestantes = data.steps
-    .filter((step) => parPosition.get(step.position)?.complete !== true)
-    .reduce((total, step) => total + (step.estimatedMinutes ?? 0), 0);
 
   return (
     <div className="panneau suivi">
