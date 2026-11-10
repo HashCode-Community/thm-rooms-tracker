@@ -19,16 +19,15 @@ confirmation. Aucune carte bancaire pour le chemin décrit ici.
 
 | Ce que c'est | Où ça va | Pourquoi pas ailleurs |
 |---|---|---|
-| **La base de données** — les 714 rooms, les parcours | **Neon** | le palier gratuit n'expire jamais, contrairement à celui de Render |
+| **La base de données** — le catalogue de rooms et les parcours | **Neon** | le palier gratuit n'expire jamais, contrairement à celui de Render |
 | **L'API** — le programme qui lit la base et répond | **Render** | Fastify est un programme qui tourne en permanence, pas une fonction |
 | **Le site** — les pages que le visiteur voit | **Cloudflare Pages** | des fichiers à servir, rien à exécuter |
 
 **L'ordre compte** : base → la remplir → API → site → rebrancher les deux. Si vous inversez, vous
 tournerez en rond sur des erreurs qui n'ont pas l'air liées.
 
-**Une branche, pas l'autre.** Tout le travail est sur **`feat/refonte-ui`**. La branche `main` a
-**61 commits de retard** : déployer `main` mettrait en ligne une version d'il y a une semaine.
-Partout où un service demande une branche, répondez `feat/refonte-ui`.
+**Une seule branche de production.** Tout correctif relu et fusionné arrive sur **`main`**.
+Partout où un service demande une branche, répondez `main`.
 
 ---
 
@@ -70,8 +69,8 @@ passe** : qui l'a peut lire et écrire toute la base.
 
 ## Étape 2 — Remplir la base, depuis votre ordinateur
 
-Les 714 rooms ne sont pas dans la base : elles sont dans un fichier du dépôt, et quatre commandes
-les y mettent. **Ces commandes tournent depuis votre machine**, pas depuis un serveur.
+Les rooms ne sont pas dans la base : elles sont dans un fichier du dépôt, et six commandes les y
+mettent. **Ces commandes tournent depuis votre machine**, pas depuis un serveur.
 
 ### 2.0 Le raccourci : un seul script
 
@@ -89,8 +88,9 @@ une seule fois :
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 ```
 
-Le script affiche les six étapes et s'arrête à la première qui échoue, en disant laquelle. **Il
-n'affiche jamais votre mot de passe**, même en cas d'erreur.
+Le script affiche les six étapes et s'arrête à la première qui échoue, en disant laquelle. Sa ligne
+« Base visée » n'affiche que l'hôte. Les outils externes peuvent toutefois inclure des informations
+sensibles dans leurs erreurs : ne publiez pas la sortie du terminal sans la relire.
 
 Si vous préférez voir ce qu'il fait, la suite détaille les mêmes commandes, une par une.
 
@@ -119,7 +119,7 @@ export DATABASE_URL='postgresql://…-pooler….neon.tech/neondb?sslmode=require
 Cette valeur ne vit que dans **cette** fenêtre de terminal. Si vous la fermez, il faudra la
 redonner. C'est voulu : elle n'est écrite nulle part.
 
-### 2.3 Les quatre commandes, dans cet ordre
+### 2.3 Les six commandes, dans cet ordre
 
 ```powershell
 pnpm install --frozen-lockfile
@@ -146,7 +146,8 @@ select count(*) from rooms;
 select count(*) from tracks;
 ```
 
-**Attendu : 714 et 3.** Si vous voyez 0, une des commandes n'a pas tourné ou le `--apply` manque.
+**Attendu : un nombre de rooms supérieur à 0, et 3 parcours.** Si vous voyez 0, une des commandes
+n'a pas tourné ou le `--apply` manque.
 
 ---
 
@@ -161,23 +162,25 @@ select count(*) from tracks;
 ### 3.2 Créer le service
 
 1. Dans le tableau de bord : **New +** (en haut à droite) → **Web Service**.
-2. Choisir le dépôt **`thm-rooms-tracker`** → **Connect**.
+2. Ouvrir l'onglet **Public Git Repository**, coller
+   `https://github.com/HashCode-Community/thm-rooms-tracker`, puis **Connect**.
 3. Remplir le formulaire :
 
    | Champ | Valeur | Pourquoi |
    |---|---|---|
    | Name | `thm-roadmap-api` | il donnera l'adresse `thm-roadmap-api.onrender.com` |
    | Region | **Frankfurt (EU Central)** | la même que la base |
-   | Branch | **`feat/refonte-ui`** | `main` a 61 commits de retard |
+   | Branch | **`main`** | branche de production |
    | Language / Runtime | **Docker** | la recette de construction est dans le dépôt |
    | Dockerfile Path | `./deploiement/2-api/Dockerfile` | |
    | Docker Build Context Directory | `./app` | |
+   | Health Check Path | `/health` | Render vérifie aussi la connexion à la base |
    | Instance Type | **Free** | |
 
 ### 3.3 Les variables d'environnement
 
 Toujours dans le même formulaire, section **Environment Variables** → **Add Environment Variable**,
-six fois :
+neuf fois :
 
 | Key | Value |
 |---|---|
@@ -185,8 +188,11 @@ six fois :
 | `NODE_ENV` | `production` |
 | `API_HOST` | `0.0.0.0` |
 | `API_PORT` | `10000` |
+| `PORT` | `10000` |
 | `TRUST_PROXY` | `1` |
 | `CORS_ORIGINS` | `https://exemple.invalid` — **valeur provisoire**, corrigée à l'étape 5 |
+| `RATE_LIMIT_MAX` | `120` |
+| `LOG_LEVEL` | `info` |
 
 **Ce que chacune évite**, parce qu'aucune n'est là par habitude :
 
@@ -194,12 +200,14 @@ six fois :
   de ses erreurs.
 - `API_HOST=0.0.0.0` : la valeur par défaut, `127.0.0.1`, signifie « joignable seulement depuis
   l'intérieur du conteneur », c'est-à-dire par personne.
-- `API_PORT=10000` : le port que Render écoute. S'il ne correspond pas, Render déclare le service en
-  échec sans autre explication.
+- `API_PORT=10000` et `PORT=10000` : l'application et Render doivent écouter et sonder le même
+  port. Si les valeurs divergent, Render déclare le service en échec sans autre explication.
 - `TRUST_PROXY=1` : le **nombre** d'intermédiaires devant l'application, et jamais `true` —
   l'application refuse désormais cette valeur, qui laissait l'appelant choisir l'adresse sur
   laquelle il était compté. Sans cette variable, toutes les requêtes
   semblent venir de la même adresse et la limite anti-abus devient une limite globale.
+- `RATE_LIMIT_MAX=120` : plafond de requêtes par fenêtre et par visiteur.
+- `LOG_LEVEL=info` : garde les diagnostics utiles sans activer les traces de développement.
 
 ### 3.4 Déployer et attendre
 
@@ -226,8 +234,8 @@ joint la base — s'il manque, c'est `DATABASE_URL` qui est en cause, pas Render
 https://thm-roadmap-api.onrender.com/api/stats
 ```
 
-**Attendu** : un long JSON qui commence par `{"rooms":{"total":714,…`. Si `total` vaut 0, la base
-n'a pas été remplie — retour à l'étape 2.
+**Attendu** : un long JSON dont `rooms.total` est supérieur à 0. Si `total` vaut 0, la base n'a
+pas été remplie — retour à l'étape 2.
 
 **Notez cette adresse**, elle sert deux fois dans la suite.
 
@@ -274,19 +282,27 @@ Cette variable se pose à l'étape 4.2, à côté de `NODE_VERSION`.
 **b) Les deux fichiers `_headers` et `_redirects`**, que Cloudflare ne lit que s'ils sont dans le
 dossier publié. Vite recopie tel quel tout ce qui se trouve dans `public/`.
 
-1. Ouvrir `deploiement/3-site/_headers`.
-2. Y remplacer **`https://api.exemple.fr`** par votre adresse Render, sans barre oblique finale :
-   `https://thm-roadmap-api.onrender.com`.
-3. Copier les deux fichiers vers `app/apps/web/public/` :
+1. Copier les deux modèles vers `app/apps/web/public/` sans modifier les originaux :
 
 ```powershell
 cd C:\Users\N\Projets\thm-roadmap
 copy deploiement\3-site\_headers app\apps\web\public\
 copy deploiement\3-site\_redirects app\apps\web\public\
+```
+
+2. Ouvrir **`app/apps/web/public/_headers`**, puis y remplacer
+   `https://api.exemple.fr` par votre adresse Render, sans barre oblique finale :
+   `https://thm-roadmap-api.onrender.com`.
+3. Versionner uniquement les copies destinées à la construction Git :
+
+```powershell
 git add app/apps/web/public/_headers app/apps/web/public/_redirects
 git commit -m "chore(deploy): en-tetes et repli du front"
-git push origin feat/refonte-ui
+git push origin main
 ```
+
+Le modèle `deploiement/3-site/_headers` doit garder l'adresse d'exemple : le script d'upload direct
+s'en sert comme garde et refuse un modèle déjà modifié.
 
 **Attendu** : deux fois `1 fichier(s) copié(s).`. Si vous lisez « Le fichier spécifié est
 introuvable », vous n'êtes pas à la racine du dépôt — le `cd` ci-dessus y mène.
@@ -302,7 +318,7 @@ introuvable », vous n'êtes pas à la racine du dépôt — le `cd` ci-dessus y
    | Champ | Valeur |
    |---|---|
    | Project name | `thm-roadmap` |
-   | Production branch | **`feat/refonte-ui`** |
+   | Production branch | **`main`** |
    | Framework preset | **None** |
    | Build command | `corepack enable && pnpm install --frozen-lockfile && pnpm build` |
    | Build output directory | `apps/web/dist` |
@@ -359,17 +375,13 @@ Sur `https://thm-roadmap.pages.dev` :
 
 ---
 
-## Étape 6 — La dernière ligne à écrire
+## Étape 6 — Vérifier les mentions
 
-La page **Mentions** porte encore « Hébergeur : à renseigner à la mise en ligne ». Maintenant vous
-le savez. Dans `app/apps/web/src/routes/mentions-page.tsx`, remplacer cette ligne par :
+La page **Mentions** nomme déjà Cloudflare pour le site, Render pour l'API et Neon pour la base.
+Ouvrez-la une fois sur le site publié et vérifiez que ces trois rôles sont toujours exacts.
 
-```
-Hébergeur : Cloudflare, Inc. (site) et Render Services, Inc. (API).
-```
-
-Puis `git commit` et `git push`. Si vous avez suivi le raccourci 4.0, cette poussée ne
-met pas le site en ligne : Cloudflare n'est pas connecté à Git. Suivez la procédure ci-dessous.
+Une modification future de cette page suit la procédure ci-dessous. Si vous avez utilisé le
+raccourci 4.0, un `git push` ne met pas le site en ligne : Cloudflare n'est pas connecté à Git.
 
 ---
 
@@ -422,7 +434,7 @@ risque de publier sans les fichiers de sécurité assemblés par le script.
 | **404** en rechargeant `/roadmap/…` | le fichier `_redirects` n'est pas dans `apps/web/public/` | étape 4.1, puis repousser |
 | La première visite met **une minute** | le service gratuit se réveillait | normal. Rien à corriger |
 | `/api/stats` répond `"total":0` | la base est vide | étape 2, en vérifiant le `--apply` |
-| Render : **Build failed** | souvent la branche ou le chemin du Dockerfile | vérifier `feat/refonte-ui`, `./deploiement/2-api/Dockerfile`, contexte `./app` |
+| Render : **Build failed** | souvent la branche ou le chemin du Dockerfile | vérifier `main`, `./deploiement/2-api/Dockerfile`, contexte `./app` |
 | Cloudflare : erreur de syntaxe à la construction | version de Node trop ancienne | ajouter `NODE_VERSION=24` |
 
 Les journaux sont vos amis : **Render → Logs**, **Cloudflare → Deployments → View build log**. Le

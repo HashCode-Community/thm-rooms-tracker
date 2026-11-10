@@ -1,4 +1,4 @@
-# Les six variables de l API
+# Les neuf variables de l API
 
 A coller dans Render : votre service, onglet **Environment**, puis **Add Environment Variable**.
 Une ligne par variable, la cle a gauche, la valeur a droite.
@@ -9,8 +9,11 @@ Une ligne par variable, la cle a gauche, la valeur a droite.
 | `NODE_ENV` | `production` |
 | `API_HOST` | `0.0.0.0` |
 | `API_PORT` | `10000` |
+| `PORT` | `10000` |
 | `TRUST_PROXY` | `1` — le NOMBRE d'intermédiaires, jamais `true` |
 | `CORS_ORIGINS` | l adresse du site, **sans barre oblique finale** |
+| `RATE_LIMIT_MAX` | `120` |
+| `LOG_LEVEL` | `info` |
 
 **Aucune n est la par habitude.** Le detail de ce que chacune evite est en commentaire ci-dessous,
 dans le format d un fichier `.env` — c est celui que la plupart des plateformes acceptent en
@@ -51,6 +54,10 @@ API_HOST=0.0.0.0
 # ailleurs, et rien dans le message ne dit lequel des deux a tort.
 API_PORT=10000
 
+# Render expose aussi le port impose sous ce nom. Garder les deux valeurs
+# identiques evite qu'une sonde et l'application ne visent deux ports differents.
+PORT=10000
+
 # LE NOMBRE D'INTERMEDIAIRES DEVANT L'APPLICATION. Sur Render : 1.
 #
 # `true` EST REFUSE PAR L'APPLICATION, et ce n'est pas de la pedanterie : c'est
@@ -72,6 +79,5 @@ CORS_ORIGINS=https://thm-roadmap.pages.dev
 # --- Reglables --------------------------------------------------------------
 
 RATE_LIMIT_MAX=120
-RATE_LIMIT_WINDOW_MS=60000
 LOG_LEVEL=info
 ```

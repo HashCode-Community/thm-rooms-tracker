@@ -57,7 +57,7 @@ simulation : elles affichent ce qu'elles feraient, se terminent **sans erreur**,
 |---|---|
 | `failed to compute cache key… not found` | le **contexte** de construction n'est pas `./app` |
 | `Cannot find module` | le chemin du Dockerfile n'est pas `./deploiement/2-api/Dockerfile` |
-| la construction part mais le site est ancien | la branche déployée est `main`, qui a 61 commits de retard. Mettre **`feat/refonte-ui`** |
+| le dernier correctif n'est pas présent dans l'API | le service public ne se redéploie pas seul, ou sa branche n'est pas `main` | vérifier la branche `main`, puis **Manual Deploy** → **Deploy latest commit** |
 
 ---
 

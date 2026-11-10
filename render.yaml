@@ -11,13 +11,14 @@
 # 502 ou un 503, et `api.ts` a un message pour ce cas precis — mais le premier
 # visiteur de la journee attend.
 #
-# CE FICHIER DOIT RESTER A LA RACINE DU DEPOT : Render ne cherche `render.yaml`
-# nulle part ailleurs. Range dans `app/deploy/`, il etait invisible, et la page
-# Blueprint repondait « aucun render.yaml trouve ».
+# Le service en ligne a ete cree manuellement depuis l'onglet Public Git
+# Repository. Il ne consomme donc PAS ce fichier et doit etre redeploye avec
+# Manual Deploy > Deploy latest commit. Ce fichier reste la reference versionnee
+# de la configuration Render et une option de reconstruction par Blueprint.
 #
-# Deployer : Render > New > Blueprint, pointer sur ce depot et lier le
-# Blueprint a `main`. Les services declarent aussi `branch: main` ci-dessous
-# pour eviter toute divergence si le Blueprint est cree depuis une autre branche.
+# Si un Blueprint est cree plus tard, Render ne cherche `render.yaml` qu'a la
+# racine du depot. Les services declarent explicitement `branch: main` pour
+# eviter toute divergence.
 
 services:
   - type: web
