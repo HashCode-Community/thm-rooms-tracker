@@ -7,10 +7,7 @@ const databaseScript = readFileSync(
   resolve(ROOT, "deploiement/1-base/remplir-la-base.ps1"),
   "utf8",
 );
-const siteScript = readFileSync(
-  resolve(ROOT, "deploiement/3-site/preparer-le-site.ps1"),
-  "utf8",
-);
+const siteScript = readFileSync(resolve(ROOT, "deploiement/3-site/preparer-le-site.ps1"), "utf8");
 
 describe("les scripts de deploiement nettoient la session appelante", () => {
   it("restaure le dossier courant dans les deux scripts", () => {
