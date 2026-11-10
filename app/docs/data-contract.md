@@ -222,6 +222,12 @@ garde-fou : **s'il devait désactiver plus de 5 % des rooms, il refuse de s'exé
 
 Ce garde-fou ne fonctionne que si tu livres ce que tu as vu, sans le maquiller.
 
+L'import refuse aussi une livraison qui modifierait plus de **25 % des rooms connues**, ou déplacerait
+la part d'une difficulté de plus de **10 points**. La comparaison inclut les tags et les équipes,
+même lorsqu'aucune colonne SQL principale ne change. `--force` reste une soupape explicite pour une
+évolution massive réellement validée ; le rapport conserve alors l'avertissement et les valeurs
+ayant déclenché le garde.
+
 ---
 
 ## 7. Ce qui n'est PAS ta responsabilité

@@ -16,6 +16,11 @@ import {
 } from "../db/schema.js";
 import { sha256Hex } from "./dataset-analysis.js";
 import {
+  assessImportCorruption,
+  DIFFICULTY_SHIFT_THRESHOLD_POINTS,
+  MODIFIED_ROOMS_THRESHOLD_PERCENT,
+} from "./import-guards.js";
+import {
   buildTagLedger,
   findSuffixedMappingKeys,
   loadMapping,
@@ -37,6 +42,8 @@ import {
  *   - upsert par `code`, JAMAIS par titre ;
  *   - une room absente du dataset est DESACTIVEE, jamais supprimee ;
  *   - refus d'executer si plus de 5 % des rooms seraient desactivees, sauf --force ;
+ *   - refus si plus de 25 % des rooms connues changent, ou si une difficulte
+ *     se decale de plus de 10 points, sauf --force ;
  *   - transaction unique sur les DONNEES : tout ou rien.
  *
  * Le journal `import_runs` est HORS de cette transaction, sur une connexion
@@ -306,6 +313,7 @@ try {
       publishedAt: rooms.publishedAt,
       thmUrl: rooms.thmUrl,
       isActive: rooms.isActive,
+      raw: rooms.raw,
     })
     .from(rooms);
   const existingByCode = new Map(existing.map((row) => [row.code, row]));
@@ -416,6 +424,45 @@ try {
     if (!changed) report.unchanged += 1;
   }
   report.deactivated = toDeactivate.map((row) => row.code);
+
+  // --- 7 bis. Corruption massive (bloquant) -------------------------------
+  const corruption = assessImportCorruption(
+    existing.map((room) => ({ code: room.code, isActive: room.isActive, raw: room.raw })),
+    dataset.rooms.map((room) => ({ code: room.code, raw: room })),
+    report.updated,
+  );
+
+  if (corruption.suspicious) {
+    const details: string[] = [];
+    if (corruption.modifiedPercent > MODIFIED_ROOMS_THRESHOLD_PERCENT) {
+      details.push(
+        `${corruption.modifiedKnownCodes.length} rooms connues sur ${corruption.activeKnownRooms} ` +
+          `(${corruption.modifiedPercent.toFixed(1)} %) seraient modifiees, seuil : ` +
+          `${MODIFIED_ROOMS_THRESHOLD_PERCENT} %.`,
+        ...corruption.modifiedKnownCodes.slice(0, 10).map((code) => `  - ${code}`),
+        ...(corruption.modifiedKnownCodes.length > 10
+          ? [`  ... et ${corruption.modifiedKnownCodes.length - 10} autre(s)`]
+          : []),
+      );
+    }
+    for (const shift of corruption.suspiciousDifficultyShifts) {
+      details.push(
+        `Difficulte ${shift.difficulty} : ${shift.beforePercent.toFixed(1)} % -> ` +
+          `${shift.afterPercent.toFixed(1)} % (${shift.deltaPoints.toFixed(1)} points), seuil : ` +
+          `${DIFFICULTY_SHIFT_THRESHOLD_POINTS} points.`,
+      );
+    }
+
+    if (!args.force) {
+      fail("Le volume de modifications ressemble a une corruption massive.", [
+        ...details,
+        "",
+        "Verifier le scraper et le rapport champ par champ.",
+        "Si cette evolution est volontaire, relancer avec --force.",
+      ]);
+    }
+    report.warnings.push(`--force a contourne le garde de corruption : ${details.join(" ")}`);
+  }
 
   // --- 8. Restitution ------------------------------------------------------
   printReport(report, args);
@@ -719,8 +766,15 @@ function printReport(report: Report, options: Args): void {
     console.log(`\n  Desactivees : ${report.deactivated.slice(0, 15).join(", ")}`);
   }
 
+  if (report.warnings.length > 0) {
+    console.log("\n  Avertissements :");
+    for (const warning of report.warnings) console.log(`    - ${warning}`);
+  }
+
   if (options.force) {
-    console.log("\n  --force : le garde des 5 % a ete contourne volontairement.");
+    console.log(
+      "\n  --force : les gardes de desactivation et de corruption peuvent etre contournes.",
+    );
   }
   console.log("");
 
@@ -889,7 +943,7 @@ function renderMarkdown(report: Report, options: Args): string {
     `Genere le ${new Date().toISOString()} (**UTC**).`,
     `Mode : **${options.apply ? "APPLIQUE" : "DRY-RUN, aucune ecriture"}**` +
       `${options.applyMappings ? ", mapping applique" : ", mapping NON applique"}` +
-      `${options.force ? ", **--force** (garde des 5 % contourne)" : ""}.`,
+      `${options.force ? ", **--force** (gardes de desactivation et corruption contournables)" : ""}.`,
     "",
     `Empreinte du dataset : \`${report.checksum}\``,
     `Plage supportee par l'importer : \`${SUPPORTED_DATASET_RANGE}\``,
@@ -907,6 +961,9 @@ function renderMarkdown(report: Report, options: Args): string {
     `| tags resolus | ${report.tagsTotal} |`,
     `| champs trimmes | ${report.trimmed.length} |`,
     "",
+    ...(report.warnings.length > 0
+      ? ["## Avertissements", "", ...report.warnings.map((warning) => `- ${warning}`), ""]
+      : []),
   ];
 
   if (report.tagLedger !== null) lines.push(...renderTagLedger(report.tagLedger));
