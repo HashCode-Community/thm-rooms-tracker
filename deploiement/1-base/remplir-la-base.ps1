@@ -33,7 +33,10 @@ Set-Location $app
 
 Write-Host ""
 Write-Host "Base visee : " -NoNewline
-# On n'affiche JAMAIS le mot de passe, meme dans un journal local.
+# Cette ligne n'affiche que l'hote extrait de la chaine de connexion.
+# Elle ne peut pas garantir ce que pnpm, Node ou PostgreSQL ecriront ensuite en
+# cas d'erreur. Traiter toute sortie de cette session comme potentiellement
+# sensible : ne pas la publier sans relire et masquer les secrets.
 if ($DatabaseUrl -match '@([^/]+)') { Write-Host $Matches[1] } else { Write-Host "(adresse illisible)" }
 Write-Host "Dossier    : $app"
 Write-Host ""
