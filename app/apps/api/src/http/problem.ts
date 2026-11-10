@@ -43,6 +43,17 @@ export function notFoundProblem(detail: string, instance: string): Problem {
     instance,
   };
 }
+/**
+ * Identifie la route sans recopier la query string fournie par le client.
+ * Une route connue utilise son motif Fastify ; le 404 conserve seulement le chemin.
+ */
+function problemInstance(request: FastifyRequest): string {
+  const route = request.routeOptions.url;
+  if (typeof route === "string" && route !== "*" && route !== "/*") return route;
+
+  const queryStart = request.url.indexOf("?");
+  return queryStart === -1 ? request.url : request.url.slice(0, queryStart);
+}
 
 /**
  * Branche le gestionnaire d'erreurs global et le 404.
@@ -53,13 +64,13 @@ export function notFoundProblem(detail: string, instance: string): Problem {
  */
 export function registerProblemHandlers(app: FastifyInstance, exposeDetail: boolean): void {
   app.setNotFoundHandler((request, reply) => {
-    sendProblem(
-      reply,
-      notFoundProblem(`Aucune route ${request.method} ${request.url}.`, request.url),
-    );
+    const instance = problemInstance(request);
+    sendProblem(reply, notFoundProblem(`Aucune route ${request.method} ${instance}.`, instance));
   });
 
   app.setErrorHandler((error: FastifyError, request: FastifyRequest, reply: FastifyReply) => {
+    const instance = problemInstance(request);
+
     // 1. Validation d'entree : 400, avec le detail champ par champ. Ce detail est
     //    sur les donnees ENVOYEES par le client, il n'expose rien du serveur.
     if (hasZodFastifySchemaValidationErrors(error)) {
@@ -68,7 +79,7 @@ export function registerProblemHandlers(app: FastifyInstance, exposeDetail: bool
         title: "Parametres de requete invalides",
         status: 400,
         detail: "Un ou plusieurs parametres ne respectent pas le contrat.",
-        instance: request.url,
+        instance,
         errors: error.validation.map((issue) => ({
           path: issue.instancePath === "" ? "(racine)" : issue.instancePath,
           message: issue.message ?? "valeur invalide",
@@ -90,7 +101,7 @@ export function registerProblemHandlers(app: FastifyInstance, exposeDetail: bool
         detail: exposeDetail
           ? `Serialisation de la reponse invalide : ${error.message}`
           : "Une erreur interne est survenue.",
-        instance: request.url,
+        instance,
       });
     }
 
@@ -107,7 +118,7 @@ export function registerProblemHandlers(app: FastifyInstance, exposeDetail: bool
         title: "Trop de requetes",
         status,
         detail: error.message,
-        instance: request.url,
+        instance,
       });
     }
 
@@ -120,7 +131,7 @@ export function registerProblemHandlers(app: FastifyInstance, exposeDetail: bool
         // JAMAIS de pile d'appels ni de message brut en production : un message
         // d'erreur de base de donnees revele le schema.
         detail: exposeDetail ? error.message : "Une erreur interne est survenue.",
-        instance: request.url,
+        instance,
       });
     }
 
@@ -129,7 +140,7 @@ export function registerProblemHandlers(app: FastifyInstance, exposeDetail: bool
       title: "Requete invalide",
       status,
       detail: error.message,
-      instance: request.url,
+      instance,
     });
   });
 }
