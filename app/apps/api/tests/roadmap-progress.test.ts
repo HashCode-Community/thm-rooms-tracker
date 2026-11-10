@@ -107,7 +107,10 @@ describe("la duree restante suit les rooms terminees", () => {
   });
 
   it("ne compte pas deux fois un meme code present dans plusieurs etapes", () => {
-    const steps = [step(1, [room("partagee", "core", 20)]), step(2, [room("partagee", "core", 20)])];
+    const steps = [
+      step(1, [room("partagee", "core", 20)]),
+      step(2, [room("partagee", "core", 20)]),
+    ];
 
     expect(remainingCoreMinutes(steps, new Set())).toBe(20);
     expect(remainingCoreMinutes(steps, new Set(["partagee"]))).toBe(0);
