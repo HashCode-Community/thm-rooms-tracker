@@ -20,8 +20,8 @@ Comptez une heure la première fois, dont la moitié à attendre des constructio
 
 | Dossier | Quand vous vous en servez | Ce que c'est |
 |---|---|---|
-| [`1-base/`](1-base) | étape 2 | `remplir-la-base.ps1` — une commande qui remplit la base avec les 714 rooms, et le SQL pour vérifier |
-| [`2-api/`](2-api) | étape 3 | le `Dockerfile` de l'API et les six variables à coller |
+| [`1-base/`](1-base) | étape 2 | `remplir-la-base.ps1` — une commande qui remplit la base avec le dataset courant, et le SQL pour vérifier |
+| [`2-api/`](2-api) | étape 3 | le `Dockerfile` de l'API et les neuf variables à coller |
 | [`3-site/`](3-site) | étape 4 | `preparer-le-site.ps1` — une commande qui construit le site et produit le dossier à déposer |
 
 Et à la racine du dépôt, un fichier qui ne peut pas être ailleurs :
@@ -50,8 +50,7 @@ d'être déployée. D'où l'étape 5 : elle n'est pas un oubli, c'est l'ordre ob
 ## Les trois choses qui font perdre une soirée
 
 1. **La branche.** Partout où un service demande quelle branche déployer, répondez
-   **`feat/refonte-ui`**. `main` a 61 commits de retard : vous mettriez en ligne la version d'il y a
-   une semaine.
+   **`main`**. C'est la branche de production et la cible des correctifs fusionnés.
 2. **`CORS_ORIGINS` sans barre oblique finale.** `https://mon-site.pages.dev` et non
    `https://mon-site.pages.dev/`. Avec la barre, le site s'affiche mais reste vide, sans message.
 3. **Le `--apply` des commandes de l'étape 2.** Sans lui, elles font une simulation, se terminent
